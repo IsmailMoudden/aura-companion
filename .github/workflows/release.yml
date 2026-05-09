@@ -1,0 +1,136 @@
+name: Build & Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-mac:
+    name: macOS (${{ matrix.arch }})
+    runs-on: macos-14
+    strategy:
+      matrix:
+        include:
+          - arch: arm64
+            artifact: Aura-${{ github.ref_name }}-arm64.dmg
+          - arch: x64
+            artifact: Aura-${{ github.ref_name }}-x64.dmg
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Build overlay bundle
+        run: bunx vite build --config vite.overlay.config.ts
+        env:
+          VITE_WEB_URL: ${{ secrets.VITE_WEB_URL }}
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+
+      - name: Build Electron main + preload
+        run: |
+          bunx esbuild electron/main.ts electron/preload.ts \
+            --bundle --platform=node --target=node20 \
+            --external:electron --outdir=dist-electron \
+            --format=cjs --sourcemap
+          node -e "require('fs').writeFileSync('dist-electron/package.json', JSON.stringify({type:'commonjs'}))"
+
+      - name: Package DMG (${{ matrix.arch }})
+        run: bunx electron-builder --mac dmg --${{ matrix.arch }}
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mac-${{ matrix.arch }}
+          path: release/*.dmg
+
+  build-win:
+    name: Windows (x64)
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Build overlay bundle
+        run: bunx vite build --config vite.overlay.config.ts
+        env:
+          VITE_WEB_URL: ${{ secrets.VITE_WEB_URL }}
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+
+      - name: Build Electron main + preload
+        run: |
+          bunx esbuild electron/main.ts electron/preload.ts `
+            --bundle --platform=node --target=node20 `
+            --external:electron --outdir=dist-electron `
+            --format=cjs --sourcemap
+          node -e "require('fs').writeFileSync('dist-electron/package.json', JSON.stringify({type:'commonjs'}))"
+
+      - name: Package NSIS installer
+        run: bunx electron-builder --win nsis --x64
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: win-x64
+          path: release/*.exe
+
+  release:
+    name: Create GitHub Release
+    needs: [build-mac, build-win]
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: List artifacts
+        run: find artifacts -type f
+
+      - name: Create Release & upload assets
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Aura ${{ github.ref_name }}
+          body: |
+            ## Aura ${{ github.ref_name }}
+
+            Your ambient AI companion — free during early access.
+
+            ### Download
+            | Platform | File |
+            |---|---|
+            | macOS Apple Silicon | `Aura-${{ github.ref_name }}-arm64.dmg` |
+            | macOS Intel | `Aura-${{ github.ref_name }}-x64.dmg` |
+            | Windows x64 | `Aura-${{ github.ref_name }}-x64-setup.exe` |
+
+            ### Install
+            - **macOS**: open the `.dmg`, drag Aura to Applications. Right-click → Open the first time (unsigned build).
+            - **Windows**: run the `.exe` installer, then launch Aura from the Start menu.
+          files: |
+            artifacts/**/*.dmg
+            artifacts/**/*.exe
+          draft: false
+          prerelease: false

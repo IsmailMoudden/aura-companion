@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useState } from "react";
 import { Orb } from "@/components/aura/orb";
 import { PillButton } from "@/components/aura/pill-button";
 import { Section } from "@/components/landing/section";
@@ -6,6 +7,7 @@ import { FeatureGrid } from "@/components/landing/feature-grid";
 import { DesktopMock } from "@/components/landing/desktop-mock";
 import { GlassPanel } from "@/components/aura/glass-panel";
 import { Reveal } from "@/components/aura/reveal";
+import { DownloadModal } from "@/components/landing/download-modal";
 import { ArrowRight, Download, Eye, Sparkles, Brain, Wind, MessagesSquare, Layers } from "lucide-react";
 const featureSeesVideo = "/videos/feature-sees.mp4";
 const featureRemembersVideo = "/videos/feature-memory.mov";
@@ -26,8 +28,10 @@ export const Route = createFileRoute("/")({
 });
 
 function Landing() {
+  const [downloadOpen, setDownloadOpen] = useState(false);
   return (
     <main className="relative">
+      <DownloadModal open={downloadOpen} onClose={() => setDownloadOpen(false)} />
       {/* HERO */}
       <section className="relative flex min-h-[100vh] flex-col items-center justify-center px-6 pt-40 pb-24 text-center">
         <div className="absolute inset-x-0 top-32 -z-10 flex justify-center">
@@ -51,7 +55,7 @@ function Landing() {
           className="mt-12 flex flex-wrap items-center justify-center gap-4 animate-fade-up"
           style={{ animationDelay: "0.4s" }}
         >
-          <PillButton size="lg" href="https://github.com/IsmailMoudden/aura-companion/releases/download/v0.1.0/Aura-0.1.0-arm64.dmg">
+          <PillButton size="lg" onClick={() => setDownloadOpen(true)}>
             <Download className="h-4 w-4" /> Download Overlay
           </PillButton>
           <PillButton size="lg" variant="ghost" to="/app">
@@ -151,7 +155,7 @@ function Landing() {
       >
         <Reveal variant="soft">
           <div className="flex flex-wrap justify-center gap-4">
-            <PillButton size="lg" href="https://github.com/IsmailMoudden/aura-companion/releases/download/v0.1.0/Aura-0.1.0-arm64.dmg"><Download className="h-4 w-4" /> Download for macOS</PillButton>
+            <PillButton size="lg" onClick={() => setDownloadOpen(true)}><Download className="h-4 w-4" /> Download for free</PillButton>
             <PillButton size="lg" variant="ghost" to="/app">Open the web app <ArrowRight className="h-4 w-4" /></PillButton>
           </div>
         </Reveal>
