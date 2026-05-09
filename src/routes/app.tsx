@@ -157,10 +157,11 @@ function ChatPage() {
   }
 
   return (
-    <main className="relative pt-28 pb-10 px-4 sm:px-6">
+    <main className="relative pt-24 pb-4 px-3 sm:px-6 sm:pt-28 sm:pb-10">
       <div
-        className="mx-auto grid h-[calc(100vh-9rem)] max-w-7xl gap-4 transition-[grid-template-columns] duration-300"
-        style={{ gridTemplateColumns: sidebarOpen ? "300px 1fr" : "0px 1fr" }}
+        className={`mx-auto grid h-[calc(100svh-7rem)] sm:h-[calc(100vh-9rem)] max-w-7xl gap-4 grid-cols-1 transition-[grid-template-columns] duration-300 ${
+          sidebarOpen ? "lg:grid-cols-[300px_1fr]" : "lg:grid-cols-[0px_1fr]"
+        }`}
       >
         {/* Sidebar */}
         <GlassPanel
@@ -210,7 +211,7 @@ function ChatPage() {
 
         {/* Conversation */}
         <GlassPanel className="relative flex flex-col overflow-hidden">
-          <div className="flex items-center justify-between border-b border-white/[0.08] px-8 py-5">
+          <div className="flex items-center justify-between gap-3 border-b border-white/[0.08] px-4 py-4 sm:px-8 sm:py-5">
             <div className="flex min-w-0 items-center gap-3">
               <button
                 onClick={() => setSidebarOpen((v) => !v)}
@@ -220,11 +221,11 @@ function ChatPage() {
                 {sidebarOpen ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeftOpen className="h-4 w-4" />}
               </button>
               <div className="min-w-0">
-              <p className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground">Conversation</p>
-              <h1 className="text-display truncate text-2xl">{activeConvo?.title ?? "A new beginning"}</h1>
+                <p className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground">Conversation</p>
+                <h1 className="text-display truncate text-xl sm:text-2xl">{activeConvo?.title ?? "A new beginning"}</h1>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex shrink-0 items-center gap-1 sm:gap-2">
               <button
                 onClick={newConversation}
                 className="rounded-full p-2 text-muted-foreground hover:bg-white/10 hover:text-foreground"
@@ -239,11 +240,11 @@ function ChatPage() {
               >
                 <LogOut className="h-4 w-4" />
               </button>
-              <Orb size={36} />
+              <Orb size={32} className="hidden sm:block" />
             </div>
           </div>
 
-          <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 sm:px-10 py-10">
+          <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 sm:px-10 py-6 sm:py-10">
             <div className="mx-auto max-w-2xl space-y-8">
               {messages.length === 0 && (
                 <div className="text-center">
