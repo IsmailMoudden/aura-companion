@@ -38,7 +38,7 @@ export function FloatingNav() {
           {[
             { to: "/", label: "Product" },
             { to: "/overlay", label: "Overlay" },
-            ...(user ? [{ to: "/app", label: "Chat" }] : []),
+            { to: "/app", label: "Chat" },
             { to: "/settings", label: "Settings" },
           ].map((l) => (
             <li key={l.to}>
