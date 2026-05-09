@@ -101,10 +101,12 @@ function setWindowSize(width: number, height: number) {
   if (!win || win.isDestroyed()) return;
   const w = Math.round(width);
   const h = Math.round(height);
-  // Keep the window centered on the same point as before
-  const [cx, cy] = [state.currentX + win.getBounds().width / 2, state.currentY + win.getBounds().height / 2];
-  const x = Math.round(cx - w / 2);
-  const y = Math.round(cy - h / 2);
+  // Anchor to bottom-right corner so expanding goes up/left, never off-screen
+  const prevBounds = win.getBounds();
+  const anchorX = prevBounds.x + prevBounds.width;
+  const anchorY = prevBounds.y + prevBounds.height;
+  const x = Math.max(0, anchorX - w);
+  const y = Math.max(30, anchorY - h); // 30px = macOS menu bar height
   win.setBounds({ x, y, width: w, height: h });
   state.currentX = x;
   state.currentY = y;
@@ -144,9 +146,9 @@ async function createWindow() {
   state.screenWidth = display.workAreaSize.width;
   state.screenHeight = display.workAreaSize.height;
 
-  // Center of screen for debugging
-  state.currentX = Math.round(state.screenWidth / 2) - 240;
-  state.currentY = Math.round(state.screenHeight / 2) - 340;
+  // Bottom-right corner, safe from menu bar
+  state.currentX = state.screenWidth - 80;
+  state.currentY = state.screenHeight - 80;
 
   state.mainWindow = new BrowserWindow({
     ...AuraWindowConfig.baseSettings,
