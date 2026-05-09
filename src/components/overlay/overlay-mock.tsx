@@ -59,8 +59,10 @@ export function OverlayMock({ state }: { state: OverlayState }) {
         <Camera className="h-4 w-4 text-foreground/80" />
       </div>
       <div className="rounded-2xl bg-foreground/[0.08] p-3 border border-foreground/15">
-        <div className="aspect-[16/9] rounded-xl"
-          style={{ background: "linear-gradient(135deg, oklch(0.5 0.13 265 / 0.6), oklch(0.38 0.1 275 / 0.55))" }}
+        <img
+          src="/screenshot-demo.png"
+          alt="Screenshot"
+          className="aspect-[16/9] w-full rounded-xl object-cover"
         />
         <p className="mt-2 text-xs text-foreground/75">Screenshot · 3:42 PM</p>
       </div>
