@@ -66,7 +66,7 @@ function OverlayPage() {
           <div
             className="relative aspect-[16/10] overflow-hidden rounded-[2rem] shadow-2xl animate-fade-up"
             style={{
-              background: "linear-gradient(135deg, oklch(0.32 0.08 280) 0%, oklch(0.2 0.06 270) 60%, oklch(0.16 0.04 250) 100%)",
+              background: "linear-gradient(158deg, oklch(0.58 0.09 235) 0%, oklch(0.50 0.10 248) 50%, oklch(0.44 0.09 258) 100%)",
               boxShadow: "var(--shadow-soft)",
             }}
           >
