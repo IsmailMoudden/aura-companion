@@ -1,4 +1,4 @@
-import { app, BrowserWindow, screen } from 'electron';
+import { app, BrowserWindow, screen, shell } from 'electron';
 import path from 'path';
 import * as dotenv from 'dotenv';
 import { AuraWindowConfig } from './window-config/AuraWindowConfig';
@@ -249,6 +249,43 @@ app.on('window-all-closed', () => {
 app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) {
     createWindow().catch(console.error);
+  }
+});
+
+// ─── Deep link — aura://auth?access_token=...&refresh_token=... ──────────────
+const PROTOCOL = 'aura';
+
+// Register as default handler for aura:// links
+if (!app.isDefaultProtocolClient(PROTOCOL)) {
+  app.setAsDefaultProtocolClient(PROTOCOL);
+}
+
+function handleDeepLink(url: string) {
+  if (!url.startsWith(`${PROTOCOL}://auth`)) return;
+  const params = new URL(url.replace(`${PROTOCOL}://`, 'https://placeholder/')).searchParams;
+  const accessToken = params.get('access_token');
+  const refreshToken = params.get('refresh_token');
+  if (!accessToken || !refreshToken) return;
+  const win = state.mainWindow;
+  if (win && !win.isDestroyed()) {
+    win.webContents.send('auth:deep-link', { accessToken, refreshToken });
+    win.show();
+  }
+}
+
+// macOS: deep link via open-url event
+app.on('open-url', (event, url) => {
+  event.preventDefault();
+  handleDeepLink(url);
+});
+
+// Windows/Linux: deep link arrives as second-instance argv
+app.on('second-instance', (_event, argv) => {
+  const url = argv.find((a) => a.startsWith(`${PROTOCOL}://`));
+  if (url) handleDeepLink(url);
+  if (state.mainWindow) {
+    if (state.mainWindow.isMinimized()) state.mainWindow.restore();
+    state.mainWindow.focus();
   }
 });
 

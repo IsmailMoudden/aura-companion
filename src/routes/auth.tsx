@@ -19,11 +19,24 @@ function AuthPage() {
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
 
+  // If ?overlay=true, we came from the Electron app — redirect back via deep link after login
+  const isOverlayFlow = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('overlay') === 'true';
+
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
-      if (data.session) navigate({ to: "/app" });
+      if (data.session) {
+        if (isOverlayFlow) {
+          redirectToOverlay(data.session.access_token, data.session.refresh_token);
+        } else {
+          navigate({ to: "/app" });
+        }
+      }
     });
-  }, [navigate]);
+  }, [navigate, isOverlayFlow]);
+
+  function redirectToOverlay(accessToken: string, refreshToken: string) {
+    window.location.href = `aura://auth?access_token=${encodeURIComponent(accessToken)}&refresh_token=${encodeURIComponent(refreshToken)}`;
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,8 +54,12 @@ function AuthPage() {
         if (error) throw error;
         toast.success("Check your email to confirm your account.");
       } else {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
+        if (isOverlayFlow && data.session) {
+          redirectToOverlay(data.session.access_token, data.session.refresh_token);
+          return;
+        }
         navigate({ to: "/app" });
       }
     } catch (err: any) {
