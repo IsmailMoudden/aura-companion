@@ -55,7 +55,7 @@ export function OverlayApp() {
 
   useEffect(() => {
     if (!isElectron) return;
-    if (!expanded) { window.aura!.updateDimensions(80, 80); return; }
+    if (!expanded) { window.aura!.updateDimensions(60, 60); return; }
     window.aura!.updateDimensions(520, compact ? 180 : 660);
   }, [expanded, compact]);
 
@@ -191,11 +191,11 @@ export function OverlayApp() {
       ) : (
         <button
           onClick={() => setExpanded(true)}
-          className="relative flex items-center justify-center rounded-full outline-none"
-          style={{ width: 72, height: 72, WebkitAppRegion: 'no-drag', background: 'transparent', border: 'none' } as React.CSSProperties}
+          className="relative flex items-center justify-center rounded-full outline-none animate-breathe"
+          style={{ width: 52, height: 52, WebkitAppRegion: 'no-drag', background: 'transparent', border: 'none', opacity: 0.72 } as React.CSSProperties}
           title="Open Aura  (Alt+Space)"
         >
-          <Orb size={72} state={orbState} variant="overlay" noHalo />
+          <Orb size={52} state={orbState} variant="overlay" noHalo />
         </button>
       )}
     </div>
