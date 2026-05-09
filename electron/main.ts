@@ -8,8 +8,6 @@ import { initializeIpcHandlers } from './ipc.handlers';
 
 dotenv.config({ path: path.join(process.cwd(), '.env') });
 
-const isDev = !app.isPackaged;
-const OVERLAY_PORT = 54322;
 
 const state = {
   mainWindow: null as BrowserWindow | null,
@@ -164,22 +162,8 @@ async function createWindow() {
   state.mainWindow.setContentProtection(true);
   applyPlatformConfig();
 
-  // Retry dev server load
-  state.mainWindow.webContents.on('did-fail-load', () => {
-    if (isDev) {
-      setTimeout(() => {
-        state.mainWindow?.loadURL(`http://localhost:${OVERLAY_PORT}/overlay.html`).catch(() => {});
-      }, 1000);
-    }
-  });
-
-  if (isDev) {
-    setTimeout(() => {
-      state.mainWindow?.loadURL(`http://localhost:${OVERLAY_PORT}/overlay.html`).catch(console.error);
-    }, 200);
-  } else {
-    await state.mainWindow.loadFile(path.join(__dirname, '../dist-overlay/overlay.html'));
-  }
+  // Always load from dist-overlay/ — Vite runs in --watch mode (no dev server)
+  await state.mainWindow.loadFile(path.join(__dirname, '../../dist-overlay/overlay.html'));
 
   state.mainWindow.on('move', () => {
     if (!state.mainWindow) return;
