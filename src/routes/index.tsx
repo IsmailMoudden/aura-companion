@@ -5,6 +5,7 @@ import { Section } from "@/components/landing/section";
 import { FeatureGrid } from "@/components/landing/feature-grid";
 import { DesktopMock } from "@/components/landing/desktop-mock";
 import { GlassPanel } from "@/components/aura/glass-panel";
+import { Reveal } from "@/components/aura/reveal";
 import { ArrowRight, Download, Eye, Sparkles, Brain, Wind, MessagesSquare, Layers } from "lucide-react";
 
 export const Route = createFileRoute("/")({
@@ -81,7 +82,9 @@ function Landing() {
         title={<>Context, captured.</>}
         description="Press a shortcut. Aura sees what you see, a document, a design, a mistake, and meets you exactly there."
       >
-        <DesktopMock />
+        <Reveal variant="scale">
+          <DesktopMock />
+        </Reveal>
       </Section>
 
       {/* AMBIENT INTELLIGENCE */}
@@ -90,9 +93,11 @@ function Landing() {
         title={<>An intelligence that<br /><em className="italic text-muted-foreground/80">breathes with you.</em></>}
         description="Aura fades into the background of your work. Soft glows, calm sound, gentle motion, designed to feel less like software and more like presence."
       >
-        <div className="relative flex h-[420px] items-center justify-center">
-          <Orb size={320} state="thinking" />
-        </div>
+        <Reveal variant="scale">
+          <div className="relative flex h-[420px] items-center justify-center">
+            <Orb size={320} state="thinking" />
+          </div>
+        </Reveal>
       </Section>
 
       {/* STAY IN FLOW */}
@@ -116,12 +121,12 @@ function Landing() {
         title="Talk to your work."
         description="Drop in a screenshot, a thought, a vague feeling. Aura threads it together into something you can act on."
       >
-        <GlassPanel strong className="mx-auto max-w-3xl p-10 text-left animate-fade-up">
+        <GlassPanel strong className="mx-auto max-w-3xl p-10 text-left">
           <div className="space-y-8">
-            <div className="ml-auto max-w-md rounded-3xl rounded-tr-md bg-white/[0.06] px-5 py-4 text-[15px] font-light">
+            <Reveal variant="soft" className="ml-auto max-w-md rounded-3xl rounded-tr-md bg-white/[0.06] px-5 py-4 text-[15px] font-light">
               Can you summarize this report and pull out the three risks?
-            </div>
-            <div className="max-w-lg">
+            </Reveal>
+            <Reveal variant="soft" delay={0.25} className="max-w-lg">
               <p className="mb-2 text-xs uppercase tracking-[0.2em] text-muted-foreground">Aura</p>
               <p className="text-[17px] font-light leading-relaxed">
                 Of course. The report frames a strong quarter, but three quiet
@@ -129,7 +134,7 @@ function Landing() {
                 pipeline, and a margin shift in the EU segment. Want me to draft a
                 note for your team?
               </p>
-            </div>
+            </Reveal>
           </div>
         </GlassPanel>
       </Section>
@@ -139,10 +144,12 @@ function Landing() {
         title={<>Meet your<br /><em className="italic text-muted-foreground/80">quiet companion.</em></>}
         description="Free during early access. No accounts to wrangle. Just a soft, intelligent presence."
       >
-        <div className="flex flex-wrap justify-center gap-4">
-          <PillButton size="lg"><Download className="h-4 w-4" /> Download for macOS</PillButton>
-          <PillButton size="lg" variant="ghost" to="/app">Open the web app <ArrowRight className="h-4 w-4" /></PillButton>
-        </div>
+        <Reveal variant="soft">
+          <div className="flex flex-wrap justify-center gap-4">
+            <PillButton size="lg"><Download className="h-4 w-4" /> Download for macOS</PillButton>
+            <PillButton size="lg" variant="ghost" to="/app">Open the web app <ArrowRight className="h-4 w-4" /></PillButton>
+          </div>
+        </Reveal>
       </Section>
 
       <footer className="border-t border-white/[0.05] px-6 py-12">
