@@ -25,6 +25,7 @@ function ChatPage() {
   const [busy, setBusy] = useState(false);
   const [search, setSearch] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -209,6 +210,65 @@ function ChatPage() {
           </div>
         </GlassPanel>
 
+        {/* Mobile sidebar drawer */}
+        {mobileSidebarOpen && (
+          <div className="fixed inset-0 z-40 lg:hidden">
+            <div
+              className="absolute inset-0 bg-black/40 backdrop-blur-sm animate-fade-in"
+              onClick={() => setMobileSidebarOpen(false)}
+            />
+            <GlassPanel
+              strong
+              className="absolute left-3 top-3 bottom-3 flex w-[82vw] max-w-[320px] flex-col overflow-hidden p-5 animate-fade-up"
+            >
+              <button
+                onClick={() => {
+                  newConversation();
+                  setMobileSidebarOpen(false);
+                }}
+                className="mb-5 flex w-full items-center gap-3 rounded-2xl bg-white/[0.07] px-4 py-3 text-sm font-light hover:bg-white/[0.12] transition-colors"
+              >
+                <Plus className="h-4 w-4" /> New conversation
+              </button>
+              <div className="relative mb-5">
+                <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                <input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search…"
+                  className="w-full rounded-2xl bg-white/[0.06] py-2.5 pl-9 pr-3 text-sm font-light placeholder:text-muted-foreground focus:outline-none focus:bg-white/[0.09]"
+                />
+              </div>
+              <div className="flex-1 space-y-1 overflow-y-auto">
+                <p className="px-2 pt-2 text-[10px] uppercase tracking-[0.25em] text-muted-foreground">Recent</p>
+                {filtered.length === 0 && (
+                  <p className="px-3 py-4 text-sm font-light text-muted-foreground">No conversations yet.</p>
+                )}
+                {filtered.map((c) => (
+                  <button
+                    key={c.id}
+                    onClick={() => {
+                      setActiveId(c.id);
+                      setMobileSidebarOpen(false);
+                    }}
+                    className={`w-full truncate rounded-xl px-3 py-2.5 text-left text-sm font-light transition-colors ${
+                      c.id === activeId ? "bg-white/[0.1] text-foreground" : "text-muted-foreground hover:bg-white/[0.06] hover:text-foreground"
+                    }`}
+                  >
+                    {c.title}
+                  </button>
+                ))}
+              </div>
+              <div className="mt-4 flex items-center justify-between border-t border-white/10 pt-4">
+                <span className="truncate text-xs font-light text-muted-foreground">{user.email}</span>
+                <button onClick={signOut} className="rounded-full p-2 text-muted-foreground hover:bg-white/10 hover:text-foreground">
+                  <LogOut className="h-4 w-4" />
+                </button>
+              </div>
+            </GlassPanel>
+          </div>
+        )}
+
         {/* Conversation */}
         <GlassPanel className="relative flex flex-col overflow-hidden">
           <div className="flex items-center justify-between gap-3 border-b border-white/[0.08] px-4 py-4 sm:px-8 sm:py-5">
@@ -219,6 +279,13 @@ function ChatPage() {
                 title={sidebarOpen ? "Hide history" : "Show history"}
               >
                 {sidebarOpen ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeftOpen className="h-4 w-4" />}
+              </button>
+              <button
+                onClick={() => setMobileSidebarOpen(true)}
+                className="inline-flex rounded-full p-2 text-muted-foreground hover:bg-white/10 hover:text-foreground lg:hidden"
+                title="Show history"
+              >
+                <PanelLeftOpen className="h-4 w-4" />
               </button>
               <div className="min-w-0">
                 <p className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground">Conversation</p>
@@ -267,6 +334,19 @@ function ChatPage() {
                     <p className="whitespace-pre-wrap text-[17px] font-light leading-relaxed">{m.content}</p>
                   </div>
                 )
+              )}
+              {busy && (
+                <div className="max-w-xl animate-fade-in">
+                  <p className="mb-3 flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-muted-foreground">
+                    <Sparkles className="h-3 w-3" /> Aura
+                  </p>
+                  <div className="flex items-center gap-4">
+                    <Orb size={28} state="thinking" />
+                    <span className="text-[15px] font-light italic text-muted-foreground reflecting-shimmer">
+                      Reflecting…
+                    </span>
+                  </div>
+                </div>
               )}
             </div>
           </div>
