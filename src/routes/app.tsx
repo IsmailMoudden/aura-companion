@@ -102,8 +102,26 @@ function ChatPage() {
       setMessages((m) => [...m, inserted as Message]);
       setInput("");
 
-      // Placeholder soft assistant reply (no AI call yet)
-      const reply = "I'm here, listening. Tell me a little more, what's underneath that?";
+      // Build history for context (last 20 messages)
+      const history = [...messages, inserted as Message]
+        .slice(-20)
+        .map((m) => ({ role: m.role, content: m.content }));
+
+      // Call Kimi via Edge Function
+      const { data: { session } } = await supabase.auth.getSession();
+      const fnRes = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session?.access_token ?? ""}`,
+          },
+          body: JSON.stringify({ messages: history, conversationId: convoId }),
+        },
+      );
+      const fnJson = await fnRes.json() as { reply?: string; error?: string };
+      const reply = fnJson.reply ?? "I'm here — something went quiet. Try again?";
       const { data: aiInserted } = await supabase
         .from("messages")
         .insert({ conversation_id: convoId, user_id: user.id, role: "assistant", content: reply })
