@@ -7,9 +7,9 @@ import { DesktopMock } from "@/components/landing/desktop-mock";
 import { GlassPanel } from "@/components/aura/glass-panel";
 import { Reveal } from "@/components/aura/reveal";
 import { ArrowRight, Download, Eye, Sparkles, Brain, Wind, MessagesSquare, Layers } from "lucide-react";
-import featureSees from "@/assets/feature-sees.jpg";
-import featureRemembers from "@/assets/feature-remembers.jpg";
-import featureQuiet from "@/assets/feature-quiet.jpg";
+import featureSeesVideo from "@/assets/3545769-hd_1920_1080_24fps.mp4";
+import featureRemembersVideo from "@/assets/ELEVEN-young-woman-in-colored-light-with-digital-projection-924967-filmsupply.mov";
+import featureQuietVideo from "@/assets/WE SUM-artists-designing-in-blue-lit-lab-450942-filmsupply.mov";
 import featureOverlay from "@/assets/feature-overlay.jpg";
 import featureThreads from "@/assets/feature-threads.jpg";
 import featureSuggestions from "@/assets/feature-suggestions.jpg";
@@ -75,9 +75,9 @@ function Landing() {
       >
         <FeatureGrid
           items={[
-            { icon: <Eye className="h-5 w-5" />, title: "Sees your screen", description: "Aura quietly understands what you're working on, the moment you need it.", image: featureSees, imageAlt: "An ethereal eye watching a glowing screen" },
-            { icon: <Brain className="h-5 w-5" />, title: "Remembers gently", description: "Conversations, screenshots, and ideas, softly woven into a memory you control.", image: featureRemembers, imageAlt: "Glowing memory threads weaving through soft clouds" },
-            { icon: <Wind className="h-5 w-5" />, title: "Stays out of the way", description: "A breath of an interface. Present when called, invisible when not.", image: featureQuiet, imageAlt: "Translucent veils drifting in soft wind" },
+            { icon: <Eye className="h-5 w-5" />, title: "Sees your screen", description: "Aura quietly understands what you're working on, the moment you need it.", video: featureSeesVideo },
+            { icon: <Brain className="h-5 w-5" />, title: "Remembers gently", description: "Conversations, screenshots, and ideas, softly woven into a memory you control.", video: featureRemembersVideo },
+            { icon: <Wind className="h-5 w-5" />, title: "Stays out of the way", description: "A breath of an interface. Present when called, invisible when not.", video: featureQuietVideo },
           ]}
         />
       </Section>
