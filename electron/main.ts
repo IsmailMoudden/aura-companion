@@ -139,9 +139,9 @@ async function createWindow() {
   state.screenWidth = display.workAreaSize.width;
   state.screenHeight = display.workAreaSize.height;
 
-  // Bottom-right corner, orb size
-  state.currentX = state.screenWidth - 120;
-  state.currentY = state.screenHeight - 120;
+  // Center of screen for debugging
+  state.currentX = Math.round(state.screenWidth / 2) - 240;
+  state.currentY = Math.round(state.screenHeight / 2) - 340;
 
   state.mainWindow = new BrowserWindow({
     ...AuraWindowConfig.baseSettings,
@@ -157,7 +157,7 @@ async function createWindow() {
   });
 
   // Load the built overlay
-  await state.mainWindow.loadFile(path.join(__dirname, '../../dist-overlay/overlay.html'));
+  await state.mainWindow.loadFile(path.join(__dirname, '../dist-overlay/overlay.html'));
 
   // macOS overlay configuration — applied after load
   state.mainWindow.setAlwaysOnTop(true, 'screen-saver', 1);
@@ -168,6 +168,7 @@ async function createWindow() {
 
   // Show the window
   state.mainWindow.show();
+  state.mainWindow.webContents.openDevTools({ mode: 'detach' });
   state.isVisible = true;
 
   state.mainWindow.on('move', () => {
