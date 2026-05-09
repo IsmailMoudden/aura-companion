@@ -1,10 +1,13 @@
 import { useState } from "react";
+import type React from "react";
 import { GlassPanel } from "@/components/aura/glass-panel";
 import { Download, X, Apple, Monitor, ChevronRight } from "lucide-react";
 
 const RELEASES_BASE = "https://github.com/IsmailMoudden/aura-companion/releases/download/v0.1.0";
 
-const platforms = [
+type GuideStep = { text: string; code?: string };
+
+const platforms: { id: string; icon: React.ReactNode; label: string; sub: string; url: string; badge: string | null; guide: GuideStep[] }[] = [
   {
     id: "mac-arm",
     icon: <Apple className="h-5 w-5" />,
@@ -13,10 +16,12 @@ const platforms = [
     url: `${RELEASES_BASE}/Aura-0.1.0-arm64.dmg`,
     badge: "Recommended",
     guide: [
-      "Open the .dmg and drag Aura to Applications.",
-      "Right-click Aura in Applications → Open.",
-      'Click "Open" in the security prompt.',
-      "Aura will appear in your menu bar. Press ⌘Space to summon it.",
+      { text: "Open the .dmg and drag Aura to Applications." },
+      { text: 'macOS will block it the first time. Open Terminal and run:', code: "xattr -cr /Applications/Aura.app" },
+      { text: "Double-click Aura to launch. The orb appears on your screen." },
+      { text: "Press Alt+Space to summon or dismiss the overlay." },
+      { text: "Press ⌘+Shift+S to capture your screen and attach it to your next message." },
+      { text: "To quit: hover the panel → click × → then Cmd+Q, or right-click the Dock icon → Quit." },
     ],
   },
   {
@@ -27,10 +32,12 @@ const platforms = [
     url: `${RELEASES_BASE}/Aura-0.1.0-x64.dmg`,
     badge: null,
     guide: [
-      "Open the .dmg and drag Aura to Applications.",
-      "Right-click Aura in Applications → Open.",
-      'Click "Open" in the security prompt.',
-      "Aura will appear in your menu bar. Press ⌘Space to summon it.",
+      { text: "Open the .dmg and drag Aura to Applications." },
+      { text: 'macOS will block it the first time. Open Terminal and run:', code: "xattr -cr /Applications/Aura.app" },
+      { text: "Double-click Aura to launch. The orb appears on your screen." },
+      { text: "Press Alt+Space to summon or dismiss the overlay." },
+      { text: "Press ⌘+Shift+S to capture your screen and attach it to your next message." },
+      { text: "To quit: hover the panel → click × → then Cmd+Q, or right-click the Dock icon → Quit." },
     ],
   },
   {
@@ -41,10 +48,11 @@ const platforms = [
     url: `${RELEASES_BASE}/Aura-0.1.0-x64.exe`,
     badge: null,
     guide: [
-      'Run the installer. If Windows SmartScreen appears, click "More info" → "Run anyway".',
-      "Follow the setup wizard.",
-      "Launch Aura from the Start menu.",
-      "Press Ctrl+Space to summon the overlay.",
+      { text: 'Run the installer. If SmartScreen appears, click "More info" → "Run anyway".' },
+      { text: "Launch Aura from the Start menu. The orb appears on your screen." },
+      { text: "Press Alt+Space to summon or dismiss the overlay." },
+      { text: "Press Ctrl+Shift+S to capture your screen and attach it to your next message." },
+      { text: "To quit: right-click the system tray icon → Quit." },
     ],
   },
 ];
@@ -129,7 +137,14 @@ export function DownloadModal({ open, onClose }: DownloadModalProps) {
                     {p.guide.map((step, i) => (
                       <li key={i} className="flex gap-3 text-[13px] font-light text-muted-foreground leading-relaxed">
                         <span className="mt-0.5 flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full bg-white/[0.08] text-[10px] text-foreground/60">{i + 1}</span>
-                        {step}
+                        <span>
+                          {step.text}
+                          {step.code && (
+                            <code className="mt-1 block rounded-lg bg-black/30 px-3 py-1.5 font-mono text-[11px] text-foreground/80 select-all">
+                              {step.code}
+                            </code>
+                          )}
+                        </span>
                       </li>
                     ))}
                   </ol>
