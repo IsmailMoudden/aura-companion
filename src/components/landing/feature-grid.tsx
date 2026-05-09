@@ -1,6 +1,7 @@
 import { GlassPanel } from "@/components/aura/glass-panel";
 import { ReactNode } from "react";
 import { Reveal } from "@/components/aura/reveal";
+import { Orb } from "@/components/aura/orb";
 
 export function FeatureGrid({
   items,
@@ -11,18 +12,35 @@ export function FeatureGrid({
     <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
       {items.map((it, i) => (
         <Reveal key={it.title} variant="scale" delay={0.1 * i}>
-          <GlassPanel className="group relative h-full overflow-hidden p-8 transition-all duration-700 hover:-translate-y-1">
+          <GlassPanel
+            strong
+            className="group relative h-full overflow-hidden rounded-3xl p-6 transition-all duration-700 hover:-translate-y-1"
+          >
             <div
               aria-hidden
-              className="absolute -right-20 -top-20 h-48 w-48 rounded-full opacity-0 blur-3xl transition-opacity duration-700 group-hover:opacity-60"
+              className="absolute -right-24 -top-24 h-56 w-56 rounded-full opacity-0 blur-3xl transition-opacity duration-700 group-hover:opacity-60"
               style={{ background: "radial-gradient(circle, var(--glow), transparent 70%)" }}
             />
-            <div className="relative">
-              <div className="mb-6 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-white/[0.06] text-[color:var(--glow-soft)]">
+
+            {/* Mini overlay header */}
+            <div className="relative flex items-center gap-3">
+              <Orb size={36} variant="overlay" noHalo className="shrink-0" />
+              <div className="flex flex-1 flex-col leading-tight">
+                <span className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground/80">
+                  Aura
+                </span>
+                <span className="text-[13px] font-light text-foreground/90">
+                  {it.title}
+                </span>
+              </div>
+              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/[0.06] text-[color:var(--glow-soft)]">
                 {it.icon}
               </div>
-              <h3 className="text-display text-2xl">{it.title}</h3>
-              <p className="mt-3 text-[15px] font-light leading-relaxed text-muted-foreground">
+            </div>
+
+            {/* AI "voice" message */}
+            <div className="relative mt-5 rounded-2xl bg-white/[0.04] px-4 py-4 ring-1 ring-inset ring-white/[0.06]">
+              <p className="text-display text-[17px] font-light leading-relaxed text-foreground/95">
                 {it.description}
               </p>
             </div>
