@@ -7,7 +7,10 @@ export function DesktopMock() {
       <div
         className="relative overflow-hidden rounded-[2rem] p-3 shadow-2xl"
         style={{
-          background: "linear-gradient(135deg, oklch(0.3 0.04 285 / 0.6), oklch(0.18 0.03 285 / 0.4))",
+          background: "linear-gradient(135deg, oklch(1 0 0 / 0.18), oklch(1 0 0 / 0.06))",
+          backdropFilter: "blur(24px) saturate(140%)",
+          WebkitBackdropFilter: "blur(24px) saturate(140%)",
+          border: "1px solid oklch(1 0 0 / 0.12)",
           boxShadow: "var(--shadow-soft)",
         }}
       >
@@ -15,7 +18,7 @@ export function DesktopMock() {
           className="relative aspect-[16/10] overflow-hidden rounded-[1.5rem]"
           style={{
             background:
-              "linear-gradient(135deg, oklch(0.35 0.08 280) 0%, oklch(0.22 0.06 270) 50%, oklch(0.18 0.04 250) 100%)",
+              "linear-gradient(135deg, oklch(0.86 0.06 225 / 0.45) 0%, oklch(0.78 0.08 235 / 0.35) 50%, oklch(0.7 0.09 245 / 0.3) 100%)",
           }}
         >
           {/* Fake window chrome */}
