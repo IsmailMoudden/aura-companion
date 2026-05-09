@@ -53,10 +53,18 @@ export function OverlayApp() {
   const hasContent = messages.length > 0 || screenshot !== null;
   const compact = !hasContent;
 
+  // Heights must match the actual rendered content exactly
+  // compact: header (~52px) + input (~48px) + pills (~36px) + gaps = 148px
+  // expanded: full panel
+  const COMPACT_H = 148;
+  const EXPANDED_H = 640;
+  const IDLE_W = 80;
+  const PANEL_W = 460;
+
   useEffect(() => {
     if (!isElectron) return;
-    if (!expanded) { window.aura!.updateDimensions(80, 80); return; }
-    window.aura!.updateDimensions(460, compact ? 148 : 640);
+    if (!expanded) { window.aura!.updateDimensions(IDLE_W, IDLE_W); return; }
+    window.aura!.updateDimensions(PANEL_W, compact ? COMPACT_H : EXPANDED_H);
   }, [expanded, compact]);
 
   useEffect(() => {
@@ -165,7 +173,7 @@ export function OverlayApp() {
   const subtitle = busy ? 'Thinking…' : screenshot ? 'Looking at your screen' : messages.length > 0 ? 'In conversation' : 'Your ambient companion';
 
   return (
-    <div className="flex h-full w-full items-center justify-center">
+    <div className={`flex h-full w-full ${compact ? 'items-start' : 'items-center'} justify-center`}>
       {expanded ? (
         <Panel
           view={view}
@@ -231,7 +239,7 @@ function Panel(p: PanelProps) {
       className="flex flex-col overflow-hidden rounded-[2rem]"
       style={{
         width: '100%',
-        height: '100%',
+        height: p.compact ? 'auto' : '100%',
         background: 'oklch(0.68 0.09 232 / 0.85)',
         backdropFilter: 'blur(40px) saturate(160%)',
         WebkitBackdropFilter: 'blur(40px) saturate(160%)',
