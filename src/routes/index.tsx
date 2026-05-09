@@ -10,8 +10,8 @@ import { ArrowRight, Download, Eye, Sparkles, Brain, Wind, MessagesSquare, Layer
 import featureSeesVideo from "@/assets/3545769-hd_1920_1080_24fps.mp4";
 import featureRemembersVideo from "@/assets/memory-slow.mov";
 import featureQuietVideo from "@/assets/WE SUM-artists-designing-in-blue-lit-lab-450942-filmsupply.mov";
+import featureThreadsVideo from "@/assets/Ezra Cohen-sci-fi-music-studio-355244-filmsupply.mov";
 import featureOverlay from "@/assets/feature-overlay.jpg";
-import featureThreads from "@/assets/feature-threads.jpg";
 import featureSuggestions from "@/assets/feature-suggestions.jpg";
 
 export const Route = createFileRoute("/")({
@@ -115,7 +115,7 @@ function Landing() {
         <FeatureGrid
           items={[
             { icon: <Layers className="h-5 w-5" />, title: "Floating overlay", description: "A translucent companion that lives above any app, ready in one shortcut.", image: featureOverlay, imageAlt: "Glass panel floating above a desk" },
-            { icon: <MessagesSquare className="h-5 w-5" />, title: "Continuous threads", description: "Pick up any conversation hours or weeks later. Nothing is lost.", image: featureThreads, imageAlt: "Luminous threads of light flowing across time" },
+            { icon: <MessagesSquare className="h-5 w-5" />, title: "Continuous threads", description: "Pick up any conversation hours or weeks later. Nothing is lost.", video: featureThreadsVideo },
             { icon: <Sparkles className="h-5 w-5" />, title: "Soft suggestions", description: "Aura nudges, never interrupts. You stay the author of your day.", image: featureSuggestions, imageAlt: "Gentle sparkles drifting in soft glow" },
           ]}
         />
