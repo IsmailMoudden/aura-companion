@@ -11,6 +11,7 @@ import {
 import appCss from "../styles.css?url";
 import { AmbientBackground } from "@/components/aura/ambient-background";
 import { FloatingNav } from "@/components/aura/floating-nav";
+import { Toaster } from "@/components/ui/sonner";
 
 function NotFoundComponent() {
   return (
@@ -124,6 +125,7 @@ function RootComponent() {
       <AmbientBackground />
       <FloatingNav />
       <Outlet />
+      <Toaster />
     </QueryClientProvider>
   );
 }
