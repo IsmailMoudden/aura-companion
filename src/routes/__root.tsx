@@ -79,10 +79,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "description", content: "Aura is a calm, contextual desktop AI that understands your screen and stays quietly in flow with you." },
       { name: "author", content: "Aura" },
       { property: "og:title", content: "Aura, Your ambient AI companion" },
-      { property: "og:description", content: "A quietly brilliant AI that lives on your desktop." },
+      { property: "og:description", content: "Aura is a calm, contextual desktop AI that understands your screen and stays quietly in flow with you." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@aura" },
+      { name: "twitter:title", content: "Aura, Your ambient AI companion" },
+      { name: "twitter:description", content: "Aura is a calm, contextual desktop AI that understands your screen and stays quietly in flow with you." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/7c89e2c4-c260-47cc-a4cb-999928801cf0/id-preview-b8fcfa0d--0c808d87-3a78-43ce-97fd-7d68a9a443ca.lovable.app-1778352083616.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/7c89e2c4-c260-47cc-a4cb-999928801cf0/id-preview-b8fcfa0d--0c808d87-3a78-43ce-97fd-7d68a9a443ca.lovable.app-1778352083616.png" },
     ],
     links: [
       {
