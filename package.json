@@ -10,8 +10,8 @@
     "preview": "vite preview",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "electron:dev": "rm -rf dist-overlay dist-electron && vite build --config vite.overlay.config.ts && npm run electron:bundle && concurrently \"vite build --config vite.overlay.config.ts --watch\" \"npm run electron:bundle -- --watch\" \"electron .\"",
-    "electron:bundle": "esbuild electron/main.ts electron/preload.ts --bundle --platform=node --target=node20 --external:electron --outdir=dist-electron --format=cjs --sourcemap",
+    "electron:dev": "rm -rf dist-overlay dist-electron && vite build --config vite.overlay.config.ts && npm run electron:bundle && concurrently \"vite build --config vite.overlay.config.ts --watch\" \"npm run electron:bundle -- --watch && true\" \"electron .\"",
+    "electron:bundle": "esbuild electron/main.ts electron/preload.ts --bundle --platform=node --target=node20 --external:electron --outdir=dist-electron --format=cjs --sourcemap && echo '{\"type\":\"commonjs\"}' > dist-electron/package.json",
     "electron:build": "vite build --config vite.overlay.config.ts && npm run electron:bundle && electron-builder",
     "electron:pack": "vite build --config vite.overlay.config.ts && npm run electron:bundle && electron-builder --dir"
   },
