@@ -418,12 +418,95 @@ function UserBubble({ message }: { message: Message }) {
   );
 }
 
+function renderMarkdown(text: string): React.ReactNode[] {
+  const lines = text.split('\n');
+  const nodes: React.ReactNode[] = [];
+  let i = 0;
+
+  while (i < lines.length) {
+    const line = lines[i];
+
+    // Code block
+    if (line.startsWith('```')) {
+      const lang = line.slice(3).trim();
+      const codeLines: string[] = [];
+      i++;
+      while (i < lines.length && !lines[i].startsWith('```')) {
+        codeLines.push(lines[i]);
+        i++;
+      }
+      nodes.push(
+        <pre key={i} style={{ background: 'oklch(0 0 0 / 0.25)', borderRadius: 10, padding: '8px 12px', overflowX: 'auto', fontSize: 12, lineHeight: 1.5, margin: '6px 0' }}>
+          <code style={{ fontFamily: 'monospace', color: 'oklch(0.92 0.04 230)' }} data-lang={lang}>{codeLines.join('\n')}</code>
+        </pre>
+      );
+      i++;
+      continue;
+    }
+
+    // Bullet list
+    if (/^[-*•]\s/.test(line)) {
+      nodes.push(
+        <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 2 }}>
+          <span style={{ color: 'oklch(0.82 0.16 235 / 0.7)', flexShrink: 0, marginTop: 1 }}>·</span>
+          <span>{inlineMarkdown(line.replace(/^[-*•]\s/, ''))}</span>
+        </div>
+      );
+      i++;
+      continue;
+    }
+
+    // Numbered list
+    if (/^\d+\.\s/.test(line)) {
+      const num = line.match(/^(\d+)\./)?.[1];
+      nodes.push(
+        <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 2 }}>
+          <span style={{ color: 'oklch(0.82 0.16 235 / 0.7)', flexShrink: 0, minWidth: 14, marginTop: 1 }}>{num}.</span>
+          <span>{inlineMarkdown(line.replace(/^\d+\.\s/, ''))}</span>
+        </div>
+      );
+      i++;
+      continue;
+    }
+
+    // Empty line → spacing
+    if (line.trim() === '') {
+      nodes.push(<div key={i} style={{ height: 6 }} />);
+      i++;
+      continue;
+    }
+
+    // Normal paragraph line
+    nodes.push(
+      <span key={i} style={{ display: 'block' }}>{inlineMarkdown(line)}</span>
+    );
+    i++;
+  }
+
+  return nodes;
+}
+
+function inlineMarkdown(text: string): React.ReactNode {
+  // Split on **bold**, *italic*, `code`
+  const parts = text.split(/(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`)/g);
+  return parts.map((part, idx) => {
+    if (part.startsWith('**') && part.endsWith('**'))
+      return <strong key={idx} style={{ fontWeight: 500, color: 'oklch(0.95 0.04 230)' }}>{part.slice(2, -2)}</strong>;
+    if (part.startsWith('*') && part.endsWith('*'))
+      return <em key={idx} style={{ fontStyle: 'italic', color: 'oklch(0.92 0.06 230)' }}>{part.slice(1, -1)}</em>;
+    if (part.startsWith('`') && part.endsWith('`'))
+      return <code key={idx} style={{ fontFamily: 'monospace', fontSize: 11, background: 'oklch(0 0 0 / 0.22)', borderRadius: 4, padding: '1px 5px', color: 'oklch(0.88 0.08 230)' }}>{part.slice(1, -1)}</code>;
+    return part;
+  });
+}
+
 function AssistantBubble({ message }: { message: Message }) {
   return (
-    <div>
-      <p className="text-display font-light leading-relaxed text-foreground/90" style={{ fontSize: 16, lineHeight: 1.55 }}>
-        {message.content}
-      </p>
+    <div
+      className="text-display font-light text-foreground/90"
+      style={{ fontSize: 14, lineHeight: 1.6 }}
+    >
+      {renderMarkdown(message.content)}
     </div>
   );
 }
