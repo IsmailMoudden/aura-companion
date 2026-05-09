@@ -20,7 +20,7 @@ export function Orb({ size = 200, state = "idle", variant = "default", noHalo = 
     : "radial-gradient(circle, oklch(0.7 0.16 300 / 0.6), transparent 60%)";
 
   const glowShadow = isOverlay
-    ? "0 0 60px oklch(0.72 0.14 232 / 0.5), 0 0 20px oklch(0.72 0.14 232 / 0.3), inset -20px -30px 60px oklch(0.2 0.08 250 / 0.5), inset 20px 20px 40px oklch(1 0 0 / 0.18)"
+    ? "inset -20px -30px 60px oklch(0.2 0.08 250 / 0.5), inset 20px 20px 40px oklch(1 0 0 / 0.18)"
     : "var(--shadow-glow), inset -20px -30px 60px oklch(0.2 0.1 285 / 0.6), inset 20px 20px 40px oklch(1 0 0 / 0.15)";
 
   const ringColor = isOverlay ? "oklch(0.75 0.14 232)" : "var(--glow)";
