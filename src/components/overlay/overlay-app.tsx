@@ -17,8 +17,8 @@ const QUICK_ACTIONS = [
 ];
 
 // Fixed panel dimensions — window is exactly these sizes
-const PANEL_W = 480;
-const PANEL_H_COMPACT = 172;
+const PANEL_W = 372;
+const PANEL_H_COMPACT = 231;
 const PANEL_H_EXPANDED = 660;
 const ORB_W = 72;
 const ORB_H = 72;
@@ -214,7 +214,7 @@ export function OverlayApp() {
           />
           {/* ── Header ── */}
           <div
-            className="relative flex items-center gap-3 px-5"
+            className="relative flex items-center gap-3 px-6"
             style={{ height: 64, WebkitAppRegion: 'drag', flexShrink: 0 } as React.CSSProperties}
           >
             <div style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
@@ -263,10 +263,10 @@ export function OverlayApp() {
           )}
 
           {/* ── Input bar ── */}
-          <div className="px-4 pb-4 pt-3" style={{ flexShrink: 0 }}>
+          <div className={cn('px-5', compact ? 'flex flex-1 flex-col items-center justify-center pb-5' : 'pb-5 pt-3')} style={compact ? {} : { flexShrink: 0 }}>
             {/* Quick actions above input in compact */}
             {compact && (
-              <div className="mb-3 flex items-center justify-center gap-2">
+              <div className="mb-4 flex w-full items-center justify-center gap-2">
                 {QUICK_ACTIONS.map((a) => (
                   <button
                     key={a.label}
@@ -280,9 +280,9 @@ export function OverlayApp() {
                 ))}
               </div>
             )}
-            <form onSubmit={sendMessage}>
+            <form onSubmit={sendMessage} className="w-full">
               <div
-                className="flex items-center gap-2 rounded-full px-4"
+                className="flex w-full items-center gap-2 rounded-full px-4"
                 style={{
                   height: 48,
                   background: 'oklch(1 0 0 / 0.07)',
