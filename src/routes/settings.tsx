@@ -1,9 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { GlassPanel } from "@/components/aura/glass-panel";
 import { Orb } from "@/components/aura/orb";
 import { cn } from "@/lib/utils";
 import { Sparkles, Keyboard, Brain, Palette, Image as ImageIcon, Lock } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/use-auth";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({
@@ -59,9 +62,59 @@ function Row({ title, description, children }: { title: string; description: str
 }
 
 function SettingsPage() {
+  const { user } = useAuth();
   const [active, setActive] = useState("overlay");
-  const [toggles, setToggles] = useState({ alwaysOn: true, breathe: true, sound: false, autoCapture: true, history: true });
-  const t = (k: keyof typeof toggles) => setToggles({ ...toggles, [k]: !toggles[k] });
+  const [toggles, setToggles] = useState({
+    alwaysOn: true,
+    breathe: true,
+    sound: false,
+    autoCapture: true,
+    history: true,
+    localFirst: true,
+    e2e: true,
+  });
+  const [position, setPosition] = useState<"TL" | "TR" | "BL" | "BR">("BR");
+  const [theme, setTheme] = useState(0);
+  const [horizon, setHorizon] = useState("30 days");
+  const [clearing, setClearing] = useState(false);
+
+  // Hydrate from localStorage
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("aura.settings");
+      if (raw) {
+        const s = JSON.parse(raw);
+        if (s.toggles) setToggles((t) => ({ ...t, ...s.toggles }));
+        if (s.position) setPosition(s.position);
+        if (typeof s.theme === "number") setTheme(s.theme);
+        if (s.horizon) setHorizon(s.horizon);
+      }
+    } catch {}
+  }, []);
+  useEffect(() => {
+    localStorage.setItem(
+      "aura.settings",
+      JSON.stringify({ toggles, position, theme, horizon }),
+    );
+  }, [toggles, position, theme, horizon]);
+
+  const t = (k: keyof typeof toggles) =>
+    setToggles((prev) => ({ ...prev, [k]: !prev[k] }));
+
+  const rebind = (label: string) =>
+    toast("Press your new shortcut for " + label, {
+      description: "Coming soon — keybindings are read-only in this preview.",
+    });
+
+  const clearMemory = async () => {
+    if (!user) return toast.error("Sign in to clear your memory.");
+    if (!confirm("Delete every conversation and message? This cannot be undone.")) return;
+    setClearing(true);
+    const { error } = await supabase.from("conversations").delete().eq("user_id", user.id);
+    setClearing(false);
+    if (error) return toast.error(error.message);
+    toast.success("Your memory is clear.");
+  };
 
   return (
     <main className="relative px-4 pb-16 pt-32 sm:px-6">
@@ -114,12 +167,15 @@ function SettingsPage() {
                   </Row>
                   <Row title="Position" description="Where the orb rests when idle.">
                     <div className="flex gap-2 rounded-full bg-white/[0.04] p-1">
-                      {["TL", "TR", "BL", "BR"].map((p, i) => (
+                      {(["TL", "TR", "BL", "BR"] as const).map((p) => (
                         <button
                           key={p}
+                          onClick={() => setPosition(p)}
                           className={cn(
                             "rounded-full px-3 py-1 text-xs font-light",
-                            i === 3 ? "bg-white/[0.08] text-foreground" : "text-muted-foreground",
+                            position === p
+                              ? "bg-white/[0.08] text-foreground"
+                              : "text-muted-foreground hover:text-foreground",
                           )}
                         >
                           {p}
@@ -142,7 +198,12 @@ function SettingsPage() {
                     { t: "Hide overlay", k: "⌥ Esc" },
                   ].map((row) => (
                     <Row key={row.t} title={row.t} description="Click to rebind">
-                      <kbd className="rounded-xl bg-white/[0.06] px-4 py-2 text-xs font-light tracking-wider">{row.k}</kbd>
+                      <button
+                        onClick={() => rebind(row.t)}
+                        className="rounded-xl bg-white/[0.06] px-4 py-2 text-xs font-light tracking-wider hover:bg-white/[0.12] transition-colors"
+                      >
+                        {row.k}
+                      </button>
                     </Row>
                   ))}
                 </div>
@@ -160,7 +221,11 @@ function SettingsPage() {
                     <Toggle on={toggles.autoCapture} onClick={() => t("autoCapture")} />
                   </Row>
                   <Row title="Forget after" description="Memory horizon for casual chats.">
-                    <select className="rounded-full bg-white/[0.06] px-4 py-2 text-sm font-light focus:outline-none">
+                    <select
+                      value={horizon}
+                      onChange={(e) => setHorizon(e.target.value)}
+                      className="rounded-full bg-white/[0.06] px-4 py-2 text-sm font-light focus:outline-none"
+                    >
                       <option>30 days</option>
                       <option>90 days</option>
                       <option>Never</option>
@@ -181,9 +246,10 @@ function SettingsPage() {
                   ].map((th, i) => (
                     <button
                       key={th.name}
+                      onClick={() => setTheme(i)}
                       className={cn(
                         "group relative h-40 overflow-hidden rounded-3xl text-left transition-all",
-                        i === 0 && "ring-1 ring-[color:var(--glow)]",
+                        theme === i && "ring-1 ring-[color:var(--glow)]",
                       )}
                       style={{ background: th.g }}
                     >
@@ -222,14 +288,18 @@ function SettingsPage() {
                 </p>
                 <div className="mt-8">
                   <Row title="Local-first processing" description="Sensitive content never leaves this device.">
-                    <Toggle on onClick={() => {}} />
+                    <Toggle on={toggles.localFirst} onClick={() => t("localFirst")} />
                   </Row>
                   <Row title="End-to-end encryption" description="Synced memories are encrypted with your key.">
-                    <Toggle on onClick={() => {}} />
+                    <Toggle on={toggles.e2e} onClick={() => t("e2e")} />
                   </Row>
                   <Row title="Clear all memory" description="Delete every conversation, screenshot, and note.">
-                    <button className="rounded-full bg-white/[0.06] px-5 py-2 text-sm font-light text-muted-foreground hover:bg-white/[0.1] hover:text-foreground transition-colors">
-                      Clear…
+                    <button
+                      onClick={clearMemory}
+                      disabled={clearing}
+                      className="rounded-full bg-white/[0.06] px-5 py-2 text-sm font-light text-muted-foreground hover:bg-white/[0.1] hover:text-foreground transition-colors disabled:opacity-50"
+                    >
+                      {clearing ? "Clearing…" : "Clear…"}
                     </button>
                   </Row>
                 </div>
