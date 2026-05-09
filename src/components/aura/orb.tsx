@@ -4,10 +4,11 @@ interface OrbProps {
   size?: number;
   state?: "idle" | "listening" | "thinking";
   variant?: "default" | "overlay";
+  noHalo?: boolean;
   className?: string;
 }
 
-export function Orb({ size = 200, state = "idle", variant = "default", className }: OrbProps) {
+export function Orb({ size = 200, state = "idle", variant = "default", noHalo = false, className }: OrbProps) {
   const isOverlay = variant === "overlay";
 
   const orbGradient = isOverlay
@@ -28,10 +29,12 @@ export function Orb({ size = 200, state = "idle", variant = "default", className
   return (
     <div className={cn("relative", className)} style={{ width: size, height: size }}>
       {/* Outer halo */}
-      <div
-        className="absolute inset-[-30%] rounded-full blur-3xl animate-glow-pulse"
-        style={{ background: haloColor }}
-      />
+      {!noHalo && (
+        <div
+          className="absolute inset-[-30%] rounded-full blur-3xl animate-glow-pulse"
+          style={{ background: haloColor }}
+        />
+      )}
       {/* Core orb */}
       <div
         className="absolute inset-0 rounded-full animate-breathe"

@@ -221,7 +221,7 @@ export function OverlayApp() {
           style={{ width: 80, height: 80, WebkitAppRegion: 'no-drag', background: 'transparent', border: 'none' } as React.CSSProperties}
           title="Open Aura  (Alt+Space)"
         >
-          <Orb size={80} state={orbState} variant="overlay" />
+          <Orb size={64} state={orbState} variant="overlay" noHalo />
         </button>
       )}
     </div>
