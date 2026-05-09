@@ -43,11 +43,7 @@ export function Section({
             {description}
           </Reveal>
         )}
-        {children && (
-          <Reveal delay={0.28} className="mt-16">
-            {children}
-          </Reveal>
-        )}
+        {children && <div className="mt-16">{children}</div>}
       </div>
     </section>
   );
