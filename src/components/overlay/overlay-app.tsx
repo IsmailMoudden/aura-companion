@@ -55,7 +55,7 @@ export function OverlayApp() {
 
   useEffect(() => {
     if (!isElectron) return;
-    if (!expanded) { window.aura!.updateDimensions(60, 60); return; }
+    if (!expanded) { window.aura!.updateDimensions(80, 80); return; }
     window.aura!.updateDimensions(480, compact ? 148 : 640);
   }, [expanded, compact]);
 
