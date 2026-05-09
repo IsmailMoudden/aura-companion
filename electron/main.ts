@@ -139,7 +139,7 @@ async function createWindow() {
   state.screenWidth = display.workAreaSize.width;
   state.screenHeight = display.workAreaSize.height;
 
-  // Start in bottom-right corner, small orb size
+  // Bottom-right corner, orb size
   state.currentX = state.screenWidth - 120;
   state.currentY = state.screenHeight - 120;
 
@@ -147,6 +147,7 @@ async function createWindow() {
     ...AuraWindowConfig.baseSettings,
     x: state.currentX,
     y: state.currentY,
+    show: false, // show manually after load to avoid flash
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -155,15 +156,19 @@ async function createWindow() {
     },
   });
 
-  // macOS overlay magic
+  // Load the built overlay
+  await state.mainWindow.loadFile(path.join(__dirname, '../../dist-overlay/overlay.html'));
+
+  // macOS overlay configuration — applied after load
   state.mainWindow.setAlwaysOnTop(true, 'screen-saver', 1);
   state.mainWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
   state.mainWindow.setSkipTaskbar(true);
-  state.mainWindow.setContentProtection(true);
+  state.mainWindow.setIgnoreMouseEvents(false);
   applyPlatformConfig();
 
-  // Always load from dist-overlay/ — Vite runs in --watch mode (no dev server)
-  await state.mainWindow.loadFile(path.join(__dirname, '../../dist-overlay/overlay.html'));
+  // Show the window
+  state.mainWindow.show();
+  state.isVisible = true;
 
   state.mainWindow.on('move', () => {
     if (!state.mainWindow) return;
@@ -178,8 +183,6 @@ async function createWindow() {
   });
 
   state.mainWindow.on('focus', () => applyPlatformConfig());
-
-  state.isVisible = true;
 }
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
