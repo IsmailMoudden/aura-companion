@@ -35,7 +35,7 @@ export function FloatingNav() {
             </li>
           ))}
         </ul>
-        <PillButton to="/app" size="md" className="ml-1">Open app</PillButton>
+        <PillButton to="/auth" size="md" className="ml-1">Sign in</PillButton>
       </nav>
     </header>
   );
