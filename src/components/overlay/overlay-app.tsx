@@ -56,7 +56,7 @@ export function OverlayApp() {
   useEffect(() => {
     if (!isElectron) return;
     if (!expanded) { window.aura!.updateDimensions(80, 80); return; }
-    window.aura!.updateDimensions(460, compact ? 160 : 640);
+    window.aura!.updateDimensions(520, compact ? 180 : 660);
   }, [expanded, compact]);
 
 
@@ -304,8 +304,8 @@ function Header({ orbState, subtitle, onCapture, onCollapse }: {
       style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
     >
       {/* Orb */}
-      <div className="shrink-0" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
-        <Orb size={28} state={orbState} variant="overlay" noHalo />
+      <div className="shrink-0 ml-1" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
+        <Orb size={26} state={orbState} variant="overlay" noHalo />
       </div>
 
       {/* Title — left-aligned, serif italic */}
@@ -425,7 +425,7 @@ function InputBar({ input, setInput, busy, onSend, inputRef, hasMessages, onClea
   const hasText = input.trim().length > 0;
 
   return (
-    <div className={cn('px-3', compact ? 'pb-4 pt-1' : 'pb-3 pt-1')}>
+    <div className={cn('px-3', compact ? 'pb-3 pt-1' : 'pb-3 pt-1')}>
       {/* Input row */}
       <form onSubmit={onSend}>
         <div
@@ -468,7 +468,7 @@ function InputBar({ input, setInput, busy, onSend, inputRef, hasMessages, onClea
 
       {/* Quick actions — only in compact mode (no conversation yet) */}
       {compact && !screenshot && (
-        <div className="mt-2.5 flex items-center justify-center gap-2">
+        <div className="mt-3 flex items-center justify-center gap-2">
           {QUICK_ACTIONS.map((a) => (
             <button
               key={a.label}
