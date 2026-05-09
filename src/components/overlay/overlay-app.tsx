@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { Orb } from '@/components/aura/orb';
-import { Send, X, Camera, Sparkles, ChevronDown, Zap, BookOpen, Languages } from 'lucide-react';
+import { Send, X, Camera, ChevronDown, Zap, BookOpen, Languages } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 
@@ -10,7 +10,6 @@ type PanelView = 'home' | 'chat';
 
 const isElectron = typeof window !== 'undefined' && !!window.aura;
 
-// Quick-action prompts shown when a screenshot is present
 const QUICK_ACTIONS = [
   { icon: Zap, label: 'Summarize', prompt: 'Please summarize what you see on my screen.' },
   { icon: BookOpen, label: 'Explain', prompt: 'Explain what is happening on my screen in simple terms.' },
@@ -30,12 +29,10 @@ export function OverlayApp() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Auth
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
-      if (data.session?.user) {
+      if (data.session?.user)
         setUser({ id: data.session.user.id, email: data.session.user.email ?? '' });
-      }
     });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
       setUser(session?.user ? { id: session.user.id, email: session.user.email ?? '' } : null);
@@ -43,7 +40,6 @@ export function OverlayApp() {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Screenshot from main process
   useEffect(() => {
     if (!isElectron) return;
     const unsub = window.aura!.onScreenshotTaken((data) => {
@@ -54,34 +50,24 @@ export function OverlayApp() {
     return unsub;
   }, []);
 
-  // Tell Electron how big to make the window
+  const hasContent = messages.length > 0 || screenshot !== null;
+  const compact = !hasContent;
+
   useEffect(() => {
     if (!isElectron) return;
-    if (!expanded) {
-      window.aura!.updateDimensions(80, 80);
-      return;
-    }
-    // Compact when no messages, grows with content up to a max
-    const hasContent = messages.length > 0 || screenshot !== null;
-    const w = 460;
-    const h = hasContent ? 640 : 220;
-    window.aura!.updateDimensions(w, h);
-  }, [expanded, messages.length, screenshot]);
+    if (!expanded) { window.aura!.updateDimensions(80, 80); return; }
+    window.aura!.updateDimensions(460, compact ? 148 : 640);
+  }, [expanded, compact]);
 
-  // Auto-scroll
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
   }, [messages.length]);
 
-  // Focus input when entering chat
   useEffect(() => {
-    if (view === 'chat') setTimeout(() => inputRef.current?.focus(), 150);
-  }, [view]);
+    if (expanded) setTimeout(() => inputRef.current?.focus(), 150);
+  }, [expanded]);
 
-  const collapse = useCallback(() => {
-    setExpanded(false);
-    setView('home');
-  }, []);
+  const collapse = useCallback(() => { setExpanded(false); setView('home'); }, []);
 
   const captureScreenshot = useCallback(async () => {
     if (!isElectron) return;
@@ -106,12 +92,7 @@ export function OverlayApp() {
     setOrbState('thinking');
     setView('chat');
 
-    const userMsg: Message = {
-      id: crypto.randomUUID(),
-      role: 'user',
-      content: userContent,
-      screenshot: attachedScreenshot,
-    };
+    const userMsg: Message = { id: crypto.randomUUID(), role: 'user', content: userContent, screenshot: attachedScreenshot };
     setMessages((m) => [...m, userMsg]);
 
     try {
@@ -123,7 +104,6 @@ export function OverlayApp() {
           .select('id').single();
         if (!error && data) { convoId = data.id; setConversationId(convoId); }
       }
-
       if (user && convoId) {
         await supabase.from('messages').insert({
           conversation_id: convoId, user_id: user.id, role: 'user', content: userContent,
@@ -140,16 +120,12 @@ export function OverlayApp() {
       const { data: { session } } = await supabase.auth.getSession();
       const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${session?.access_token ?? ''}`,
-        },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token ?? ''}` },
         body: JSON.stringify(body),
       });
 
       const json = await res.json() as { reply?: string };
       const reply = json.reply ?? "I'm here — something went quiet.";
-
       const assistantMsg: Message = { id: crypto.randomUUID(), role: 'assistant', content: reply };
       setMessages((m) => [...m, assistantMsg]);
 
@@ -158,12 +134,9 @@ export function OverlayApp() {
           conversation_id: convoId, user_id: user.id, role: 'assistant', content: reply,
         });
       }
-
       if (attachedScreenshot) clearScreenshot();
     } catch {
-      setMessages((m) => [...m, {
-        id: crypto.randomUUID(), role: 'assistant', content: 'Something went quiet. Try again?',
-      }]);
+      setMessages((m) => [...m, { id: crypto.randomUUID(), role: 'assistant', content: 'Something went quiet. Try again?' }]);
     } finally {
       setBusy(false);
       setOrbState('idle');
@@ -189,16 +162,7 @@ export function OverlayApp() {
     setView('home');
   }, []);
 
-  // ── Subtitle text in header changes with context ──────────────────────────
-  const subtitle = busy
-    ? 'Thinking…'
-    : screenshot
-      ? 'Looking at your screen'
-      : messages.length > 0
-        ? 'In conversation'
-        : 'Your ambient companion';
-
-  const compact = messages.length === 0 && screenshot === null;
+  const subtitle = busy ? 'Thinking…' : screenshot ? 'Looking at your screen' : messages.length > 0 ? 'In conversation' : 'Your ambient companion';
 
   return (
     <div className="flex h-full w-full items-center justify-center">
@@ -212,6 +176,7 @@ export function OverlayApp() {
           setInput={setInput}
           busy={busy}
           screenshot={screenshot}
+          compact={compact}
           onSend={sendMessage}
           onQuickAction={runQuickAction}
           onCollapse={collapse}
@@ -221,7 +186,6 @@ export function OverlayApp() {
           onSwitchToChat={() => setView('chat')}
           scrollRef={scrollRef}
           inputRef={inputRef}
-          compact={compact}
         />
       ) : (
         <button
@@ -249,6 +213,7 @@ interface PanelProps {
   setInput: (v: string) => void;
   busy: boolean;
   screenshot: { path: string; preview: string } | null;
+  compact: boolean;
   onSend: (e: React.FormEvent) => void;
   onQuickAction: (prompt: string) => void;
   onCollapse: () => void;
@@ -258,7 +223,6 @@ interface PanelProps {
   onSwitchToChat: () => void;
   scrollRef: React.RefObject<HTMLDivElement | null>;
   inputRef: React.RefObject<HTMLInputElement | null>;
-  compact: boolean;
 }
 
 function Panel(p: PanelProps) {
@@ -268,7 +232,7 @@ function Panel(p: PanelProps) {
       style={{
         width: '100%',
         height: '100%',
-        background: 'oklch(0.68 0.09 232 / 0.82)',
+        background: 'oklch(0.68 0.09 232 / 0.85)',
         backdropFilter: 'blur(40px) saturate(160%)',
         WebkitBackdropFilter: 'blur(40px) saturate(160%)',
         boxShadow: '0 40px 120px -20px oklch(0.1 0.04 260 / 0.55), inset 0 1px 0 oklch(1 0 0 / 0.12)',
@@ -284,7 +248,14 @@ function Panel(p: PanelProps) {
       />
 
       {!p.compact && (
-        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+        <div className="relative flex-1 overflow-hidden">
+          {/* Fade top */}
+          <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-6"
+            style={{ background: 'linear-gradient(to bottom, oklch(0.68 0.09 232 / 0.85), transparent)' }} />
+          {/* Fade bottom */}
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-6"
+            style={{ background: 'linear-gradient(to top, oklch(0.68 0.09 232 / 0.85), transparent)' }} />
+
           {p.view === 'home' ? (
             <HomeView
               screenshot={p.screenshot}
@@ -312,39 +283,37 @@ function Panel(p: PanelProps) {
         inputRef={p.inputRef}
         hasMessages={p.messages.length > 0}
         onClear={p.onClearConversation}
+        compact={p.compact}
+        onQuickAction={p.onQuickAction}
+        screenshot={p.screenshot}
       />
     </div>
   );
 }
 
 // ─── Header ───────────────────────────────────────────────────────────────────
-function Header({
-  orbState, subtitle, onCapture, onCollapse,
-}: {
-  orbState: OrbState; subtitle: string;
-  onCapture: () => void; onCollapse: () => void;
+function Header({ orbState, subtitle, onCapture, onCollapse }: {
+  orbState: OrbState; subtitle: string; onCapture: () => void; onCollapse: () => void;
 }) {
   return (
     <div
-      className="flex shrink-0 items-center gap-3 px-4 py-3"
+      className="flex items-center gap-3 px-4 py-3"
       style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
     >
-      {/* Orb — left */}
+      {/* Orb */}
       <div className="shrink-0" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
-        <Orb size={36} state={orbState} variant="overlay" />
+        <Orb size={28} state={orbState} variant="overlay" noHalo />
       </div>
 
-      {/* Center label */}
-      <div className="min-w-0 flex-1 text-center" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
-        <p className="text-[9px] uppercase tracking-[0.32em] text-white/50">Aura</p>
-        <p className="mt-0.5 truncate text-[14px] font-light text-white/90">{subtitle}</p>
+      {/* Title — left-aligned, serif italic */}
+      <div className="flex-1 min-w-0" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
+        <p className="text-display text-[14px] italic text-white/70 truncate" style={{ fontStyle: 'italic' }}>
+          {subtitle}
+        </p>
       </div>
 
-      {/* Camera + collapse — right */}
-      <div
-        className="flex shrink-0 items-center gap-1"
-        style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
-      >
+      {/* Right controls */}
+      <div className="flex shrink-0 items-center gap-0.5" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
         <HdrBtn onClick={onCapture} title="Capture screen (Alt+Shift+C)">
           <Camera className="h-4 w-4" />
         </HdrBtn>
@@ -361,18 +330,15 @@ function HdrBtn({ children, onClick, title }: { children: React.ReactNode; onCli
     <button
       onClick={onClick}
       title={title}
-      className="flex h-8 w-8 items-center justify-center rounded-full text-white/50 transition-colors hover:bg-white/10 hover:text-white/90"
+      className="flex h-7 w-7 items-center justify-center rounded-full text-white/60 transition-colors hover:bg-white/10 hover:text-white/90"
     >
       {children}
     </button>
   );
 }
 
-// ─── Home view ────────────────────────────────────────────────────────────────
-// Shows: screenshot card (if present) + last AI reply + quick-action pills
-function HomeView({
-  screenshot, busy, messages, onQuickAction, onClearScreenshot, onSwitchToChat,
-}: {
+// ─── Home view (screenshot present) ─────────────────────────────────────────
+function HomeView({ screenshot, busy, messages, onQuickAction, onClearScreenshot, onSwitchToChat }: {
   screenshot: { path: string; preview: string } | null;
   busy: boolean;
   messages: Message[];
@@ -382,120 +348,58 @@ function HomeView({
 }) {
   const lastAssistant = [...messages].reverse().find((m) => m.role === 'assistant');
 
+  if (!screenshot) return null;
+
   return (
-    <div className="flex min-h-0 flex-1 flex-col px-4">
-      {screenshot ? (
-        <div className="flex min-h-0 flex-1 flex-col gap-3">
-          {/* Screenshot card */}
-          <div className="relative shrink-0 overflow-hidden rounded-2xl" style={{ background: 'oklch(1 0 0 / 0.06)' }}>
-            <img
-              src={screenshot.preview}
-              alt="Your screen"
-              className="aspect-[16/9] w-full object-cover"
-              style={{ filter: 'brightness(0.92)' }}
-            />
-            <div className="absolute inset-x-0 bottom-0 flex items-center justify-between px-3 py-2"
-              style={{ background: 'linear-gradient(to top, oklch(0.1 0.04 260 / 0.5), transparent)' }}
-            >
-              <p className="text-[11px] font-light text-white/60">
-                Screenshot · {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-              </p>
-              <button
-                onClick={onClearScreenshot}
-                className="rounded-full p-1 text-white/40 hover:bg-white/10 hover:text-white/80"
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
-            </div>
-          </div>
-
-          {/* AI response or thinking indicator */}
-          <div className="min-h-0 flex-1 overflow-y-auto">
-            {busy ? (
-              <div className="flex items-center justify-center gap-2 py-3">
-                <Sparkles className="h-3.5 w-3.5 animate-glow-pulse text-white/50" />
-                <span className="text-[13px] font-light text-white/50">Thinking…</span>
-              </div>
-            ) : lastAssistant ? (
-              <p className="text-center text-[14px] font-light leading-relaxed text-white/90">
-                {lastAssistant.content}
-              </p>
-            ) : (
-              <p className="py-2 text-center text-[13px] font-light text-white/60">
-                What would you like to know about your screen?
-              </p>
-            )}
-          </div>
-
-          {/* Quick-action pills */}
-          {!busy && (
-            <div className="flex shrink-0 flex-wrap justify-center gap-1.5 pb-1">
-              {QUICK_ACTIONS.map((a) => (
-                <button
-                  key={a.label}
-                  onClick={() => onQuickAction(a.prompt)}
-                  className="flex items-center gap-1.5 rounded-full px-3 py-2 text-[12px] font-light text-white/80 transition-all hover:bg-white/15 hover:text-white"
-                  style={{
-                    background: 'oklch(1 0 0 / 0.08)',
-                    border: '1px solid oklch(1 0 0 / 0.1)',
-                  }}
-                >
-                  <a.icon className="h-3 w-3 text-white/60" />
-                  {a.label}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-      ) : (
-        /* No screenshot — empty home */
-        <div className="flex min-h-0 flex-1 flex-col items-center justify-center text-center">
-          <Orb size={64} state="idle" variant="overlay" />
-          <p className="mt-5 text-display text-2xl leading-tight text-white/90">What's on your mind?</p>
-          <p className="mt-1.5 text-[12px] font-light text-white/55">
-            Aura sees your screen and stays in flow.
+    <div className="flex h-full flex-col px-4 pb-2 pt-1">
+      {/* Screenshot card */}
+      <div className="relative overflow-hidden rounded-2xl" style={{ background: 'oklch(1 0 0 / 0.06)' }}>
+        <img src={screenshot.preview} alt="Your screen" className="h-48 w-full object-cover" style={{ filter: 'brightness(0.9)' }} />
+        <div className="absolute inset-x-0 bottom-0 flex items-center justify-between px-3 py-2"
+          style={{ background: 'linear-gradient(to top, oklch(0.1 0.04 260 / 0.5), transparent)' }}>
+          <p className="text-[11px] font-light text-white/50">
+            {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
           </p>
-          {isElectron && (
-            <button
-              onClick={onSwitchToChat}
-              className="mt-5 flex items-center gap-2 rounded-full px-4 py-2 text-[12px] font-light text-white/70 transition-all hover:bg-white/10 hover:text-white/90"
-              style={{ background: 'oklch(1 0 0 / 0.06)', border: '1px solid oklch(1 0 0 / 0.08)' }}
-            >
-              Start a conversation
-            </button>
-          )}
-          {isElectron && (
-            <p className="mt-3 text-[10px] tracking-wide text-white/30">Alt+Shift+C to capture screen</p>
-          )}
+          <button onClick={onClearScreenshot} className="rounded-full p-1 text-white/40 hover:bg-white/10 hover:text-white/70">
+            <X className="h-3 w-3" />
+          </button>
         </div>
-      )}
+      </div>
+
+      {/* AI response */}
+      <div className="mt-3 flex-1">
+        {busy ? (
+          <p className="text-display italic text-[14px] text-white/40">Thinking…</p>
+        ) : lastAssistant ? (
+          <p className="text-display italic text-[15px] leading-relaxed text-white/85">
+            {lastAssistant.content}
+          </p>
+        ) : (
+          <p className="text-display italic text-[14px] text-white/50">
+            What would you like to know?
+          </p>
+        )}
+      </div>
     </div>
   );
 }
 
 // ─── Chat view ────────────────────────────────────────────────────────────────
-function ChatView({
-  messages, busy, scrollRef,
-}: {
+function ChatView({ messages, busy, scrollRef }: {
   messages: Message[];
   busy: boolean;
   scrollRef: React.RefObject<HTMLDivElement | null>;
 }) {
   return (
-    <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto px-4 py-3">
-      <div className="space-y-4">
+    <div ref={scrollRef} className="h-full overflow-y-auto px-4 py-3">
+      <div className="flex flex-col gap-5">
         {messages.map((m) =>
-          m.role === 'user' ? (
-            <UserBubble key={m.id} message={m} />
-          ) : (
-            <AssistantBubble key={m.id} message={m} />
-          ),
+          m.role === 'user' ? <UserBubble key={m.id} message={m} /> : <AssistantBubble key={m.id} message={m} />
         )}
         {busy && (
-          <div className="flex items-center gap-2 text-white/40">
-            <Sparkles className="h-3 w-3 animate-glow-pulse" />
-            <span className="text-[13px] font-light">Thinking…</span>
-          </div>
+          <p className="text-display italic text-[14px] text-white/35 animate-pulse">
+            Thinking…
+          </p>
         )}
       </div>
     </div>
@@ -503,9 +407,7 @@ function ChatView({
 }
 
 // ─── Input bar ────────────────────────────────────────────────────────────────
-function InputBar({
-  input, setInput, busy, onSend, inputRef, hasMessages, onClear,
-}: {
+function InputBar({ input, setInput, busy, onSend, inputRef, hasMessages, onClear, compact, onQuickAction, screenshot }: {
   input: string;
   setInput: (v: string) => void;
   busy: boolean;
@@ -513,47 +415,70 @@ function InputBar({
   inputRef: React.RefObject<HTMLInputElement | null>;
   hasMessages: boolean;
   onClear: () => void;
+  compact: boolean;
+  onQuickAction: (p: string) => void;
+  screenshot: { path: string; preview: string } | null;
 }) {
+  const hasText = input.trim().length > 0;
+
   return (
-    <div className="shrink-0 px-3 pb-3 pt-2">
+    <div className={cn('px-3', compact ? 'pb-4 pt-1' : 'pb-3 pt-1')}>
+      {/* Input row */}
       <form onSubmit={onSend}>
         <div
-          className="flex items-center gap-2 rounded-full pl-4 pr-1.5"
+          className="flex items-center gap-2 rounded-full px-4"
           style={{
-            background: 'oklch(1 0 0 / 0.08)',
-            border: '1px solid oklch(1 0 0 / 0.1)',
+            background: 'oklch(1 0 0 / 0.04)',
+            border: '1px solid oklch(1 0 0 / 0.08)',
           }}
         >
-          <input
-            ref={inputRef}
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask softly…"
-            className="min-w-0 flex-1 bg-transparent py-2.5 text-[14px] font-light text-white placeholder:text-white/40 focus:outline-none"
-          />
           {hasMessages && (
             <button
               type="button"
               onClick={onClear}
-              className="flex h-8 w-8 items-center justify-center rounded-full text-white/30 transition-colors hover:bg-white/10 hover:text-white/60"
+              className="shrink-0 text-white/25 transition-colors hover:text-white/60"
               title="Clear"
             >
               <X className="h-3.5 w-3.5" />
             </button>
           )}
+          <input
+            ref={inputRef}
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="Ask softly…"
+            className="flex-1 bg-transparent py-3 text-display text-[14px] italic text-white placeholder:text-white/30 focus:outline-none"
+            style={{ fontStyle: 'italic' }}
+          />
           <button
             type="submit"
-            disabled={busy || !input.trim()}
+            disabled={busy || !hasText}
             className={cn(
-              'my-1 flex h-8 w-8 items-center justify-center rounded-full text-white transition-opacity',
-              busy || !input.trim() ? 'opacity-25' : 'opacity-100',
+              'shrink-0 transition-all duration-200',
+              hasText && !busy ? 'text-white/80 hover:text-white' : 'text-white/20 pointer-events-none',
             )}
-            style={{ background: 'var(--gradient-hero)', boxShadow: busy || !input.trim() ? 'none' : 'var(--shadow-glow)' }}
           >
             <Send className="h-3.5 w-3.5" />
           </button>
         </div>
       </form>
+
+      {/* Quick actions — only in compact mode (no conversation yet) */}
+      {compact && !screenshot && (
+        <div className="mt-2.5 flex items-center justify-center gap-2">
+          {QUICK_ACTIONS.map((a) => (
+            <button
+              key={a.label}
+              onClick={() => onQuickAction(a.prompt)}
+              className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-light text-white/50 transition-all hover:bg-white/8 hover:text-white/80"
+              style={{ background: 'oklch(1 0 0 / 0.05)', border: '1px solid oklch(1 0 0 / 0.07)' }}
+            >
+              <a.icon className="h-3 w-3" />
+              {a.label}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -561,15 +486,17 @@ function InputBar({
 // ─── Bubbles ──────────────────────────────────────────────────────────────────
 function UserBubble({ message }: { message: Message }) {
   return (
-    <div className="ml-auto max-w-[82%]">
-      {message.screenshot && (
-        <img src={message.screenshot} alt="" className="mb-2 w-full rounded-2xl object-cover opacity-75" />
-      )}
-      <div
-        className="rounded-3xl rounded-tr-md px-4 py-3 text-[14px] font-light leading-relaxed text-white/90"
-        style={{ background: 'oklch(1 0 0 / 0.12)' }}
-      >
-        {message.content}
+    <div className="flex justify-end">
+      <div className="max-w-[80%]">
+        {message.screenshot && (
+          <img src={message.screenshot} alt="" className="mb-2 w-full rounded-2xl object-cover opacity-70" />
+        )}
+        <div
+          className="rounded-3xl rounded-tr-md px-4 py-2.5 text-[14px] font-light leading-relaxed text-white/90"
+          style={{ background: 'oklch(1 0 0 / 0.10)', border: '1px solid oklch(1 0 0 / 0.08)' }}
+        >
+          {message.content}
+        </div>
       </div>
     </div>
   );
@@ -577,9 +504,8 @@ function UserBubble({ message }: { message: Message }) {
 
 function AssistantBubble({ message }: { message: Message }) {
   return (
-    <div className="mr-auto max-w-[92%]">
-      <p className="mb-1.5 text-[9px] uppercase tracking-[0.25em] text-white/35">Aura</p>
-      <p className="whitespace-pre-wrap text-[14px] font-light leading-relaxed text-white/90">
+    <div className="max-w-[92%]">
+      <p className="text-display italic text-[15px] leading-relaxed text-white/85">
         {message.content}
       </p>
     </div>
