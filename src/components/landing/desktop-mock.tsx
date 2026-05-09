@@ -28,7 +28,7 @@ export function DesktopMock() {
             <span className="h-3 w-3 rounded-full bg-white/20" />
           </div>
           {/* Fake doc lines */}
-          <div className="absolute inset-0 p-16 blur-[2px] opacity-60">
+          <div className="absolute inset-0 p-8 sm:p-16 blur-[2px] opacity-60">
             <div className="space-y-3">
               <div className="h-3 w-2/3 rounded bg-white/10" />
               <div className="h-3 w-1/2 rounded bg-white/10" />
@@ -40,7 +40,9 @@ export function DesktopMock() {
             </div>
           </div>
           {/* Overlay panel floating */}
-          <div className="absolute bottom-8 right-8 animate-fade-up">
+          <div
+            className="absolute bottom-3 right-3 sm:bottom-8 sm:right-8 animate-fade-up origin-bottom-right scale-[0.55] sm:scale-75 lg:scale-100"
+          >
             <OverlayMock state="expanded" />
           </div>
         </div>
