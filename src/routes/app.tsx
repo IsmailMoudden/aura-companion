@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { GlassPanel } from "@/components/aura/glass-panel";
 import { Orb } from "@/components/aura/orb";
-import { Send, Plus, Search, LogOut, Sparkles } from "lucide-react";
+import { Send, Plus, LogOut, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
@@ -23,7 +23,6 @@ function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
-  const [search, setSearch] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -126,7 +125,6 @@ function ChatPage() {
     navigate({ to: "/auth" });
   };
 
-  const filtered = convos.filter((c) => c.title.toLowerCase().includes(search.toLowerCase()));
   const activeConvo = convos.find((c) => c.id === activeId);
 
   if (loading || !user) {
