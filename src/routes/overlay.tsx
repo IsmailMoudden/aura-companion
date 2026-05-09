@@ -8,20 +8,20 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/overlay")({
   head: () => ({
     meta: [
-      { title: "Overlay — Aura companion" },
+      { title: "Overlay, Aura companion" },
       { name: "description", content: "A floating, breathing AI companion that lives gently above your apps." },
-      { property: "og:title", content: "Aura Overlay — A floating AI companion" },
-      { property: "og:description", content: "Idle, listening, thinking, expanded — a calm presence on your desktop." },
+      { property: "og:title", content: "Aura Overlay, A floating AI companion" },
+      { property: "og:description", content: "Idle, listening, thinking, expanded, a calm presence on your desktop." },
     ],
   }),
   component: OverlayPage,
 });
 
 const states: { id: OverlayState; label: string; copy: string }[] = [
-  { id: "idle", label: "Idle", copy: "A small breath of light. Aura waits, never demands. You can forget it's there — until you need it." },
+  { id: "idle", label: "Idle", copy: "A small breath of light. Aura waits, never demands. You can forget it's there, until you need it." },
   { id: "listening", label: "Listening", copy: "A gentle ring blooms outward. Aura is quietly tuning in to you, not the room around you." },
   { id: "thinking", label: "Thinking", copy: "A soft shimmer. Reasoning happens in the background, with the patience of a good friend." },
-  { id: "expanded", label: "Expanded", copy: "When invited, the panel opens — context, screenshot, a tender suggestion. Then it folds away." },
+  { id: "expanded", label: "Expanded", copy: "When invited, the panel opens, context, screenshot, a tender suggestion. Then it folds away." },
 ];
 
 function OverlayPage() {
@@ -32,7 +32,7 @@ function OverlayPage() {
       <Section
         eyebrow="The overlay"
         title={<>A companion that<br /><em className="italic text-muted-foreground/80">floats with you.</em></>}
-        description="A whisper of glass on top of any app. Press a key — Aura is there. Look away — it dissolves."
+        description="A whisper of glass on top of any app. Press a key, Aura is there. Look away, it dissolves."
       />
 
       {/* Stage */}
@@ -119,7 +119,7 @@ function OverlayPage() {
           <GlassPanel className="p-8">
             <h3 className="text-display text-2xl">Alive</h3>
             <p className="mt-3 text-[15px] font-light leading-relaxed text-muted-foreground">
-              Subtle motion, organic timing, soft sound. Aura doesn't blink — it
+              Subtle motion, organic timing, soft sound. Aura doesn't blink, it
               breathes.
             </p>
           </GlassPanel>
