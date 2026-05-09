@@ -25,11 +25,36 @@ const states: { id: OverlayState; label: string; copy: string }[] = [
 ];
 
 const shortcuts = [
-  { keys: ["⌥", "Space"], label: "Summon Aura", description: "Open or close the overlay from anywhere on your desktop." },
-  { keys: ["⌥", "⇧", "C"], label: "Capture screen", description: "Take a screenshot and attach it to your next message instantly." },
-  { keys: ["⌥", "N"], label: "Quick note", description: "Open Aura with a blank input, ready to receive a thought." },
-  { keys: ["⌥", "Esc"], label: "Dismiss", description: "Minimise back to the orb without closing the session." },
-  { keys: ["⌥", "drag"], label: "Reposition", description: "Hold and drag the orb anywhere on screen — it snaps to your preferred corner." },
+  {
+    label: "Summon Aura",
+    description: "Open or close the overlay from anywhere on your desktop.",
+    mac: ["⌥", "Space"],
+    win: ["Alt", "Space"],
+  },
+  {
+    label: "Capture screen",
+    description: "Take a screenshot and attach it to your next message — works even when the panel is closed.",
+    mac: ["⌘", "⇧", "S"],
+    win: ["Ctrl", "Shift", "S"],
+  },
+  {
+    label: "Quick note",
+    description: "Open Aura with a blank input, ready to receive a thought.",
+    mac: ["⌥", "N"],
+    win: ["Alt", "N"],
+  },
+  {
+    label: "Dismiss",
+    description: "Minimise back to the orb without closing the session.",
+    mac: ["⌥", "Esc"],
+    win: ["Alt", "Esc"],
+  },
+  {
+    label: "Reposition",
+    description: "Hold and drag the orb anywhere on screen — it snaps to your preferred corner.",
+    mac: ["⌥", "drag"],
+    win: ["Alt", "drag"],
+  },
 ];
 
 const stateOrder: OverlayState[] = ["idle", "listening", "thinking", "expanded"];
@@ -147,22 +172,44 @@ function OverlayPage() {
 
           <div className="grid gap-4 sm:grid-cols-2">
             {shortcuts.map((s) => (
-              <GlassPanel key={s.label} className="flex items-start gap-5 p-7">
-                <div className="flex shrink-0 items-center gap-1 pt-0.5">
-                  {s.keys.map((k) => (
-                    <kbd
-                      key={k}
-                      className="inline-flex h-8 min-w-[2rem] items-center justify-center rounded-lg bg-white/[0.07] px-2 text-xs font-light tracking-wider text-foreground/70"
-                      style={{ boxShadow: "inset 0 -1px 0 oklch(0 0 0 / 0.2), 0 1px 0 oklch(1 0 0 / 0.06)" }}
-                    >
-                      {k}
-                    </kbd>
-                  ))}
-                </div>
-                <div>
+              <GlassPanel key={s.label} className="p-7">
+                <div className="flex items-center justify-between gap-4 mb-4">
                   <p className="text-[15px] font-light">{s.label}</p>
-                  <p className="mt-1 text-sm font-light leading-relaxed text-muted-foreground">{s.description}</p>
+                  <div className="flex items-center gap-4 shrink-0">
+                    {/* Mac */}
+                    <div className="flex flex-col items-end gap-1.5">
+                      <span className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground/50">Mac</span>
+                      <div className="flex items-center gap-1">
+                        {s.mac.map((k) => (
+                          <kbd
+                            key={k}
+                            className="inline-flex h-7 min-w-[1.75rem] items-center justify-center rounded-lg bg-white/[0.07] px-2 text-[11px] font-light tracking-wider text-foreground/70"
+                            style={{ boxShadow: "inset 0 -1px 0 oklch(0 0 0 / 0.2), 0 1px 0 oklch(1 0 0 / 0.06)" }}
+                          >
+                            {k}
+                          </kbd>
+                        ))}
+                      </div>
+                    </div>
+                    <span className="text-muted-foreground/30 text-xs">·</span>
+                    {/* Windows */}
+                    <div className="flex flex-col items-end gap-1.5">
+                      <span className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground/50">Win</span>
+                      <div className="flex items-center gap-1">
+                        {s.win.map((k) => (
+                          <kbd
+                            key={k}
+                            className="inline-flex h-7 min-w-[1.75rem] items-center justify-center rounded-lg bg-white/[0.07] px-2 text-[11px] font-light tracking-wider text-foreground/70"
+                            style={{ boxShadow: "inset 0 -1px 0 oklch(0 0 0 / 0.2), 0 1px 0 oklch(1 0 0 / 0.06)" }}
+                          >
+                            {k}
+                          </kbd>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
                 </div>
+                <p className="text-sm font-light leading-relaxed text-muted-foreground">{s.description}</p>
               </GlassPanel>
             ))}
           </div>
