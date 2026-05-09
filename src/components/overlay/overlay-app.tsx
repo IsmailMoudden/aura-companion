@@ -66,8 +66,9 @@ export function OverlayApp() {
       window.aura!.updateDimensions(ORB_W, ORB_H);
       return;
     }
+    // Only set default size — user can freely resize after this
     window.aura!.updateDimensions(PANEL_W, compact ? PANEL_H_COMPACT : PANEL_H_EXPANDED);
-  }, [expanded, compact]);
+  }, [expanded]); // intentionally omit compact — don't snap size when content appears
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
@@ -180,39 +181,48 @@ export function OverlayApp() {
         ? 'In conversation'
         : 'Your ambient companion';
 
-  // Root fills the Electron window — always transparent outside the panel
+  // Root fills the Electron window — transparent outside the rounded panel
   return (
     <div
       className="flex h-full w-full items-center justify-center"
       style={{ background: 'transparent' }}
     >
       {expanded ? (
-        // Panel is fixed size, perfectly fits the window
+        // Panel fills the window — resize the window to resize the panel
         <div
-          className="flex flex-col overflow-hidden"
+          className="relative flex flex-col overflow-hidden"
           style={{
-            width: PANEL_W,
-            height: compact ? PANEL_H_COMPACT : PANEL_H_EXPANDED,
+            width: '100%',
+            height: '100%',
             borderRadius: 28,
-            background: 'oklch(0.22 0.04 250 / 0.82)',
+            // Ambient gradient base — same palette as the web
+            background: 'linear-gradient(135deg, oklch(0.58 0.10 240 / 0.92) 0%, oklch(0.48 0.10 250 / 0.92) 50%, oklch(0.42 0.09 260 / 0.92) 100%)',
             backdropFilter: 'blur(48px) saturate(180%)',
             WebkitBackdropFilter: 'blur(48px) saturate(180%)',
-            border: '1px solid oklch(1 0 0 / 0.12)',
-            boxShadow: '0 32px 80px -16px oklch(0.05 0.02 260 / 0.7), inset 0 1px 0 oklch(1 0 0 / 0.14)',
+            border: '1px solid oklch(1 0 0 / 0.10)',
+            boxShadow: 'inset 0 1px 0 oklch(1 0 0 / 0.14), 0 40px 100px -20px oklch(0.05 0.02 260 / 0.6)',
             WebkitAppRegion: 'no-drag',
           } as React.CSSProperties}
         >
+          {/* Glass overlay layer — matches web glass-strong */}
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              borderRadius: 28,
+              background: 'linear-gradient(135deg, oklch(1 0 0 / 0.08), oklch(1 0 0 / 0.02))',
+            }}
+          />
           {/* ── Header ── */}
           <div
-            className="flex items-center gap-3 px-5"
+            className="relative flex items-center gap-3 px-5"
             style={{ height: 64, WebkitAppRegion: 'drag', flexShrink: 0 } as React.CSSProperties}
           >
             <div style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
               <Orb size={32} state={orbState} variant="overlay" noHalo />
             </div>
             <div className="flex-1 min-w-0" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
-              <p className="text-[10px] uppercase tracking-[0.28em] text-white/40">Aura</p>
-              <p className="text-[15px] font-light text-white/85 truncate">{subtitle}</p>
+              <p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground/70">Aura</p>
+              <p className="text-[15px] font-light text-foreground/90 truncate">{subtitle}</p>
             </div>
             <div className="flex items-center gap-1" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
               <HdrBtn onClick={captureScreenshot} title="Capture screen (Alt+Shift+C)">
@@ -225,18 +235,18 @@ export function OverlayApp() {
           </div>
 
           {/* ── Divider ── */}
-          <div style={{ height: 1, background: 'oklch(1 0 0 / 0.07)', flexShrink: 0 }} />
+          <div style={{ height: 1, background: 'var(--border)', flexShrink: 0 }} />
 
           {/* ── Body (hidden in compact) ── */}
           {!compact && (
             <div className="relative flex-1 overflow-hidden">
               <div
                 className="pointer-events-none absolute inset-x-0 top-0 z-10 h-8"
-                style={{ background: 'linear-gradient(to bottom, oklch(0.22 0.04 250 / 0.82), transparent)' }}
+                style={{ background: 'linear-gradient(to bottom, oklch(0.52 0.10 248 / 0.80), transparent)' }}
               />
               <div
                 className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-8"
-                style={{ background: 'linear-gradient(to top, oklch(0.22 0.04 250 / 0.82), transparent)' }}
+                style={{ background: 'linear-gradient(to top, oklch(0.44 0.09 258 / 0.80), transparent)' }}
               />
               {view === 'home' ? (
                 <HomeView
@@ -261,8 +271,8 @@ export function OverlayApp() {
                   <button
                     key={a.label}
                     onClick={() => runQuickAction(a.prompt)}
-                    className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-light text-white/50 transition-all hover:text-white/80"
-                    style={{ background: 'oklch(1 0 0 / 0.06)', border: '1px solid oklch(1 0 0 / 0.08)' }}
+                    className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-light text-muted-foreground transition-all hover:text-foreground"
+                    style={{ background: 'oklch(1 0 0 / 0.06)', border: '1px solid var(--border)' }}
                   >
                     <a.icon className="h-3 w-3" />
                     {a.label}
@@ -275,15 +285,15 @@ export function OverlayApp() {
                 className="flex items-center gap-2 rounded-full px-4"
                 style={{
                   height: 48,
-                  background: 'oklch(1 0 0 / 0.06)',
-                  border: '1px solid oklch(1 0 0 / 0.1)',
+                  background: 'oklch(1 0 0 / 0.07)',
+                  border: '1px solid var(--border)',
                 }}
               >
                 {messages.length > 0 && (
                   <button
                     type="button"
                     onClick={clearConversation}
-                    className="shrink-0 text-white/25 hover:text-white/60 transition-colors"
+                    className="shrink-0 text-muted-foreground/50 hover:text-muted-foreground transition-colors"
                   >
                     <X className="h-3.5 w-3.5" />
                   </button>
@@ -293,7 +303,7 @@ export function OverlayApp() {
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   placeholder="Ask softly…"
-                  className="flex-1 bg-transparent text-[14px] font-light text-white placeholder:text-white/30 focus:outline-none"
+                  className="flex-1 bg-transparent text-[14px] font-light text-foreground placeholder:text-muted-foreground/50 focus:outline-none"
                   style={{ fontStyle: 'italic' }}
                 />
                 <button
@@ -301,7 +311,7 @@ export function OverlayApp() {
                   disabled={busy || !input.trim()}
                   className={cn(
                     'shrink-0 transition-all duration-200',
-                    input.trim() && !busy ? 'text-white/80 hover:text-white' : 'text-white/20 pointer-events-none',
+                    input.trim() && !busy ? 'text-foreground/80 hover:text-foreground' : 'text-muted-foreground/30 pointer-events-none',
                   )}
                 >
                   <Send className="h-3.5 w-3.5" />
@@ -357,7 +367,7 @@ function HomeView({ screenshot, busy, messages, onQuickAction, onClearScreenshot
           className="absolute inset-x-0 bottom-0 flex items-center justify-between px-3 py-2"
           style={{ background: 'linear-gradient(to top, oklch(0.1 0.04 260 / 0.6), transparent)' }}
         >
-          <p className="text-[11px] font-light text-white/50">
+          <p className="text-[11px] font-light text-muted-foreground">
             Screenshot · {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
           </p>
           <button onClick={onClearScreenshot} className="rounded-full p-1 text-white/40 hover:text-white/70">
@@ -369,11 +379,11 @@ function HomeView({ screenshot, busy, messages, onQuickAction, onClearScreenshot
       {/* AI response */}
       <div className="flex-1">
         {busy ? (
-          <p className="text-[14px] font-light italic text-white/40">Thinking…</p>
+          <p className="text-[14px] font-light italic text-muted-foreground/70">Thinking…</p>
         ) : lastAssistant ? (
-          <p className="text-[15px] font-light leading-relaxed text-white/85">{lastAssistant.content}</p>
+          <p className="text-[15px] font-light leading-relaxed text-foreground/90">{lastAssistant.content}</p>
         ) : (
-          <p className="text-[14px] font-light italic text-white/50">What would you like to know?</p>
+          <p className="text-[14px] font-light italic text-muted-foreground">What would you like to know?</p>
         )}
       </div>
 
@@ -384,8 +394,8 @@ function HomeView({ screenshot, busy, messages, onQuickAction, onClearScreenshot
             <button
               key={a.label}
               onClick={() => onQuickAction(a.prompt)}
-              className="flex items-center gap-1.5 rounded-full px-3 py-2 text-[12px] font-light text-white/65 transition-all hover:text-white/90"
-              style={{ background: 'oklch(1 0 0 / 0.07)', border: '1px solid oklch(1 0 0 / 0.09)' }}
+              className="flex items-center gap-1.5 rounded-full px-3 py-2 text-[12px] font-light text-muted-foreground transition-all hover:text-foreground"
+              style={{ background: 'oklch(1 0 0 / 0.07)', border: '1px solid var(--border)' }}
             >
               <a.icon className="h-3.5 w-3.5" />
               {a.label}
@@ -410,7 +420,7 @@ function ChatView({ messages, busy, scrollRef }: {
           m.role === 'user' ? <UserBubble key={m.id} message={m} /> : <AssistantBubble key={m.id} message={m} />
         )}
         {busy && (
-          <p className="text-[14px] font-light italic text-white/35 animate-pulse">Thinking…</p>
+          <p className="text-[14px] font-light italic text-muted-foreground/60 animate-pulse">Thinking…</p>
         )}
       </div>
     </div>
@@ -426,8 +436,8 @@ function UserBubble({ message }: { message: Message }) {
           <img src={message.screenshot} alt="" className="mb-2 w-full rounded-2xl object-cover opacity-70" />
         )}
         <div
-          className="rounded-3xl rounded-tr-sm px-4 py-2.5 text-[14px] font-light leading-relaxed text-white/90"
-          style={{ background: 'oklch(1 0 0 / 0.10)', border: '1px solid oklch(1 0 0 / 0.08)' }}
+          className="rounded-3xl rounded-tr-sm px-4 py-2.5 text-[14px] font-light leading-relaxed text-foreground"
+          style={{ background: 'oklch(1 0 0 / 0.10)', border: '1px solid var(--border)' }}
         >
           {message.content}
         </div>
@@ -439,8 +449,8 @@ function UserBubble({ message }: { message: Message }) {
 function AssistantBubble({ message }: { message: Message }) {
   return (
     <div className="max-w-[92%]">
-      <p className="mb-1 text-[9px] uppercase tracking-[0.25em] text-white/30">Aura</p>
-      <p className="text-[15px] font-light leading-relaxed text-white/85">{message.content}</p>
+      <p className="mb-1 text-[9px] uppercase tracking-[0.25em] text-muted-foreground/70">Aura</p>
+      <p className="text-[15px] font-light leading-relaxed text-foreground/90">{message.content}</p>
     </div>
   );
 }
@@ -451,7 +461,7 @@ function HdrBtn({ children, onClick, title }: { children: React.ReactNode; onCli
     <button
       onClick={onClick}
       title={title}
-      className="flex h-8 w-8 items-center justify-center rounded-full text-white/50 transition-colors hover:bg-white/10 hover:text-white/90"
+      className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-white/[0.08] hover:text-foreground"
     >
       {children}
     </button>
