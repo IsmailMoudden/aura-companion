@@ -171,6 +171,14 @@ async function createWindow() {
   state.mainWindow.setIgnoreMouseEvents(false);
   applyPlatformConfig();
 
+  // Re-assert overlay level whenever any other app takes focus.
+  // macOS drops the window behind on space/app switches without this.
+  app.on('browser-window-blur', () => {
+    if (!state.mainWindow || state.mainWindow.isDestroyed()) return;
+    state.mainWindow.setAlwaysOnTop(true, 'screen-saver', 1);
+    state.mainWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+  });
+
   // Show the window
   state.mainWindow.show();
   state.mainWindow.webContents.openDevTools({ mode: 'detach' });
