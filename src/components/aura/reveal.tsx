@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, useRef, useState, CSSProperties } from "react";
+import { ReactNode, useEffect, useRef, useState, CSSProperties, ElementType, createElement } from "react";
 import { cn } from "@/lib/utils";
 
 type Variant = "up" | "soft" | "scale";
@@ -8,7 +8,7 @@ export function Reveal({
   variant = "up",
   delay = 0,
   className,
-  as: As = "div",
+  as = "div",
   once = true,
   threshold = 0.15,
   style,
@@ -17,7 +17,7 @@ export function Reveal({
   variant?: Variant;
   delay?: number;
   className?: string;
-  as?: keyof JSX.IntrinsicElements;
+  as?: ElementType;
   once?: boolean;
   threshold?: number;
   style?: CSSProperties;
@@ -52,13 +52,13 @@ export function Reveal({
   const baseClass =
     variant === "soft" ? "reveal-soft" : variant === "scale" ? "reveal-scale" : "reveal";
 
-  return (
-    <As
-      ref={ref as never}
-      className={cn(baseClass, visible && "is-visible", className)}
-      style={{ transitionDelay: `${delay}s`, ...style }}
-    >
-      {children}
-    </As>
+  return createElement(
+    as,
+    {
+      ref,
+      className: cn(baseClass, visible && "is-visible", className),
+      style: { transitionDelay: `${delay}s`, ...style },
+    },
+    children,
   );
 }
