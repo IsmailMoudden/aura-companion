@@ -59,6 +59,7 @@ export function OverlayApp() {
     window.aura!.updateDimensions(460, compact ? 160 : 640);
   }, [expanded, compact]);
 
+
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
   }, [messages.length]);
@@ -165,7 +166,7 @@ export function OverlayApp() {
   const subtitle = busy ? 'Thinking…' : screenshot ? 'Looking at your screen' : messages.length > 0 ? 'In conversation' : 'Your ambient companion';
 
   return (
-    <div className="flex h-full w-full items-start justify-center" style={{ background: 'transparent' }}>
+    <div className="flex h-full w-full items-center justify-center">
       {expanded ? (
         <Panel
           view={view}
@@ -228,10 +229,10 @@ interface PanelProps {
 function Panel(p: PanelProps) {
   return (
     <div
-      className={`flex flex-col overflow-hidden ${p.compact ? 'rounded-[1.5rem]' : 'rounded-[2rem]'}`}
+      className="flex flex-col overflow-hidden rounded-[2rem]"
       style={{
         width: '100%',
-        height: p.compact ? 'auto' : '100%',
+        height: '100%',
         background: 'oklch(0.68 0.09 232 / 0.85)',
         backdropFilter: 'blur(40px) saturate(160%)',
         WebkitBackdropFilter: 'blur(40px) saturate(160%)',
@@ -275,6 +276,7 @@ function Panel(p: PanelProps) {
         </div>
       )}
 
+      {p.compact && <div className="flex-1" />}
       <InputBar
         input={p.input}
         setInput={p.setInput}
@@ -287,6 +289,7 @@ function Panel(p: PanelProps) {
         onQuickAction={p.onQuickAction}
         screenshot={p.screenshot}
       />
+      {p.compact && <div className="flex-1" />}
     </div>
   );
 }
