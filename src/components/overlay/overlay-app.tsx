@@ -248,15 +248,15 @@ export function OverlayApp() {
             <div
               className="absolute rounded-full blur-3xl animate-glow-pulse"
               style={{
-                width: 100,
-                height: 100,
-                background: 'radial-gradient(circle, oklch(0.82 0.16 235 / 0.35), transparent 70%)',
-                top: 18,
+                width: 130,
+                height: 130,
+                background: 'radial-gradient(circle, oklch(0.82 0.16 235 / 0.55), transparent 70%)',
+                top: 10,
               }}
             />
             <Orb size={56} state={orbState} variant="overlay" noHalo />
             <p
-              className="mt-5 text-display text-[17px] font-light text-foreground/80"
+              className="mt-8 text-display text-[17px] font-light text-foreground/80"
               style={{ letterSpacing: '-0.01em' }}
             >
               {busy ? 'Thinking…' : PRESENCE_PHRASES[phraseIndex]}
@@ -304,14 +304,14 @@ export function OverlayApp() {
         )}
 
         {/* ── Floating input — almost invisible ── */}
-        <div className="px-5 pb-5" style={{ flexShrink: 0 }}>
+        <div className="px-7 pb-6" style={{ flexShrink: 0 }}>
           <form onSubmit={sendMessage}>
             <div
               className={cn(
                 'flex w-full items-center gap-3 rounded-full px-5 transition-all duration-500',
                 inputFocused || input.length > 0
-                  ? 'bg-white/[0.09] ring-1 ring-white/[0.12]'
-                  : 'bg-white/[0.04]',
+                  ? 'bg-white/[0.10] ring-1 ring-white/[0.14]'
+                  : 'bg-white/[0.06]',
               )}
               style={{ height: 44 }}
             >
@@ -322,7 +322,7 @@ export function OverlayApp() {
                 onFocus={() => setInputFocused(true)}
                 onBlur={() => setInputFocused(false)}
                 placeholder="Ask softly…"
-                className="flex-1 bg-transparent text-[13px] font-light italic text-foreground placeholder:text-foreground/30 focus:outline-none"
+                className="flex-1 bg-transparent text-[13px] font-light italic text-foreground placeholder:text-foreground/50 focus:outline-none"
               />
               {/* Send: subtle glow dot, not paper-plane */}
               <button
