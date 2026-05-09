@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils";
 import { ReactNode } from "react";
+import { Reveal } from "@/components/aura/reveal";
 
 export function Section({
   eyebrow,
@@ -20,24 +21,33 @@ export function Section({
     <section className={cn("relative px-6 py-32 sm:py-40", className)}>
       <div className={cn("mx-auto max-w-6xl", align === "center" && "text-center")}>
         {eyebrow && (
-          <p className="mb-6 text-xs uppercase tracking-[0.3em] text-muted-foreground animate-fade-up">
+          <Reveal as="p" variant="soft" className="mb-6 text-xs uppercase tracking-[0.3em] text-muted-foreground">
             {eyebrow}
-          </p>
+          </Reveal>
         )}
         {title && (
-          <h2 className="text-display text-5xl sm:text-6xl md:text-7xl animate-fade-up" style={{ animationDelay: "0.1s" }}>
+          <Reveal as="h2" delay={0.08} className="text-display text-5xl sm:text-6xl md:text-7xl">
             {title}
-          </h2>
+          </Reveal>
         )}
         {description && (
-          <p className={cn(
-            "mt-6 text-lg font-light text-muted-foreground animate-fade-up",
-            align === "center" && "mx-auto max-w-2xl",
-          )} style={{ animationDelay: "0.2s" }}>
+          <Reveal
+            as="p"
+            variant="soft"
+            delay={0.18}
+            className={cn(
+              "mt-6 text-lg font-light text-muted-foreground",
+              align === "center" && "mx-auto max-w-2xl",
+            )}
+          >
             {description}
-          </p>
+          </Reveal>
         )}
-        {children && <div className="mt-16">{children}</div>}
+        {children && (
+          <Reveal delay={0.28} className="mt-16">
+            {children}
+          </Reveal>
+        )}
       </div>
     </section>
   );
