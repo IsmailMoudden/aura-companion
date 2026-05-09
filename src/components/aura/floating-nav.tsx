@@ -61,8 +61,8 @@ export function FloatingNav() {
           <div className="relative ml-1">
             <button
               onClick={() => setMenuOpen((o) => !o)}
-              className="flex h-9 w-9 items-center justify-center rounded-full text-sm font-light transition-all hover:ring-1 hover:ring-white/20"
-              style={{ background: "var(--gradient-orb)", boxShadow: "0 0 14px var(--glow-soft)" }}
+              className="flex h-9 w-9 items-center justify-center rounded-full text-[11px] font-light text-white/90 transition-all hover:ring-1 hover:ring-white/20"
+              style={{ background: "var(--gradient-orb)", boxShadow: "0 0 16px var(--glow)" }}
               title={user.email}
             >
               {initials}
