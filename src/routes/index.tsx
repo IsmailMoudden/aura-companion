@@ -10,7 +10,7 @@ import { ArrowRight, Download, Eye, Sparkles, Brain, Wind, MessagesSquare, Layer
 import featureSeesVideo from "@/assets/3545769-hd_1920_1080_24fps.mp4";
 import featureRemembersVideo from "@/assets/memory-slow.mov";
 import featureQuietVideo from "@/assets/WE SUM-artists-designing-in-blue-lit-lab-450942-filmsupply.mov";
-import featureThreadsVideo from "@/assets/Ezra Cohen-sci-fi-music-studio-355244-filmsupply.mov";
+import featureThreadsVideo from "@/assets/threads-slow.mov";
 import featureOverlay from "@/assets/feature-overlay.jpg";
 import featureSuggestions from "@/assets/feature-suggestions.jpg";
 
