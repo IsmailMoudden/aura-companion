@@ -90,11 +90,11 @@
 :root {
   --radius: 1rem;
   /* Premium ambient theme — soft cool blue */
-  --background: oklch(0.36 0.07 245);
+  --background: oklch(0.62 0.08 235);
   --foreground: oklch(0.985 0.012 80);
-  --card: oklch(0.38 0.07 245);
+  --card: oklch(0.66 0.07 235);
   --card-foreground: oklch(0.97 0.01 90);
-  --popover: oklch(0.36 0.07 245);
+  --popover: oklch(0.62 0.08 235);
   --popover-foreground: oklch(0.97 0.01 90);
   --primary: oklch(0.85 0.13 230);
   --primary-foreground: oklch(0.2 0.05 245);
@@ -111,7 +111,7 @@
   --ring: oklch(0.82 0.14 235);
   --glow: oklch(0.82 0.16 235);
   --glow-soft: oklch(0.88 0.09 230);
-  --sidebar: oklch(0.34 0.07 245 / 60%);
+  --sidebar: oklch(0.6 0.08 235 / 55%);
   --sidebar-foreground: oklch(0.97 0.01 90);
   --sidebar-primary: oklch(0.85 0.13 230);
   --sidebar-primary-foreground: oklch(0.2 0.05 245);
@@ -120,10 +120,10 @@
   --sidebar-border: oklch(1 0 0 / 12%);
   --sidebar-ring: oklch(0.82 0.14 235);
 
-  --gradient-ambient: radial-gradient(ellipse 80% 60% at 50% 0%, oklch(0.85 0.13 230 / 0.5), transparent 60%),
-                      radial-gradient(ellipse 60% 55% at 85% 85%, oklch(0.7 0.15 260 / 0.5), transparent 70%),
-                      radial-gradient(ellipse 65% 55% at 10% 70%, oklch(0.8 0.12 210 / 0.45), transparent 70%),
-                      linear-gradient(180deg, oklch(0.42 0.08 245), oklch(0.36 0.08 250));
+  --gradient-ambient: radial-gradient(ellipse 80% 60% at 50% 0%, oklch(0.92 0.08 230 / 0.6), transparent 60%),
+                      radial-gradient(ellipse 60% 55% at 85% 85%, oklch(0.85 0.1 260 / 0.5), transparent 70%),
+                      radial-gradient(ellipse 65% 55% at 10% 70%, oklch(0.9 0.08 210 / 0.5), transparent 70%),
+                      linear-gradient(180deg, oklch(0.78 0.08 230), oklch(0.66 0.08 240));
   --gradient-hero: linear-gradient(135deg, oklch(0.92 0.08 220), oklch(0.78 0.16 245));
   --gradient-orb: radial-gradient(circle at 35% 30%, oklch(0.99 0.02 220), oklch(0.82 0.16 235) 45%, oklch(0.5 0.18 260) 85%);
   --shadow-soft: 0 30px 80px -20px oklch(0.1 0.03 285 / 0.5), 0 8px 24px -8px oklch(0.1 0.03 285 / 0.4);
@@ -132,7 +132,7 @@
 
 @layer base {
   * { border-color: var(--color-border); }
-  html, body { background: oklch(0.36 0.08 250); color: var(--color-foreground); }
+  html, body { background: oklch(0.7 0.08 235); color: var(--color-foreground); }
   body {
     font-family: var(--font-sans);
     font-weight: 300;
