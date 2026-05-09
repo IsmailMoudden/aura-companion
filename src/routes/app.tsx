@@ -8,7 +8,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/app")({
-  head: () => ({ meta: [{ title: "Aura — Conversations" }] }),
+  head: () => ({ meta: [{ title: "Aura, Conversations" }] }),
   component: ChatPage,
 });
 
@@ -103,7 +103,7 @@ function ChatPage() {
       setInput("");
 
       // Placeholder soft assistant reply (no AI call yet)
-      const reply = "I'm here, listening. Tell me a little more — what's underneath that?";
+      const reply = "I'm here, listening. Tell me a little more, what's underneath that?";
       const { data: aiInserted } = await supabase
         .from("messages")
         .insert({ conversation_id: convoId, user_id: user.id, role: "assistant", content: reply })
