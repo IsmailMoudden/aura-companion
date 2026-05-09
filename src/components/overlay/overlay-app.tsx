@@ -57,8 +57,8 @@ export function OverlayApp() {
   // Tell Electron how big to make the window
   useEffect(() => {
     if (!isElectron) return;
-    const w = expanded ? 480 : 88;
-    const h = expanded ? 680 : 88;
+    const w = expanded ? 500 : 96;
+    const h = expanded ? 720 : 96;
     window.aura!.updateDimensions(w, h);
   }, [expanded]);
 
@@ -193,7 +193,7 @@ export function OverlayApp() {
         : 'Your ambient companion';
 
   return (
-    <div className="flex h-full w-full items-end justify-end p-2">
+    <div className="flex h-full w-full items-center justify-center">
       {expanded ? (
         <Panel
           view={view}
@@ -218,10 +218,10 @@ export function OverlayApp() {
         <button
           onClick={() => setExpanded(true)}
           className="relative flex items-center justify-center rounded-full outline-none"
-          style={{ width: 72, height: 72, WebkitAppRegion: 'no-drag' } as React.CSSProperties}
+          style={{ width: 80, height: 80, WebkitAppRegion: 'no-drag', background: 'transparent', border: 'none' } as React.CSSProperties}
           title="Open Aura  (Alt+Space)"
         >
-          <Orb size={72} state={orbState} />
+          <Orb size={80} state={orbState} variant="overlay" />
         </button>
       )}
     </div>
@@ -256,8 +256,8 @@ function Panel(p: PanelProps) {
     <div
       className="flex flex-col overflow-hidden rounded-[2rem]"
       style={{
-        width: 464,
-        height: 664,
+        width: 468,
+        height: 692,
         background: 'oklch(0.68 0.09 232 / 0.82)',
         backdropFilter: 'blur(40px) saturate(160%)',
         WebkitBackdropFilter: 'blur(40px) saturate(160%)',
@@ -319,7 +319,7 @@ function Header({
     >
       {/* Orb — left */}
       <div style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
-        <Orb size={40} state={orbState} />
+        <Orb size={40} state={orbState} variant="overlay" />
       </div>
 
       {/* Center label */}
@@ -438,7 +438,7 @@ function HomeView({
       ) : (
         /* No screenshot — empty home */
         <div className="flex h-full flex-col items-center justify-center text-center">
-          <Orb size={80} state="idle" />
+          <Orb size={80} state="idle" variant="overlay" />
           <p className="mt-6 text-display text-2xl text-white/90">What's on your mind?</p>
           <p className="mt-2 text-[13px] font-light text-white/50">
             Aura sees your screen and stays in flow.

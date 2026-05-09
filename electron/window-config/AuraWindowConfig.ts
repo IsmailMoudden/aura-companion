@@ -17,7 +17,7 @@ export const AuraWindowConfig: WindowConfig = {
     backgroundColor: '#00000000',
     paintWhenInitiallyHidden: true,
     movable: true,
-    resizable: false,
+    resizable: true,
   },
   behavior: {
     showBehavior: {
@@ -29,7 +29,7 @@ export const AuraWindowConfig: WindowConfig = {
       visibleOnAllWorkspaces: true,
       visibleOnFullScreen: true,
       focusable: true,
-      contentProtection: true,
+      contentProtection: false,
     },
     hideBehavior: {
       opacity: 0,
@@ -40,7 +40,7 @@ export const AuraWindowConfig: WindowConfig = {
       visibleOnAllWorkspaces: true,
       visibleOnFullScreen: true,
       focusable: false,
-      contentProtection: true,
+      contentProtection: false,
     },
     platformSpecific: {
       darwin: {
