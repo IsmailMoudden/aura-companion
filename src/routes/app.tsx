@@ -156,14 +156,13 @@ function ChatPage() {
     );
   }
 
-  const lgGridCols = sidebarOpen ? "300px 1fr" : "0px 1fr";
   return (
     <main className="relative pt-24 pb-4 px-3 sm:px-6 sm:pt-28 sm:pb-10">
       <div
-        className="mx-auto grid h-[calc(100svh-7rem)] sm:h-[calc(100vh-9rem)] max-w-7xl gap-4 transition-[grid-template-columns] duration-300 grid-cols-1"
-        style={{ ['--lg-cols' as any]: lgGridCols }}
+        className={`mx-auto grid h-[calc(100svh-7rem)] sm:h-[calc(100vh-9rem)] max-w-7xl gap-4 grid-cols-1 transition-[grid-template-columns] duration-300 ${
+          sidebarOpen ? "lg:grid-cols-[300px_1fr]" : "lg:grid-cols-[0px_1fr]"
+        }`}
       >
-        <style>{`@media (min-width: 1024px){ main > div { grid-template-columns: var(--lg-cols) !important; } }`}</style>
         {/* Sidebar */}
         <GlassPanel
           className={`hidden flex-col overflow-hidden p-5 lg:flex ${
