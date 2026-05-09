@@ -30,6 +30,16 @@ const auraAPI = {
     return () => ipcRenderer.removeListener(IPC_EVENTS.SCREENSHOT.TAKEN, sub);
   },
 
+  // Deep-link auth — main sends tokens after intercepting aura://auth?...
+  onAuthDeepLink: (cb: (data: { accessToken: string; refreshToken: string }) => void) => {
+    const sub = (_: unknown, data: { accessToken: string; refreshToken: string }) => cb(data);
+    ipcRenderer.on('auth:deep-link', sub);
+    return () => ipcRenderer.removeListener('auth:deep-link', sub);
+  },
+
+  // Open URL in system browser
+  openExternal: (url: string) => ipcRenderer.invoke('shell:open-external', url),
+
   platform: process.platform,
 } as const;
 
