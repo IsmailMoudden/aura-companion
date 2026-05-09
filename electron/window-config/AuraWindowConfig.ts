@@ -18,7 +18,7 @@ export const AuraWindowConfig: WindowConfig = {
     type: 'panel',
     paintWhenInitiallyHidden: true,
     movable: true,
-    resizable: true,
+    resizable: false,
   },
   behavior: {
     showBehavior: {

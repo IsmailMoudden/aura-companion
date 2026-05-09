@@ -21,8 +21,8 @@ const PRESENCE_PHRASES = [
 ];
 
 // Window = panel. These are the Electron window sizes.
-const ORB_W = 64;
-const ORB_H = 64;
+const ORB_W = 76;
+const ORB_H = 76;
 const PANEL_W = 360;
 const PANEL_H_IDLE = 300;
 const PANEL_H_CONV = 503;
