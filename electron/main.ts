@@ -196,7 +196,12 @@ async function createWindow() {
     state.isVisible = false;
   });
 
-  state.mainWindow.on('focus', () => applyPlatformConfig());
+  state.mainWindow.on('focus', () => {
+    applyPlatformConfig();
+    // Re-assert overlay level on every focus to survive macOS space/fullscreen switches
+    state.mainWindow?.setAlwaysOnTop(true, 'screen-saver', 1);
+    state.mainWindow?.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+  });
 }
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
