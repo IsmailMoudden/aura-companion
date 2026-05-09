@@ -27,10 +27,6 @@ function Landing() {
         <div className="absolute inset-x-0 top-32 -z-10 flex justify-center">
           <Orb size={420} className="opacity-90" />
         </div>
-        <p className="mb-8 inline-flex items-center gap-2 rounded-full glass px-4 py-2 text-xs uppercase tracking-[0.25em] text-muted-foreground animate-fade-in">
-          <span className="h-1.5 w-1.5 rounded-full bg-[color:var(--glow)] animate-glow-pulse" />
-          Introducing Aura
-        </p>
         <h1
           className="text-display text-[clamp(3.5rem,9vw,9rem)] max-w-5xl animate-fade-up"
           style={{ animationDelay: "0.1s" }}
