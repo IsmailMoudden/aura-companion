@@ -1,38 +1,44 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { Orb } from '@/components/aura/orb';
-import { Send, X, Camera, ChevronDown, Zap, BookOpen, Languages } from 'lucide-react';
+import { X, Camera, ChevronDown } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 
 type OrbState = 'idle' | 'listening' | 'thinking';
 type Message = { id: string; role: 'user' | 'assistant'; content: string; screenshot?: string };
-type PanelView = 'home' | 'chat';
 
 const isElectron = typeof window !== 'undefined' && !!window.aura;
 
-const QUICK_ACTIONS = [
-  { icon: Zap, label: 'Summarize', prompt: 'Please summarize what you see on my screen.' },
-  { icon: BookOpen, label: 'Explain', prompt: 'Explain what is happening on my screen in simple terms.' },
-  { icon: Languages, label: 'Translate', prompt: 'Translate any text visible on my screen.' },
+// Contextual presence phrases — rotated, never static
+const PRESENCE_PHRASES = [
+  "I'm here.",
+  "What are you working on?",
+  "Need another perspective?",
+  "Show me.",
+  "What are we looking at?",
+  "Let's figure this out.",
+  "I'm listening.",
+  "Something on your mind?",
 ];
 
-// Fixed panel dimensions — window is exactly these sizes
 const PANEL_W = 372;
-const PANEL_H_COMPACT = 231;
-const PANEL_H_EXPANDED = 660;
+const PANEL_H_IDLE = 231;
+const PANEL_H_EXPANDED = 620;
 const ORB_W = 72;
 const ORB_H = 72;
 
 export function OverlayApp() {
   const [expanded, setExpanded] = useState(false);
-  const [view, setView] = useState<PanelView>('home');
   const [orbState, setOrbState] = useState<OrbState>('idle');
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
+  const [inputFocused, setInputFocused] = useState(false);
   const [busy, setBusy] = useState(false);
   const [screenshot, setScreenshot] = useState<{ path: string; preview: string } | null>(null);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [user, setUser] = useState<{ id: string; email: string } | null>(null);
+  const [phraseIndex] = useState(() => Math.floor(Math.random() * PRESENCE_PHRASES.length));
+  const [hoveringPanel, setHoveringPanel] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -52,13 +58,11 @@ export function OverlayApp() {
     const unsub = window.aura!.onScreenshotTaken((data) => {
       setScreenshot(data);
       setExpanded(true);
-      setView('home');
     });
     return unsub;
   }, []);
 
-  const hasContent = messages.length > 0 || screenshot !== null;
-  const compact = !hasContent;
+  const hasConversation = messages.length > 0;
 
   useEffect(() => {
     if (!isElectron) return;
@@ -66,19 +70,18 @@ export function OverlayApp() {
       window.aura!.updateDimensions(ORB_W, ORB_H);
       return;
     }
-    // Only set default size — user can freely resize after this
-    window.aura!.updateDimensions(PANEL_W, compact ? PANEL_H_COMPACT : PANEL_H_EXPANDED);
-  }, [expanded]); // intentionally omit compact — don't snap size when content appears
+    window.aura!.updateDimensions(PANEL_W, hasConversation ? PANEL_H_EXPANDED : PANEL_H_IDLE);
+  }, [expanded]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
   }, [messages.length]);
 
   useEffect(() => {
-    if (expanded) setTimeout(() => inputRef.current?.focus(), 150);
+    if (expanded) setTimeout(() => inputRef.current?.focus(), 200);
   }, [expanded]);
 
-  const collapse = useCallback(() => { setExpanded(false); setView('home'); }, []);
+  const collapse = useCallback(() => { setExpanded(false); }, []);
 
   const captureScreenshot = useCallback(async () => {
     if (!isElectron) return;
@@ -86,7 +89,6 @@ export function OverlayApp() {
     const result = await window.aura!.takeScreenshot();
     if (result.success && result.path && result.preview) {
       setScreenshot({ path: result.path, preview: result.preview });
-      setView('home');
     }
     setOrbState('idle');
   }, []);
@@ -101,10 +103,12 @@ export function OverlayApp() {
     if (busy) return;
     setBusy(true);
     setOrbState('thinking');
-    setView('chat');
 
     const userMsg: Message = { id: crypto.randomUUID(), role: 'user', content: userContent, screenshot: attachedScreenshot };
     setMessages((m) => [...m, userMsg]);
+
+    // Expand to full height once conversation starts
+    if (isElectron) window.aura!.updateDimensions(PANEL_W, PANEL_H_EXPANDED);
 
     try {
       let convoId = conversationId;
@@ -137,8 +141,7 @@ export function OverlayApp() {
 
       const json = await res.json() as { reply?: string };
       const reply = json.reply ?? "I'm here — something went quiet.";
-      const assistantMsg: Message = { id: crypto.randomUUID(), role: 'assistant', content: reply };
-      setMessages((m) => [...m, assistantMsg]);
+      setMessages((m) => [...m, { id: crypto.randomUUID(), role: 'assistant', content: reply }]);
 
       if (user && convoId) {
         await supabase.from('messages').insert({
@@ -162,267 +165,203 @@ export function OverlayApp() {
     void runAI(text, screenshot?.preview);
   }, [input, screenshot, runAI]);
 
-  const runQuickAction = useCallback((prompt: string) => {
-    void runAI(prompt, screenshot?.preview);
-  }, [screenshot, runAI]);
-
   const clearConversation = useCallback(() => {
     setMessages([]);
     setConversationId(null);
     setScreenshot(null);
-    setView('home');
+    if (isElectron) window.aura!.updateDimensions(PANEL_W, PANEL_H_IDLE);
   }, []);
 
-  const subtitle = busy
-    ? 'Thinking…'
-    : screenshot
-      ? 'Looking at your screen'
-      : messages.length > 0
-        ? 'In conversation'
-        : 'Your ambient companion';
-
-  // Root fills the Electron window — transparent outside the rounded panel
-  return (
-    <div
-      className="flex h-full w-full items-center justify-center"
-      style={{ background: 'transparent' }}
-    >
-      {expanded ? (
-        // Panel fills the window — resize the window to resize the panel
-        <div
-          className="relative flex flex-col overflow-hidden"
-          style={{
-            width: '100%',
-            height: '100%',
-            borderRadius: 28,
-            // Ambient gradient base — same palette as the web
-            background: 'linear-gradient(135deg, oklch(0.58 0.10 240 / 0.92) 0%, oklch(0.48 0.10 250 / 0.92) 50%, oklch(0.42 0.09 260 / 0.92) 100%)',
-            backdropFilter: 'blur(48px) saturate(180%)',
-            WebkitBackdropFilter: 'blur(48px) saturate(180%)',
-            border: '1px solid oklch(1 0 0 / 0.10)',
-            boxShadow: 'inset 0 1px 0 oklch(1 0 0 / 0.14), 0 40px 100px -20px oklch(0.05 0.02 260 / 0.6)',
-            WebkitAppRegion: 'no-drag',
-          } as React.CSSProperties}
-        >
-          {/* Glass overlay layer — matches web glass-strong */}
-          <div
-            className="absolute inset-0 pointer-events-none"
-            style={{
-              borderRadius: 28,
-              background: 'linear-gradient(135deg, oklch(1 0 0 / 0.08), oklch(1 0 0 / 0.02))',
-            }}
-          />
-          {/* ── Header ── */}
-          <div
-            className="relative flex items-center gap-3 px-6"
-            style={{ height: 64, WebkitAppRegion: 'drag', flexShrink: 0 } as React.CSSProperties}
-          >
-            <div style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
-              <Orb size={32} state={orbState} variant="overlay" noHalo />
-            </div>
-            <div className="flex-1 min-w-0" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
-              <p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground/70">Aura</p>
-              <p className="text-[15px] font-light text-foreground/90 truncate">{subtitle}</p>
-            </div>
-            <div className="flex items-center gap-1" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
-              <HdrBtn onClick={captureScreenshot} title="Capture screen (Alt+Shift+C)">
-                <Camera className="h-[18px] w-[18px]" />
-              </HdrBtn>
-              <HdrBtn onClick={collapse} title="Minimise">
-                <ChevronDown className="h-[18px] w-[18px]" />
-              </HdrBtn>
-            </div>
-          </div>
-
-          {/* ── Divider ── */}
-          <div style={{ height: 1, background: 'var(--border)', flexShrink: 0 }} />
-
-          {/* ── Body (hidden in compact) ── */}
-          {!compact && (
-            <div className="relative flex-1 overflow-hidden">
-              <div
-                className="pointer-events-none absolute inset-x-0 top-0 z-10 h-8"
-                style={{ background: 'linear-gradient(to bottom, oklch(0.52 0.10 248 / 0.80), transparent)' }}
-              />
-              <div
-                className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-8"
-                style={{ background: 'linear-gradient(to top, oklch(0.44 0.09 258 / 0.80), transparent)' }}
-              />
-              {view === 'home' ? (
-                <HomeView
-                  screenshot={screenshot}
-                  busy={busy}
-                  messages={messages}
-                  onQuickAction={runQuickAction}
-                  onClearScreenshot={clearScreenshot}
-                />
-              ) : (
-                <ChatView messages={messages} busy={busy} scrollRef={scrollRef} />
-              )}
-            </div>
-          )}
-
-          {/* ── Input bar ── */}
-          <div className={cn('px-5', compact ? 'flex flex-1 flex-col items-center justify-center pb-5' : 'pb-5 pt-3')} style={compact ? {} : { flexShrink: 0 }}>
-            {/* Quick actions above input in compact */}
-            {compact && (
-              <div className="mb-4 flex w-full items-center justify-center gap-2">
-                {QUICK_ACTIONS.map((a) => (
-                  <button
-                    key={a.label}
-                    onClick={() => runQuickAction(a.prompt)}
-                    className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-light text-muted-foreground transition-all hover:text-foreground"
-                    style={{ background: 'oklch(1 0 0 / 0.06)', border: '1px solid var(--border)' }}
-                  >
-                    <a.icon className="h-3 w-3" />
-                    {a.label}
-                  </button>
-                ))}
-              </div>
-            )}
-            <form onSubmit={sendMessage} className="w-full">
-              <div
-                className="flex w-full items-center gap-2 rounded-full px-4"
-                style={{
-                  height: 48,
-                  background: 'oklch(1 0 0 / 0.07)',
-                  border: '1px solid var(--border)',
-                }}
-              >
-                {messages.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={clearConversation}
-                    className="shrink-0 text-muted-foreground/50 hover:text-muted-foreground transition-colors"
-                  >
-                    <X className="h-3.5 w-3.5" />
-                  </button>
-                )}
-                <input
-                  ref={inputRef}
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  placeholder="Ask softly…"
-                  className="flex-1 bg-transparent text-[14px] font-light text-foreground placeholder:text-muted-foreground/50 focus:outline-none"
-                  style={{ fontStyle: 'italic' }}
-                />
-                <button
-                  type="submit"
-                  disabled={busy || !input.trim()}
-                  className={cn(
-                    'shrink-0 transition-all duration-200',
-                    input.trim() && !busy ? 'text-foreground/80 hover:text-foreground' : 'text-muted-foreground/30 pointer-events-none',
-                  )}
-                >
-                  <Send className="h-3.5 w-3.5" />
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      ) : (
+  // ─── Idle orb button ─────────────────────────────────────────────────────────
+  if (!expanded) {
+    return (
+      <div className="flex h-full w-full items-center justify-center" style={{ background: 'transparent' }}>
         <button
           onClick={() => setExpanded(true)}
           className="flex items-center justify-center rounded-full outline-none animate-breathe"
-          style={{
-            width: 52,
-            height: 52,
-            background: 'transparent',
-            border: 'none',
-            opacity: 0.88,
-            WebkitAppRegion: 'no-drag',
-          } as React.CSSProperties}
+          style={{ width: 52, height: 52, background: 'transparent', border: 'none', WebkitAppRegion: 'no-drag' } as React.CSSProperties}
           title="Open Aura (Alt+Space)"
         >
           <Orb size={52} state={orbState} variant="overlay" noHalo />
         </button>
-      )}
-    </div>
-  );
-}
+      </div>
+    );
+  }
 
-// ─── Home view ────────────────────────────────────────────────────────────────
-function HomeView({ screenshot, busy, messages, onQuickAction, onClearScreenshot }: {
-  screenshot: { path: string; preview: string } | null;
-  busy: boolean;
-  messages: Message[];
-  onQuickAction: (p: string) => void;
-  onClearScreenshot: () => void;
-}) {
-  const lastAssistant = [...messages].reverse().find((m) => m.role === 'assistant');
-
-  if (!screenshot) return null;
-
+  // ─── Expanded panel ───────────────────────────────────────────────────────────
   return (
-    <div className="flex h-full flex-col gap-4 px-5 py-4">
-      {/* Screenshot card */}
-      <div className="relative overflow-hidden rounded-2xl" style={{ background: 'oklch(1 0 0 / 0.05)' }}>
-        <img
-          src={screenshot.preview}
-          alt="Your screen"
-          className="h-44 w-full object-cover"
-          style={{ filter: 'brightness(0.88)' }}
-        />
+    <div className="flex h-full w-full items-center justify-center" style={{ background: 'transparent' }}>
+      <div
+        className="relative flex flex-col overflow-hidden"
+        style={{
+          width: '100%',
+          height: '100%',
+          borderRadius: 28,
+          background: 'linear-gradient(160deg, oklch(0.55 0.10 238 / 0.94) 0%, oklch(0.44 0.10 252 / 0.94) 60%, oklch(0.38 0.08 262 / 0.96) 100%)',
+          backdropFilter: 'blur(64px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(64px) saturate(180%)',
+          border: '1px solid oklch(1 0 0 / 0.09)',
+          boxShadow: 'inset 0 1px 0 oklch(1 0 0 / 0.12), 0 48px 120px -24px oklch(0.05 0.02 260 / 0.7)',
+          WebkitAppRegion: 'no-drag',
+        } as React.CSSProperties}
+        onMouseEnter={() => setHoveringPanel(true)}
+        onMouseLeave={() => setHoveringPanel(false)}
+      >
+        {/* Ambient glass shimmer */}
+        <div className="pointer-events-none absolute inset-0" style={{ borderRadius: 28, background: 'linear-gradient(135deg, oklch(1 0 0 / 0.07) 0%, transparent 50%, oklch(1 0 0 / 0.02) 100%)' }} />
+
+        {/* ── Drag handle (invisible strip at top) ── */}
         <div
-          className="absolute inset-x-0 bottom-0 flex items-center justify-between px-3 py-2"
-          style={{ background: 'linear-gradient(to top, oklch(0.1 0.04 260 / 0.6), transparent)' }}
+          className="absolute inset-x-0 top-0 h-10"
+          style={{ WebkitAppRegion: 'drag', zIndex: 0 } as React.CSSProperties}
+        />
+
+        {/* ── Top controls — visible only on hover ── */}
+        <div
+          className={cn(
+            'absolute right-3 top-3 z-20 flex items-center gap-1 transition-all duration-500',
+            hoveringPanel ? 'opacity-100' : 'opacity-0',
+          )}
+          style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
         >
-          <p className="text-[11px] font-light text-muted-foreground">
-            Screenshot · {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-          </p>
-          <button onClick={onClearScreenshot} className="rounded-full p-1 text-white/40 hover:text-white/70">
-            <X className="h-3.5 w-3.5" />
-          </button>
+          {hasConversation && (
+            <ControlBtn onClick={clearConversation} title="Clear">
+              <X className="h-3.5 w-3.5" />
+            </ControlBtn>
+          )}
+          <ControlBtn onClick={captureScreenshot} title="Capture screen">
+            <Camera className="h-3.5 w-3.5" />
+          </ControlBtn>
+          <ControlBtn onClick={collapse} title="Minimise">
+            <ChevronDown className="h-3.5 w-3.5" />
+          </ControlBtn>
         </div>
-      </div>
 
-      {/* AI response */}
-      <div className="flex-1">
-        {busy ? (
-          <p className="text-[14px] font-light italic text-muted-foreground/70">Thinking…</p>
-        ) : lastAssistant ? (
-          <p className="text-[15px] font-light leading-relaxed text-foreground/90">{lastAssistant.content}</p>
-        ) : (
-          <p className="text-[14px] font-light italic text-muted-foreground">What would you like to know?</p>
-        )}
-      </div>
-
-      {/* Quick actions */}
-      {!busy && (
-        <div className="flex flex-wrap gap-2">
-          {QUICK_ACTIONS.map((a) => (
-            <button
-              key={a.label}
-              onClick={() => onQuickAction(a.prompt)}
-              className="flex items-center gap-1.5 rounded-full px-3 py-2 text-[12px] font-light text-muted-foreground transition-all hover:text-foreground"
-              style={{ background: 'oklch(1 0 0 / 0.07)', border: '1px solid var(--border)' }}
+        {/* ── ORB + presence — the emotional center ── */}
+        {!hasConversation && (
+          <div
+            className="relative flex flex-col items-center justify-center"
+            style={{ paddingTop: 32, paddingBottom: 20 }}
+            onClick={() => inputRef.current?.focus()}
+          >
+            {/* Diffuse glow behind orb */}
+            <div
+              className="absolute rounded-full blur-3xl animate-glow-pulse"
+              style={{
+                width: 100,
+                height: 100,
+                background: 'radial-gradient(circle, oklch(0.82 0.16 235 / 0.35), transparent 70%)',
+                top: 18,
+              }}
+            />
+            <Orb size={56} state={orbState} variant="overlay" noHalo />
+            <p
+              className="mt-5 text-display text-[17px] font-light text-foreground/80"
+              style={{ letterSpacing: '-0.01em' }}
             >
-              <a.icon className="h-3.5 w-3.5" />
-              {a.label}
-            </button>
-          ))}
+              {busy ? 'Thinking…' : PRESENCE_PHRASES[phraseIndex]}
+            </p>
+          </div>
+        )}
+
+        {/* ── Conversation ── */}
+        {hasConversation && (
+          <div className="relative flex-1 overflow-hidden">
+            <div
+              className="pointer-events-none absolute inset-x-0 top-0 z-10 h-10"
+              style={{ background: 'linear-gradient(to bottom, oklch(0.52 0.10 242 / 0.9), transparent)' }}
+            />
+            <div
+              className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-10"
+              style={{ background: 'linear-gradient(to top, oklch(0.40 0.09 256 / 0.9), transparent)' }}
+            />
+            <div ref={scrollRef} className="h-full overflow-y-auto px-6 pt-12 pb-4">
+              <div className="flex flex-col gap-6">
+                {messages.map((m) =>
+                  m.role === 'user'
+                    ? <UserBubble key={m.id} message={m} />
+                    : <AssistantBubble key={m.id} message={m} />
+                )}
+                {busy && <ThinkingPulse />}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Screenshot thumbnail — floats above input if present */}
+        {screenshot && !hasConversation && (
+          <div className="relative mx-6 mb-2 overflow-hidden rounded-2xl" style={{ background: 'oklch(1 0 0 / 0.05)' }}>
+            <img src={screenshot.preview} alt="" className="h-28 w-full object-cover opacity-80" style={{ filter: 'brightness(0.9)' }} />
+            <div className="absolute inset-x-0 bottom-0 flex items-center justify-between px-3 py-1.5" style={{ background: 'linear-gradient(to top, oklch(0.1 0.04 260 / 0.55), transparent)' }}>
+              <p className="text-[10px] font-light text-foreground/50">
+                {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </p>
+              <button onClick={clearScreenshot} className="text-foreground/30 hover:text-foreground/60 transition-colors">
+                <X className="h-3 w-3" />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ── Floating input — almost invisible ── */}
+        <div className="px-5 pb-5" style={{ flexShrink: 0 }}>
+          <form onSubmit={sendMessage}>
+            <div
+              className={cn(
+                'flex w-full items-center gap-3 rounded-full px-5 transition-all duration-500',
+                inputFocused || input.length > 0
+                  ? 'bg-white/[0.09] ring-1 ring-white/[0.12]'
+                  : 'bg-white/[0.04]',
+              )}
+              style={{ height: 44 }}
+            >
+              <input
+                ref={inputRef}
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onFocus={() => setInputFocused(true)}
+                onBlur={() => setInputFocused(false)}
+                placeholder="Ask softly…"
+                className="flex-1 bg-transparent text-[13px] font-light italic text-foreground placeholder:text-foreground/30 focus:outline-none"
+              />
+              {/* Send: subtle glow dot, not paper-plane */}
+              <button
+                type="submit"
+                disabled={busy || !input.trim()}
+                className={cn(
+                  'shrink-0 h-5 w-5 rounded-full transition-all duration-300',
+                  input.trim() && !busy
+                    ? 'opacity-90 scale-100'
+                    : 'opacity-0 scale-75 pointer-events-none',
+                )}
+                style={{
+                  background: 'radial-gradient(circle, oklch(0.92 0.10 220), oklch(0.72 0.18 245))',
+                  boxShadow: input.trim() ? '0 0 12px oklch(0.82 0.16 235 / 0.6)' : 'none',
+                }}
+              />
+            </div>
+          </form>
         </div>
-      )}
+      </div>
     </div>
   );
 }
 
-// ─── Chat view ────────────────────────────────────────────────────────────────
-function ChatView({ messages, busy, scrollRef }: {
-  messages: Message[];
-  busy: boolean;
-  scrollRef: React.RefObject<HTMLDivElement | null>;
-}) {
+// ─── Thinking pulse ───────────────────────────────────────────────────────────
+function ThinkingPulse() {
   return (
-    <div ref={scrollRef} className="h-full overflow-y-auto px-5 py-4">
-      <div className="flex flex-col gap-5">
-        {messages.map((m) =>
-          m.role === 'user' ? <UserBubble key={m.id} message={m} /> : <AssistantBubble key={m.id} message={m} />
-        )}
-        {busy && (
-          <p className="text-[14px] font-light italic text-muted-foreground/60 animate-pulse">Thinking…</p>
-        )}
-      </div>
+    <div className="flex items-center gap-2 px-1">
+      {[0, 1, 2].map((i) => (
+        <span
+          key={i}
+          className="h-1.5 w-1.5 rounded-full animate-pulse"
+          style={{
+            background: 'oklch(0.82 0.16 235 / 0.6)',
+            animationDelay: `${i * 0.18}s`,
+            boxShadow: '0 0 6px oklch(0.82 0.16 235 / 0.4)',
+          }}
+        />
+      ))}
     </div>
   );
 }
@@ -431,13 +370,13 @@ function ChatView({ messages, busy, scrollRef }: {
 function UserBubble({ message }: { message: Message }) {
   return (
     <div className="flex justify-end">
-      <div className="max-w-[80%]">
+      <div className="max-w-[82%]">
         {message.screenshot && (
-          <img src={message.screenshot} alt="" className="mb-2 w-full rounded-2xl object-cover opacity-70" />
+          <img src={message.screenshot} alt="" className="mb-2 w-full rounded-2xl object-cover opacity-60" />
         )}
         <div
-          className="rounded-3xl rounded-tr-sm px-4 py-2.5 text-[14px] font-light leading-relaxed text-foreground"
-          style={{ background: 'oklch(1 0 0 / 0.10)', border: '1px solid var(--border)' }}
+          className="rounded-3xl rounded-tr-sm px-4 py-2.5 text-[13px] font-light leading-relaxed text-foreground/90"
+          style={{ background: 'oklch(1 0 0 / 0.09)', border: '1px solid oklch(1 0 0 / 0.06)' }}
         >
           {message.content}
         </div>
@@ -448,20 +387,19 @@ function UserBubble({ message }: { message: Message }) {
 
 function AssistantBubble({ message }: { message: Message }) {
   return (
-    <div className="max-w-[92%]">
-      <p className="mb-1 text-[9px] uppercase tracking-[0.25em] text-muted-foreground/70">Aura</p>
-      <p className="text-[15px] font-light leading-relaxed text-foreground/90">{message.content}</p>
+    <div className="max-w-[95%]">
+      <p className="text-display text-[16px] font-light leading-relaxed text-foreground/88">{message.content}</p>
     </div>
   );
 }
 
-// ─── Header button ────────────────────────────────────────────────────────────
-function HdrBtn({ children, onClick, title }: { children: React.ReactNode; onClick: () => void; title?: string }) {
+// ─── Control button (top-right, hover-only) ───────────────────────────────────
+function ControlBtn({ children, onClick, title }: { children: React.ReactNode; onClick: () => void; title?: string }) {
   return (
     <button
       onClick={onClick}
       title={title}
-      className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-white/[0.08] hover:text-foreground"
+      className="flex h-7 w-7 items-center justify-center rounded-full text-foreground/35 transition-all duration-200 hover:bg-white/[0.08] hover:text-foreground/70"
     >
       {children}
     </button>
