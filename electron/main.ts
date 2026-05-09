@@ -99,8 +99,13 @@ function toggleWindow() {
 function setWindowSize(width: number, height: number) {
   const win = state.mainWindow;
   if (!win || win.isDestroyed()) return;
-  const [x, y] = win.getPosition();
-  win.setBounds({ x, y, width: Math.round(width), height: Math.round(height) });
+  const w = Math.round(width);
+  const h = Math.round(height);
+  // Keep the window centered on the same point as before
+  const [cx, cy] = [state.currentX + win.getBounds().width / 2, state.currentY + win.getBounds().height / 2];
+  const x = Math.round(cx - w / 2);
+  const y = Math.round(cy - h / 2);
+  win.setBounds({ x, y, width: w, height: h });
   state.currentX = x;
   state.currentY = y;
 }
