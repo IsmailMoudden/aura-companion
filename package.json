@@ -81,7 +81,7 @@
     "cross-env": "^10.0.0",
     "zod": "^3.24.2"
   },
-  "main": "dist-electron/electron/main.cjs",
+  "main": "dist-electron/electron/main.js",
   "build": {
     "appId": "ai.aura.companion",
     "productName": "Aura",
