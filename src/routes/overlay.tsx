@@ -45,6 +45,24 @@ function OverlayPage() {
       {/* ── DEMO STAGE ── */}
       <section className="relative px-6 pb-24">
         <div className="mx-auto max-w-6xl">
+          {/* State picker — above the stage */}
+          <GlassPanel className="mx-auto mb-8 flex max-w-xl items-center justify-between gap-2 rounded-full p-2">
+            {states.map((s) => (
+              <button
+                key={s.id}
+                onClick={() => setState(s.id)}
+                className={cn(
+                  "flex-1 rounded-full px-4 py-2 text-sm font-light transition-all",
+                  state === s.id
+                    ? "bg-white/[0.08] text-foreground"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {s.label}
+              </button>
+            ))}
+          </GlassPanel>
+
           <div
             className="relative aspect-[16/10] overflow-hidden rounded-[2rem] shadow-2xl animate-fade-up"
             style={{
@@ -91,30 +109,13 @@ function OverlayPage() {
             </div>
           </div>
 
-          {/* State picker */}
-          <GlassPanel className="mx-auto mt-10 flex max-w-xl items-center justify-between gap-2 rounded-full p-2">
-            {states.map((s) => (
-              <button
-                key={s.id}
-                onClick={() => setState(s.id)}
-                className={cn(
-                  "flex-1 rounded-full px-4 py-2 text-sm font-light transition-all",
-                  state === s.id
-                    ? "bg-white/[0.08] text-foreground"
-                    : "text-muted-foreground hover:text-foreground",
-                )}
-              >
-                {s.label}
-              </button>
-            ))}
-          </GlassPanel>
-
           <p
             className="mx-auto mt-8 max-w-2xl text-center text-lg font-light text-muted-foreground animate-fade-in"
             key={state + "-copy"}
           >
             {states.find((s) => s.id === state)?.copy}
           </p>
+
         </div>
       </section>
 
