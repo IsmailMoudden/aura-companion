@@ -75,10 +75,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Aura — Your ambient AI companion" },
+      { title: "Aura, Your ambient AI companion" },
       { name: "description", content: "Aura is a calm, contextual desktop AI that understands your screen and stays quietly in flow with you." },
       { name: "author", content: "Aura" },
-      { property: "og:title", content: "Aura — Your ambient AI companion" },
+      { property: "og:title", content: "Aura, Your ambient AI companion" },
       { property: "og:description", content: "A quietly brilliant AI that lives on your desktop." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
