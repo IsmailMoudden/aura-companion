@@ -20,23 +20,18 @@ const PRESENCE_PHRASES = [
   "Something on your mind?",
 ];
 
-// The Electron window is always this large when expanded — the PANEL animates inside it
-const WIN_W = 400;
-const WIN_H = 640;
-const ORB_W = 72;
-const ORB_H = 72;
-
-// Panel visual sizes — CSS animated, not window resizes
-const PANEL_W_IDLE = 340;
-const PANEL_H_IDLE = 200;
-const PANEL_W_CONV = 380;
-const PANEL_H_CONV_BASE = 320; // grows with messages, max WIN_H - 20
-const PANEL_RADIUS_IDLE = 36;
-const PANEL_RADIUS_CONV = 28;
+// Window = panel. These are the Electron window sizes.
+const ORB_W = 64;
+const ORB_H = 64;
+const PANEL_W = 360;
+const PANEL_H_IDLE = 210;
+const PANEL_H_CONV = 560;
+const PANEL_R_IDLE = 32;   // border-radius when compact
+const PANEL_R_CONV = 26;   // border-radius in conversation
 
 export function OverlayApp() {
   const [expanded, setExpanded] = useState(false);
-  const [panelReady, setPanelReady] = useState(false); // delay content render for open animation
+  const [visible, setVisible] = useState(false); // controls CSS opacity/scale for enter animation
   const [orbState, setOrbState] = useState<OrbState>('idle');
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
@@ -65,38 +60,42 @@ export function OverlayApp() {
     if (!isElectron) return;
     const unsub = window.aura!.onScreenshotTaken((data) => {
       setScreenshot(data);
-      handleExpand();
+      openPanel();
     });
     return unsub;
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const hasConversation = messages.length > 0;
 
-  // Panel height grows with content, capped at window height
-  const panelH = hasConversation
-    ? Math.min(WIN_H - 20, PANEL_H_CONV_BASE + messages.length * 24)
-    : PANEL_H_IDLE;
-
-  const handleExpand = useCallback(() => {
-    if (isElectron) window.aura!.updateDimensions(WIN_W, WIN_H);
-    setExpanded(true);
-    // Small delay so the window has time to open before we show content
-    setTimeout(() => setPanelReady(true), 60);
-    setTimeout(() => inputRef.current?.focus(), 240);
-  }, []);
-
-  const collapse = useCallback(() => {
-    setPanelReady(false);
-    // Let content fade before collapsing window
-    setTimeout(() => {
-      setExpanded(false);
-      if (isElectron) window.aura!.updateDimensions(ORB_W, ORB_H);
-    }, 280);
-  }, []);
-
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
   }, [messages.length]);
+
+  const openPanel = useCallback(() => {
+    // 1. Resize Electron window to idle panel size
+    if (isElectron) window.aura!.updateDimensions(PANEL_W, PANEL_H_IDLE);
+    setExpanded(true);
+    // 2. Tiny delay then fade/scale in so the animation is visible
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        setVisible(true);
+        setTimeout(() => inputRef.current?.focus(), 180);
+      });
+    });
+  }, []);
+
+  const closePanel = useCallback(() => {
+    setVisible(false);
+    setTimeout(() => {
+      setExpanded(false);
+      if (isElectron) window.aura!.updateDimensions(ORB_W, ORB_H);
+    }, 300);
+  }, []);
+
+  // When first message sent, grow window to conversation size
+  const growToConversation = useCallback(() => {
+    if (isElectron) window.aura!.updateDimensions(PANEL_W, PANEL_H_CONV);
+  }, []);
 
   const captureScreenshot = useCallback(async () => {
     if (!isElectron) return;
@@ -118,7 +117,10 @@ export function OverlayApp() {
     setOrbState('thinking');
 
     const userMsg: Message = { id: crypto.randomUUID(), role: 'user', content: userContent, screenshot: attachedScreenshot };
+    const isFirst = messages.length === 0;
     setMessages((m) => [...m, userMsg]);
+
+    if (isFirst) growToConversation();
 
     try {
       let convoId = conversationId;
@@ -158,7 +160,7 @@ export function OverlayApp() {
       setBusy(false);
       setOrbState('idle');
     }
-  }, [busy, messages, conversationId, user, clearScreenshot]);
+  }, [busy, messages, conversationId, user, clearScreenshot, growToConversation]);
 
   const sendMessage = useCallback((e: React.FormEvent) => {
     e.preventDefault();
@@ -172,125 +174,98 @@ export function OverlayApp() {
     setMessages([]);
     setConversationId(null);
     setScreenshot(null);
+    if (isElectron) window.aura!.updateDimensions(PANEL_W, PANEL_H_IDLE);
   }, []);
 
-  // ─── Idle orb ────────────────────────────────────────────────────────────────
+  // ─── Idle orb ─────────────────────────────────────────────────────────────────
   if (!expanded) {
     return (
       <div className="flex h-full w-full items-center justify-center" style={{ background: 'transparent' }}>
         <button
-          onClick={handleExpand}
+          onClick={openPanel}
           className="flex items-center justify-center rounded-full outline-none animate-breathe"
-          style={{ width: 52, height: 52, background: 'transparent', border: 'none', WebkitAppRegion: 'no-drag' } as React.CSSProperties}
+          style={{ width: ORB_W, height: ORB_H, background: 'transparent', border: 'none', WebkitAppRegion: 'no-drag' } as React.CSSProperties}
           title="Open Aura (Alt+Space)"
         >
-          <Orb size={52} state={orbState} variant="overlay" noHalo />
+          <Orb size={ORB_W} state={orbState} variant="overlay" noHalo />
         </button>
       </div>
     );
   }
 
-  // ─── Expanded — window is WIN_W × WIN_H, panel animates inside ───────────────
-  const panelW = hasConversation ? PANEL_W_CONV : PANEL_W_IDLE;
-  const radius = hasConversation ? PANEL_RADIUS_CONV : PANEL_RADIUS_IDLE;
+  // ─── Panel — fills the Electron window exactly ────────────────────────────────
+  const borderRadius = hasConversation ? PANEL_R_CONV : PANEL_R_IDLE;
 
   return (
-    <div
-      className="flex h-full w-full items-end justify-center"
-      style={{ background: 'transparent', paddingBottom: 10 }}
-    >
+    <div className="h-full w-full" style={{ background: 'transparent' }}>
       <div
-        className={cn('relative flex flex-col overflow-hidden')}
+        className="relative flex h-full w-full flex-col overflow-hidden"
         style={{
-          width: panelW,
-          height: panelReady ? panelH : PANEL_H_IDLE * 0.6,
-          borderRadius: radius,
-          // Deep layered background — not a flat rectangle
+          borderRadius,
+          // Layered depth background
           background: [
-            'radial-gradient(ellipse 80% 60% at 30% 20%, oklch(0.72 0.14 228 / 0.4), transparent)',
-            'radial-gradient(ellipse 60% 80% at 80% 80%, oklch(0.52 0.12 255 / 0.35), transparent)',
-            'linear-gradient(160deg, oklch(0.52 0.10 238 / 0.96) 0%, oklch(0.40 0.09 254 / 0.97) 100%)',
+            'radial-gradient(ellipse 90% 55% at 25% 15%, oklch(0.72 0.14 228 / 0.38), transparent 65%)',
+            'radial-gradient(ellipse 55% 70% at 80% 85%, oklch(0.50 0.11 255 / 0.30), transparent 65%)',
+            'linear-gradient(158deg, oklch(0.53 0.10 238 / 0.97) 0%, oklch(0.41 0.09 254 / 0.98) 100%)',
           ].join(', '),
           backdropFilter: 'blur(72px) saturate(200%)',
           WebkitBackdropFilter: 'blur(72px) saturate(200%)',
           border: '1px solid oklch(1 0 0 / 0.10)',
           boxShadow: [
-            'inset 0 1px 0 oklch(1 0 0 / 0.15)',
-            'inset 0 -1px 0 oklch(0 0 0 / 0.08)',
-            '0 32px 80px -12px oklch(0.05 0.02 260 / 0.65)',
-            '0 0 0 0.5px oklch(0 0 0 / 0.12)',
+            'inset 0 1px 0 oklch(1 0 0 / 0.14)',
+            'inset 0 -1px 0 oklch(0 0 0 / 0.07)',
+            '0 0 0 0.5px oklch(0 0 0 / 0.10)',
           ].join(', '),
-          // The organic animation — cubic-bezier like Dynamic Island
-          transition: 'width 0.55s cubic-bezier(0.34, 1.36, 0.64, 1), height 0.6s cubic-bezier(0.34, 1.36, 0.64, 1), border-radius 0.5s ease',
-          opacity: panelReady ? 1 : 0,
-          transform: panelReady ? 'scale(1)' : 'scale(0.92)',
+          // Enter animation only — no layout transitions
+          opacity: visible ? 1 : 0,
+          transform: visible ? 'scale(1) translateY(0)' : 'scale(0.94) translateY(6px)',
+          transition: 'opacity 0.32s ease, transform 0.38s cubic-bezier(0.34, 1.4, 0.64, 1)',
           WebkitAppRegion: 'no-drag',
         } as React.CSSProperties}
         onMouseEnter={() => setHoveringPanel(true)}
         onMouseLeave={() => setHoveringPanel(false)}
       >
-        {/* Top shimmer light — gives depth */}
-        <div
-          className="pointer-events-none absolute inset-x-0 top-0 rounded-t-[inherit]"
-          style={{ height: '45%', background: 'linear-gradient(180deg, oklch(1 0 0 / 0.06) 0%, transparent 100%)', zIndex: 0 }}
-        />
-        {/* Ambient radial light from center */}
-        <div
-          className="pointer-events-none absolute"
-          style={{
-            inset: '-30%',
-            background: 'radial-gradient(ellipse 50% 50% at 50% 35%, oklch(0.78 0.14 232 / 0.12), transparent 70%)',
-            zIndex: 0,
-          }}
-        />
+        {/* Top shimmer */}
+        <div className="pointer-events-none absolute inset-x-0 top-0 z-0" style={{ height: '50%', background: 'linear-gradient(180deg, oklch(1 0 0 / 0.055) 0%, transparent 100%)', borderRadius: `${borderRadius}px ${borderRadius}px 0 0` }} />
+        {/* Center ambient glow */}
+        <div className="pointer-events-none absolute z-0" style={{ inset: '-20%', background: 'radial-gradient(ellipse 55% 45% at 50% 32%, oklch(0.78 0.13 232 / 0.10), transparent 70%)' }} />
 
-        {/* ── Drag strip ── */}
-        <div className="absolute inset-x-0 top-0 h-8" style={{ WebkitAppRegion: 'drag', zIndex: 1 } as React.CSSProperties} />
+        {/* Drag strip */}
+        <div className="absolute inset-x-0 top-0 z-10 h-9" style={{ WebkitAppRegion: 'drag' } as React.CSSProperties} />
 
-        {/* ── Controls — hover only ── */}
+        {/* Controls — hover only, slide in */}
         <div
           className={cn(
-            'absolute right-3 top-3 z-20 flex items-center gap-0.5 transition-all duration-500',
-            hoveringPanel ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-1',
+            'absolute right-3 top-3 z-20 flex items-center gap-0.5 transition-all duration-400',
+            hoveringPanel ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-1 pointer-events-none',
           )}
           style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
         >
           {hasConversation && (
-            <ControlBtn onClick={clearConversation} title="Clear">
-              <X className="h-3 w-3" />
-            </ControlBtn>
+            <ControlBtn onClick={clearConversation} title="Clear"><X className="h-3 w-3" /></ControlBtn>
           )}
-          <ControlBtn onClick={captureScreenshot} title="Capture screen">
-            <Camera className="h-3 w-3" />
-          </ControlBtn>
-          <ControlBtn onClick={collapse} title="Minimise">
-            <ChevronDown className="h-3 w-3" />
-          </ControlBtn>
+          <ControlBtn onClick={captureScreenshot} title="Capture"><Camera className="h-3 w-3" /></ControlBtn>
+          <ControlBtn onClick={closePanel} title="Minimise"><ChevronDown className="h-3 w-3" /></ControlBtn>
         </div>
 
-        {/* ── PRESENCE ZONE — orb + phrase ── */}
-        {!hasConversation && panelReady && (
+        {/* ── PRESENCE ZONE ── */}
+        {!hasConversation && (
           <div
-            className="relative z-10 flex flex-col items-center justify-center"
-            style={{ paddingTop: 36, paddingBottom: 28 }}
+            className="relative z-10 flex flex-1 flex-col items-center justify-center"
+            style={{ padding: '0 32px', gap: 0 }}
             onClick={() => inputRef.current?.focus()}
           >
-            {/* Diffuse halo behind orb */}
+            {/* Orb glow halo */}
             <div
-              className="absolute rounded-full blur-3xl animate-glow-pulse"
-              style={{
-                width: 160,
-                height: 160,
-                top: 12,
-                background: 'radial-gradient(circle, oklch(0.82 0.16 235 / 0.50), transparent 70%)',
-              }}
+              className="absolute rounded-full blur-[56px] animate-glow-pulse"
+              style={{ width: 160, height: 160, background: 'radial-gradient(circle, oklch(0.82 0.16 235 / 0.48), transparent 70%)', top: '50%', left: '50%', transform: 'translate(-50%, -72%)' }}
             />
-            <div className="animate-float relative z-10">
-              <Orb size={68} state={orbState} variant="overlay" noHalo />
+            <div className="animate-float relative z-10" style={{ marginBottom: 0 }}>
+              <Orb size={64} state={orbState} variant="overlay" noHalo />
             </div>
             <p
-              className="relative z-10 mt-10 text-display font-light text-foreground/82"
-              style={{ fontSize: 17, letterSpacing: '-0.01em', lineHeight: 1.35 }}
+              className="relative z-10 text-display font-light text-foreground/82"
+              style={{ fontSize: 17, letterSpacing: '-0.01em', lineHeight: 1.3, marginTop: 28 }}
             >
               {busy ? 'Thinking…' : PRESENCE_PHRASES[phraseIndex]}
             </p>
@@ -298,12 +273,11 @@ export function OverlayApp() {
         )}
 
         {/* ── CONVERSATION ZONE ── */}
-        {hasConversation && panelReady && (
+        {hasConversation && (
           <div className="relative z-10 flex-1 overflow-hidden" style={{ minHeight: 0 }}>
-            {/* Fade edges */}
-            <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-12" style={{ background: 'linear-gradient(to bottom, oklch(0.46 0.10 246 / 0.95), transparent)' }} />
+            <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-14" style={{ background: 'linear-gradient(to bottom, oklch(0.49 0.10 242 / 0.95), transparent)' }} />
             <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-12" style={{ background: 'linear-gradient(to top, oklch(0.41 0.09 254 / 0.95), transparent)' }} />
-            <div ref={scrollRef} className="h-full overflow-y-auto" style={{ padding: '48px 28px 16px' }}>
+            <div ref={scrollRef} className="h-full overflow-y-auto" style={{ padding: '52px 28px 12px' }}>
               <div className="flex flex-col gap-7">
                 {messages.map((m) =>
                   m.role === 'user'
@@ -317,8 +291,8 @@ export function OverlayApp() {
         )}
 
         {/* Screenshot thumbnail */}
-        {screenshot && !hasConversation && panelReady && (
-          <div className="relative z-10 mx-7 mb-3 overflow-hidden rounded-2xl" style={{ background: 'oklch(1 0 0 / 0.05)' }}>
+        {screenshot && !hasConversation && (
+          <div className="relative z-10 mx-7 mb-2 overflow-hidden rounded-[18px]" style={{ flexShrink: 0 }}>
             <img src={screenshot.preview} alt="" className="h-24 w-full object-cover" style={{ opacity: 0.75, filter: 'brightness(0.88)' }} />
             <div className="absolute inset-x-0 bottom-0 flex items-center justify-between px-3 py-1.5" style={{ background: 'linear-gradient(to top, oklch(0.1 0.04 260 / 0.5), transparent)' }}>
               <p className="text-[10px] font-light text-foreground/45">{new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
@@ -327,63 +301,53 @@ export function OverlayApp() {
           </div>
         )}
 
-        {/* ── INPUT ZONE — floats at bottom ── */}
-        {panelReady && (
-          <div
-            className="relative z-10 flex-shrink-0"
-            style={{ padding: '10px 20px 20px' }}
-          >
-            <form onSubmit={sendMessage}>
-              <div
+        {/* ── INPUT ZONE ── */}
+        <div className="relative z-10 flex-shrink-0" style={{ padding: '8px 20px 20px' }}>
+          <form onSubmit={sendMessage}>
+            <div
+              className="flex items-center gap-3 rounded-full transition-all duration-400"
+              style={{
+                height: 46,
+                paddingLeft: 20,
+                paddingRight: 14,
+                background: inputFocused || input.length > 0 ? 'oklch(1 0 0 / 0.092)' : 'oklch(1 0 0 / 0.055)',
+                boxShadow: inputFocused
+                  ? 'inset 0 0 0 1px oklch(1 0 0 / 0.16), inset 0 1px 0 oklch(1 0 0 / 0.10)'
+                  : 'none',
+                transition: 'background 0.35s ease, box-shadow 0.35s ease',
+              }}
+            >
+              <input
+                ref={inputRef}
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onFocus={() => setInputFocused(true)}
+                onBlur={() => setInputFocused(false)}
+                placeholder="Ask softly…"
+                className="flex-1 bg-transparent text-[13px] font-light italic text-foreground placeholder:text-foreground/38 focus:outline-none"
+              />
+              {/* Orb send dot */}
+              <button
+                type="submit"
+                disabled={busy || !input.trim()}
                 className={cn(
-                  'flex items-center gap-3 rounded-full transition-all duration-500',
-                  inputFocused || input.length > 0
-                    ? 'ring-1 ring-white/[0.18]'
-                    : '',
+                  'h-[22px] w-[22px] shrink-0 rounded-full transition-all duration-300',
+                  input.trim() && !busy ? 'opacity-100 scale-100' : 'opacity-0 scale-50 pointer-events-none',
                 )}
                 style={{
-                  height: 46,
-                  paddingLeft: 20,
-                  paddingRight: 16,
-                  background: inputFocused || input.length > 0
-                    ? 'oklch(1 0 0 / 0.09)'
-                    : 'oklch(1 0 0 / 0.055)',
-                  transition: 'background 0.4s ease, box-shadow 0.4s ease',
-                  boxShadow: inputFocused ? 'inset 0 1px 0 oklch(1 0 0 / 0.10)' : 'none',
+                  background: 'radial-gradient(circle at 38% 32%, oklch(0.96 0.06 218), oklch(0.72 0.18 242))',
+                  boxShadow: '0 0 14px oklch(0.82 0.16 235 / 0.60), inset 0 1px 0 oklch(1 0 0 / 0.28)',
                 }}
-              >
-                <input
-                  ref={inputRef}
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  onFocus={() => setInputFocused(true)}
-                  onBlur={() => setInputFocused(false)}
-                  placeholder="Ask softly…"
-                  className="flex-1 bg-transparent text-[13px] font-light italic text-foreground placeholder:text-foreground/40 focus:outline-none"
-                />
-                {/* Glow orb send button */}
-                <button
-                  type="submit"
-                  disabled={busy || !input.trim()}
-                  className={cn(
-                    'ml-1 h-[22px] w-[22px] shrink-0 rounded-full transition-all duration-400',
-                    input.trim() && !busy ? 'opacity-100 scale-100' : 'opacity-0 scale-50 pointer-events-none',
-                  )}
-                  style={{
-                    background: 'radial-gradient(circle at 40% 35%, oklch(0.96 0.06 220), oklch(0.72 0.18 242))',
-                    boxShadow: '0 0 14px oklch(0.82 0.16 235 / 0.65), inset 0 1px 0 oklch(1 0 0 / 0.3)',
-                  }}
-                />
-              </div>
-            </form>
-          </div>
-        )}
+              />
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   );
 }
 
-// ─── Thinking pulse ───────────────────────────────────────────────────────────
+// ─── Thinking ────────────────────────────────────────────────────────────────
 function ThinkingPulse() {
   return (
     <div className="flex items-center gap-[6px]">
@@ -391,11 +355,7 @@ function ThinkingPulse() {
         <span
           key={i}
           className="h-[6px] w-[6px] rounded-full animate-pulse"
-          style={{
-            background: 'oklch(0.82 0.16 235 / 0.65)',
-            animationDelay: `${i * 0.2}s`,
-            boxShadow: '0 0 8px oklch(0.82 0.16 235 / 0.45)',
-          }}
+          style={{ background: 'oklch(0.82 0.16 235 / 0.65)', animationDelay: `${i * 0.2}s`, boxShadow: '0 0 8px oklch(0.82 0.16 235 / 0.4)' }}
         />
       ))}
     </div>
@@ -411,8 +371,8 @@ function UserBubble({ message }: { message: Message }) {
           <img src={message.screenshot} alt="" className="mb-2 w-full rounded-2xl object-cover opacity-55" />
         )}
         <div
-          className="rounded-[20px] rounded-tr-[6px] text-[13px] font-light leading-relaxed text-foreground/88"
-          style={{ padding: '9px 16px', background: 'oklch(1 0 0 / 0.10)', border: '1px solid oklch(1 0 0 / 0.07)' }}
+          className="text-[13px] font-light leading-relaxed text-foreground/88"
+          style={{ padding: '9px 16px', borderRadius: '20px 20px 6px 20px', background: 'oklch(1 0 0 / 0.10)', border: '1px solid oklch(1 0 0 / 0.07)' }}
         >
           {message.content}
         </div>
@@ -424,10 +384,7 @@ function UserBubble({ message }: { message: Message }) {
 function AssistantBubble({ message }: { message: Message }) {
   return (
     <div>
-      <p
-        className="text-display font-light leading-relaxed text-foreground/90"
-        style={{ fontSize: 16, lineHeight: 1.55 }}
-      >
+      <p className="text-display font-light leading-relaxed text-foreground/90" style={{ fontSize: 16, lineHeight: 1.55 }}>
         {message.content}
       </p>
     </div>
