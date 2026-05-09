@@ -1,4 +1,4 @@
-import { ipcMain, app } from 'electron';
+import { ipcMain, app, shell } from 'electron';
 import { IPC_EVENTS } from '../shared/constants';
 import { ScreenshotHelper } from './screenshot.helper';
 import type { BrowserWindow } from 'electron';
@@ -53,4 +53,7 @@ export function initializeIpcHandlers(deps: IpcDeps): void {
 
   // Quit app
   ipcMain.handle('app:quit', () => app.quit());
+
+  // Open URL in system browser (used for OAuth deep-link flow)
+  ipcMain.handle('shell:open-external', (_e, url: string) => shell.openExternal(url));
 }

@@ -56,6 +56,15 @@ export function OverlayApp() {
     return () => subscription.unsubscribe();
   }, []);
 
+  // Listen for deep-link auth callback from Electron main
+  useEffect(() => {
+    if (!isElectron) return;
+    const unsub = window.aura!.onAuthDeepLink(async ({ accessToken, refreshToken }) => {
+      await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
+    });
+    return unsub;
+  }, []);
+
   useEffect(() => {
     if (!isElectron) return;
     const unsub = window.aura!.onScreenshotTaken((data) => {
@@ -146,7 +155,11 @@ export function OverlayApp() {
         body: JSON.stringify(body),
       });
 
-      const json = await res.json() as { reply?: string };
+      const json = await res.json() as { reply?: string; error?: string };
+      if (!res.ok) {
+        console.error('chat error:', res.status, json);
+        throw new Error(json.error ?? `HTTP ${res.status}`);
+      }
       const reply = json.reply ?? "Something went quiet.";
       setMessages((m) => [...m, { id: crypto.randomUUID(), role: 'assistant', content: reply }]);
 
@@ -154,7 +167,8 @@ export function OverlayApp() {
         await supabase.from('messages').insert({ conversation_id: convoId, user_id: user.id, role: 'assistant', content: reply });
       }
       if (attachedScreenshot) clearScreenshot();
-    } catch {
+    } catch (err) {
+      console.error('runAI failed:', err);
       setMessages((m) => [...m, { id: crypto.randomUUID(), role: 'assistant', content: 'Something went quiet. Try again?' }]);
     } finally {
       setBusy(false);
@@ -176,6 +190,29 @@ export function OverlayApp() {
     setScreenshot(null);
     if (isElectron) window.aura!.updateDimensions(PANEL_W, PANEL_H_IDLE);
   }, []);
+
+  const connectToWeb = useCallback(() => {
+    if (!isElectron) return;
+    // VITE_SUPABASE_URL gives us the Supabase URL — derive the web app URL from env
+    const webUrl = import.meta.env.VITE_WEB_URL ?? 'http://localhost:3000';
+    window.aura!.openExternal(`${webUrl}/auth?overlay=true`);
+  }, []);
+
+  // ─── Not authenticated — show Connect screen instead of orb ──────────────────
+  if (!user && isElectron) {
+    return (
+      <div className="flex h-full w-full items-center justify-center" style={{ background: 'transparent' }}>
+        <button
+          onClick={connectToWeb}
+          className="flex items-center justify-center rounded-full outline-none animate-breathe"
+          style={{ width: ORB_W, height: ORB_H, background: 'transparent', border: 'none', WebkitAppRegion: 'no-drag' } as React.CSSProperties}
+          title="Connect Aura — click to sign in"
+        >
+          <Orb size={ORB_W} state="idle" variant="overlay" noHalo />
+        </button>
+      </div>
+    );
+  }
 
   // ─── Idle orb ─────────────────────────────────────────────────────────────────
   if (!expanded) {
