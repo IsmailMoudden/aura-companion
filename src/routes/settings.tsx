@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { GlassPanel } from "@/components/aura/glass-panel";
 import { Orb } from "@/components/aura/orb";
 import { cn } from "@/lib/utils";
-import { Sparkles, Keyboard, Brain, Lock, UserCircle } from "lucide-react";
+import { Brain, Lock, UserCircle } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -12,7 +12,7 @@ export const Route = createFileRoute("/settings")({
   head: () => ({
     meta: [
       { title: "Settings — Aura" },
-      { name: "description", content: "Tune your overlay, memory, and privacy." },
+      { name: "description", content: "Manage your account, memory, and privacy." },
     ],
   }),
   component: SettingsPage,
@@ -20,31 +20,9 @@ export const Route = createFileRoute("/settings")({
 
 const sections = [
   { id: "account", label: "Account", icon: UserCircle },
-  { id: "overlay", label: "Overlay", icon: Sparkles },
-  { id: "shortcuts", label: "Shortcuts", icon: Keyboard },
   { id: "memory", label: "Memory", icon: Brain },
   { id: "privacy", label: "Privacy", icon: Lock },
 ];
-
-function Toggle({ on, onClick }: { on: boolean; onClick: () => void }) {
-  return (
-    <button
-      onClick={onClick}
-      className={cn(
-        "relative h-7 w-12 rounded-full transition-colors",
-        on ? "bg-[color:var(--glow)]" : "bg-white/10",
-      )}
-    >
-      <span
-        className={cn(
-          "absolute top-1 h-5 w-5 rounded-full bg-white transition-all",
-          on ? "left-6" : "left-1",
-        )}
-        style={on ? { boxShadow: "0 0 12px var(--glow)" } : {}}
-      />
-    </button>
-  );
-}
 
 function Row({ title, description, children }: { title: string; description: string; children: React.ReactNode }) {
   return (
@@ -62,10 +40,8 @@ function SettingsPage() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const [active, setActive] = useState("account");
-  const [toggles, setToggles] = useState({ alwaysOn: true, breathe: true, sound: false, history: true });
   const [deletingAccount, setDeletingAccount] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const t = (k: keyof typeof toggles) => setToggles((prev) => ({ ...prev, [k]: !prev[k] }));
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/auth" });
@@ -79,10 +55,7 @@ function SettingsPage() {
   const clearAllMemory = async () => {
     if (!user) return;
     try {
-      const { error } = await supabase
-        .from("conversations")
-        .delete()
-        .eq("user_id", user.id);
+      const { error } = await supabase.from("conversations").delete().eq("user_id", user.id);
       if (error) throw error;
       toast.success("All conversations cleared.");
     } catch (err: any) {
@@ -94,11 +67,9 @@ function SettingsPage() {
     if (!user) return;
     setDeletingAccount(true);
     try {
-      // Clear conversations first
       await supabase.from("conversations").delete().eq("user_id", user.id);
-      // Sign out — account deletion requires server-side admin; we at least wipe data and sign out
       await supabase.auth.signOut();
-      toast.success("Your data has been cleared. Account signed out.");
+      toast.success("Your data has been cleared.");
       navigate({ to: "/" });
     } catch (err: any) {
       toast.error(err.message ?? "Something went wrong.");
@@ -157,11 +128,8 @@ function SettingsPage() {
             {active === "account" && (
               <div>
                 <h2 className="text-display text-3xl">Account</h2>
-                <p className="mt-2 text-sm font-light text-muted-foreground">
-                  Your identity and session.
-                </p>
+                <p className="mt-2 text-sm font-light text-muted-foreground">Your identity and session.</p>
 
-                {/* Avatar + info */}
                 <div className="mt-8 flex items-center gap-5 border-b border-white/[0.05] pb-8">
                   <div
                     className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full text-lg font-light"
@@ -218,64 +186,6 @@ function SettingsPage() {
               </div>
             )}
 
-            {/* ── OVERLAY ── */}
-            {active === "overlay" && (
-              <div>
-                <h2 className="text-display text-3xl">Overlay</h2>
-                <p className="mt-2 text-sm font-light text-muted-foreground">
-                  How Aura appears on your desktop. Changes apply the next time you launch the app.
-                </p>
-                <div className="mt-8">
-                  <Row title="Always visible" description="Keep a soft breathing orb on screen at all times.">
-                    <Toggle on={toggles.alwaysOn} onClick={() => t("alwaysOn")} />
-                  </Row>
-                  <Row title="Breathing motion" description="Organic scale and glow animations on the orb.">
-                    <Toggle on={toggles.breathe} onClick={() => t("breathe")} />
-                  </Row>
-                  <Row title="Soft sound" description="A subtle whisper when Aura starts listening.">
-                    <Toggle on={toggles.sound} onClick={() => t("sound")} />
-                  </Row>
-                  <Row title="Position" description="Where the orb rests when idle on your screen.">
-                    <div className="flex gap-2 rounded-full bg-white/[0.04] p-1">
-                      {(["TL", "TR", "BL", "BR"] as const).map((p) => (
-                        <button
-                          key={p}
-                          className="rounded-full px-3 py-1 text-xs font-light text-muted-foreground hover:text-foreground transition-colors"
-                        >
-                          {p}
-                        </button>
-                      ))}
-                    </div>
-                  </Row>
-                </div>
-                <p className="mt-6 text-xs font-light text-muted-foreground/60">
-                  These preferences are stored locally in the desktop app.
-                </p>
-              </div>
-            )}
-
-            {/* ── SHORTCUTS ── */}
-            {active === "shortcuts" && (
-              <div>
-                <h2 className="text-display text-3xl">Shortcuts</h2>
-                <p className="mt-2 text-sm font-light text-muted-foreground">
-                  Keyboard shortcuts for the desktop overlay. Rebinding requires the desktop app.
-                </p>
-                <div className="mt-8">
-                  {[
-                    { t: "Summon Aura", k: "⌥ Space", desc: "Open or close the overlay panel" },
-                    { t: "Capture screen", k: "⌥ ⇧ C", desc: "Take a screenshot and attach it to your next message" },
-                    { t: "Quick note", k: "⌥ N", desc: "Open Aura with a blank input" },
-                    { t: "Hide overlay", k: "⌥ Esc", desc: "Minimise back to the orb" },
-                  ].map((row) => (
-                    <Row key={row.t} title={row.t} description={row.desc}>
-                      <kbd className="rounded-xl bg-white/[0.06] px-4 py-2 text-xs font-light tracking-wider">{row.k}</kbd>
-                    </Row>
-                  ))}
-                </div>
-              </div>
-            )}
-
             {/* ── MEMORY ── */}
             {active === "memory" && (
               <div>
@@ -285,7 +195,7 @@ function SettingsPage() {
                 </p>
                 <div className="mt-8">
                   <Row title="Conversation history" description="Your threads are saved and searchable from any device.">
-                    <Toggle on={toggles.history} onClick={() => t("history")} />
+                    <span className="rounded-full bg-white/[0.06] px-4 py-2 text-xs font-light text-muted-foreground">Always on</span>
                   </Row>
                   <Row title="Clear all conversations" description="Delete every conversation and message from your account.">
                     <button
