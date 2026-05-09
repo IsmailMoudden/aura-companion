@@ -51,7 +51,7 @@ function Landing() {
           className="mt-12 flex flex-wrap items-center justify-center gap-4 animate-fade-up"
           style={{ animationDelay: "0.4s" }}
         >
-          <PillButton size="lg">
+          <PillButton size="lg" href="https://github.com/IsmailMoudden/aura-companion/releases/download/v0.1.0/Aura-0.1.0-arm64.dmg">
             <Download className="h-4 w-4" /> Download Overlay
           </PillButton>
           <PillButton size="lg" variant="ghost" to="/app">
@@ -151,7 +151,7 @@ function Landing() {
       >
         <Reveal variant="soft">
           <div className="flex flex-wrap justify-center gap-4">
-            <PillButton size="lg"><Download className="h-4 w-4" /> Download for macOS</PillButton>
+            <PillButton size="lg" href="https://github.com/IsmailMoudden/aura-companion/releases/download/v0.1.0/Aura-0.1.0-arm64.dmg"><Download className="h-4 w-4" /> Download for macOS</PillButton>
             <PillButton size="lg" variant="ghost" to="/app">Open the web app <ArrowRight className="h-4 w-4" /></PillButton>
           </div>
         </Reveal>

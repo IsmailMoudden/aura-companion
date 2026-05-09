@@ -6,10 +6,11 @@ interface PillButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: "primary" | "ghost";
   size?: "md" | "lg";
   to?: string;
+  href?: string;
 }
 
 export const PillButton = forwardRef<HTMLButtonElement, PillButtonProps>(
-  ({ className, variant = "primary", size = "md", to, children, ...props }, ref) => {
+  ({ className, variant = "primary", size = "md", to, href, children, ...props }, ref) => {
     const base = cn(
       "group relative inline-flex items-center justify-center gap-2 rounded-full font-light transition-all duration-500",
       "focus:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--ring)]",
@@ -31,6 +32,13 @@ export const PillButton = forwardRef<HTMLButtonElement, PillButtonProps>(
         <span className="relative z-10 flex items-center gap-2">{children}</span>
       </>
     );
+    if (href) {
+      return (
+        <a href={href} target="_blank" rel="noopener noreferrer" className={base}>
+          {content}
+        </a>
+      );
+    }
     if (to) {
       return (
         <Link to={to} className={base}>
