@@ -6,7 +6,7 @@ import { Orb } from "@/components/aura/orb";
 export function FeatureGrid({
   items,
 }: {
-  items: { icon: ReactNode; title: string; description: string }[];
+  items: { icon: ReactNode; title: string; description: string; image?: string; imageAlt?: string }[];
 }) {
   return (
     <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -37,6 +37,35 @@ export function FeatureGrid({
                 {it.icon}
               </div>
             </div>
+
+            {/* Illustrative "screen" */}
+            {it.image && (
+              <div className="relative mt-5 overflow-hidden rounded-2xl ring-1 ring-inset ring-white/[0.08]">
+                <div className="flex items-center gap-1.5 border-b border-white/[0.06] bg-white/[0.03] px-3 py-2">
+                  <span className="h-1.5 w-1.5 rounded-full bg-white/20" />
+                  <span className="h-1.5 w-1.5 rounded-full bg-white/20" />
+                  <span className="h-1.5 w-1.5 rounded-full bg-white/20" />
+                </div>
+                <div className="relative aspect-[16/10] w-full">
+                  <img
+                    src={it.image}
+                    alt={it.imageAlt ?? it.title}
+                    loading="lazy"
+                    width={768}
+                    height={512}
+                    className="absolute inset-0 h-full w-full object-cover transition-transform duration-[1200ms] group-hover:scale-[1.04]"
+                  />
+                  <div
+                    aria-hidden
+                    className="absolute inset-0"
+                    style={{
+                      background:
+                        "linear-gradient(180deg, transparent 40%, oklch(0.2 0.06 250 / 0.55) 100%)",
+                    }}
+                  />
+                </div>
+              </div>
+            )}
 
             {/* AI "voice" message */}
             <div className="relative mt-5 rounded-2xl bg-white/[0.04] px-4 py-4 ring-1 ring-inset ring-white/[0.06]">
