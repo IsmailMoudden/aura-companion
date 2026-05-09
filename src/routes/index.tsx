@@ -165,9 +165,9 @@ function Landing() {
           </div>
           <p>© 2026 Aura. Designed with care.</p>
           <div className="flex gap-6">
-            <a className="hover:text-foreground transition-colors" href="#">Privacy</a>
-            <a className="hover:text-foreground transition-colors" href="#">Terms</a>
-            <a className="hover:text-foreground transition-colors" href="#">Twitter</a>
+            <a className="hover:text-foreground transition-colors" href="/settings">Privacy</a>
+            <a className="hover:text-foreground transition-colors" href="/settings">Terms</a>
+            <a className="hover:text-foreground transition-colors" href="https://twitter.com" target="_blank" rel="noreferrer">Twitter</a>
           </div>
         </div>
       </footer>
