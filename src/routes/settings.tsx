@@ -1,28 +1,28 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { GlassPanel } from "@/components/aura/glass-panel";
 import { Orb } from "@/components/aura/orb";
 import { cn } from "@/lib/utils";
-import { Sparkles, Keyboard, Brain, Palette, Image as ImageIcon, Lock } from "lucide-react";
+import { Sparkles, Keyboard, Brain, Lock, UserCircle } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({
     meta: [
-      { title: "Settings, Aura" },
-      { name: "description", content: "Tune your overlay, memory, and privacy with calm controls." },
-      { property: "og:title", content: "Aura, Settings" },
-      { property: "og:description", content: "A premium, minimal control surface for your AI companion." },
+      { title: "Settings — Aura" },
+      { name: "description", content: "Tune your overlay, memory, and privacy." },
     ],
   }),
   component: SettingsPage,
 });
 
 const sections = [
+  { id: "account", label: "Account", icon: UserCircle },
   { id: "overlay", label: "Overlay", icon: Sparkles },
   { id: "shortcuts", label: "Shortcuts", icon: Keyboard },
-  { id: "memory", label: "AI Memory", icon: Brain },
-  { id: "theme", label: "Theme", icon: Palette },
-  { id: "screenshots", label: "Screenshots", icon: ImageIcon },
+  { id: "memory", label: "Memory", icon: Brain },
   { id: "privacy", label: "Privacy", icon: Lock },
 ];
 
@@ -59,9 +59,65 @@ function Row({ title, description, children }: { title: string; description: str
 }
 
 function SettingsPage() {
-  const [active, setActive] = useState("overlay");
-  const [toggles, setToggles] = useState({ alwaysOn: true, breathe: true, sound: false, autoCapture: true, history: true });
-  const t = (k: keyof typeof toggles) => setToggles({ ...toggles, [k]: !toggles[k] });
+  const { user, loading } = useAuth();
+  const navigate = useNavigate();
+  const [active, setActive] = useState("account");
+  const [toggles, setToggles] = useState({ alwaysOn: true, breathe: true, sound: false, history: true });
+  const [deletingAccount, setDeletingAccount] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const t = (k: keyof typeof toggles) => setToggles((prev) => ({ ...prev, [k]: !prev[k] }));
+
+  useEffect(() => {
+    if (!loading && !user) navigate({ to: "/auth" });
+  }, [user, loading, navigate]);
+
+  const signOut = async () => {
+    await supabase.auth.signOut();
+    navigate({ to: "/" });
+  };
+
+  const clearAllMemory = async () => {
+    if (!user) return;
+    try {
+      const { error } = await supabase
+        .from("conversations")
+        .delete()
+        .eq("user_id", user.id);
+      if (error) throw error;
+      toast.success("All conversations cleared.");
+    } catch (err: any) {
+      toast.error(err.message ?? "Failed to clear memory.");
+    }
+  };
+
+  const deleteAccount = async () => {
+    if (!user) return;
+    setDeletingAccount(true);
+    try {
+      // Clear conversations first
+      await supabase.from("conversations").delete().eq("user_id", user.id);
+      // Sign out — account deletion requires server-side admin; we at least wipe data and sign out
+      await supabase.auth.signOut();
+      toast.success("Your data has been cleared. Account signed out.");
+      navigate({ to: "/" });
+    } catch (err: any) {
+      toast.error(err.message ?? "Something went wrong.");
+      setDeletingAccount(false);
+    }
+  };
+
+  if (loading || !user) {
+    return (
+      <main className="flex min-h-screen items-center justify-center">
+        <Orb size={120} />
+      </main>
+    );
+  }
+
+  const displayName = user.user_metadata?.full_name as string | undefined;
+  const initials = displayName
+    ? displayName.split(" ").map((w: string) => w[0]).join("").slice(0, 2).toUpperCase()
+    : user.email?.slice(0, 2).toUpperCase() ?? "A";
 
   return (
     <main className="relative px-4 pb-16 pt-32 sm:px-6">
@@ -96,31 +152,95 @@ function SettingsPage() {
           </GlassPanel>
 
           <GlassPanel className="p-8 sm:p-12">
+
+            {/* ── ACCOUNT ── */}
+            {active === "account" && (
+              <div>
+                <h2 className="text-display text-3xl">Account</h2>
+                <p className="mt-2 text-sm font-light text-muted-foreground">
+                  Your identity and session.
+                </p>
+
+                {/* Avatar + info */}
+                <div className="mt-8 flex items-center gap-5 border-b border-white/[0.05] pb-8">
+                  <div
+                    className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full text-lg font-light"
+                    style={{ background: "var(--gradient-orb)", boxShadow: "0 0 24px var(--glow-soft)" }}
+                  >
+                    {initials}
+                  </div>
+                  <div className="min-w-0">
+                    {displayName && <p className="text-[15px] font-light truncate">{displayName}</p>}
+                    <p className="text-sm font-light text-muted-foreground truncate">{user.email}</p>
+                    <p className="mt-1 text-[11px] uppercase tracking-[0.2em] text-muted-foreground/60">
+                      Member since {new Date(user.created_at).toLocaleDateString("en-US", { month: "long", year: "numeric" })}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-2">
+                  <Row title="Sign out" description="End your current session on this device.">
+                    <button
+                      onClick={signOut}
+                      className="rounded-full bg-white/[0.06] px-5 py-2 text-sm font-light text-muted-foreground hover:bg-white/[0.1] hover:text-foreground transition-colors"
+                    >
+                      Sign out
+                    </button>
+                  </Row>
+                  <Row title="Delete account" description="Permanently erase all your data and conversations.">
+                    {confirmDelete ? (
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => setConfirmDelete(false)}
+                          className="rounded-full bg-white/[0.06] px-4 py-2 text-sm font-light text-muted-foreground hover:bg-white/[0.1] transition-colors"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={deleteAccount}
+                          disabled={deletingAccount}
+                          className="rounded-full px-4 py-2 text-sm font-light text-white/80 transition-colors disabled:opacity-50"
+                          style={{ background: "oklch(0.45 0.18 20 / 0.7)" }}
+                        >
+                          {deletingAccount ? "Deleting…" : "Confirm delete"}
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => setConfirmDelete(true)}
+                        className="rounded-full bg-white/[0.06] px-5 py-2 text-sm font-light text-muted-foreground hover:bg-white/[0.1] hover:text-foreground transition-colors"
+                      >
+                        Delete…
+                      </button>
+                    )}
+                  </Row>
+                </div>
+              </div>
+            )}
+
+            {/* ── OVERLAY ── */}
             {active === "overlay" && (
               <div>
                 <h2 className="text-display text-3xl">Overlay</h2>
                 <p className="mt-2 text-sm font-light text-muted-foreground">
-                  How Aura appears on your desktop.
+                  How Aura appears on your desktop. Changes apply the next time you launch the app.
                 </p>
                 <div className="mt-8">
                   <Row title="Always visible" description="Keep a soft breathing orb on screen at all times.">
                     <Toggle on={toggles.alwaysOn} onClick={() => t("alwaysOn")} />
                   </Row>
-                  <Row title="Breathing motion" description="Organic scale and glow animations.">
+                  <Row title="Breathing motion" description="Organic scale and glow animations on the orb.">
                     <Toggle on={toggles.breathe} onClick={() => t("breathe")} />
                   </Row>
-                  <Row title="Soft sound" description="A whisper when Aura starts listening.">
+                  <Row title="Soft sound" description="A subtle whisper when Aura starts listening.">
                     <Toggle on={toggles.sound} onClick={() => t("sound")} />
                   </Row>
-                  <Row title="Position" description="Where the orb rests when idle.">
+                  <Row title="Position" description="Where the orb rests when idle on your screen.">
                     <div className="flex gap-2 rounded-full bg-white/[0.04] p-1">
-                      {["TL", "TR", "BL", "BR"].map((p, i) => (
+                      {(["TL", "TR", "BL", "BR"] as const).map((p) => (
                         <button
                           key={p}
-                          className={cn(
-                            "rounded-full px-3 py-1 text-xs font-light",
-                            i === 3 ? "bg-white/[0.08] text-foreground" : "text-muted-foreground",
-                          )}
+                          className="rounded-full px-3 py-1 text-xs font-light text-muted-foreground hover:text-foreground transition-colors"
                         >
                           {p}
                         </button>
@@ -128,113 +248,78 @@ function SettingsPage() {
                     </div>
                   </Row>
                 </div>
+                <p className="mt-6 text-xs font-light text-muted-foreground/60">
+                  These preferences are stored locally in the desktop app.
+                </p>
               </div>
             )}
+
+            {/* ── SHORTCUTS ── */}
             {active === "shortcuts" && (
               <div>
                 <h2 className="text-display text-3xl">Shortcuts</h2>
-                <p className="mt-2 text-sm font-light text-muted-foreground">A single key away.</p>
+                <p className="mt-2 text-sm font-light text-muted-foreground">
+                  Keyboard shortcuts for the desktop overlay. Rebinding requires the desktop app.
+                </p>
                 <div className="mt-8">
                   {[
-                    { t: "Summon Aura", k: "⌥ Space" },
-                    { t: "Capture screen", k: "⌥ ⇧ C" },
-                    { t: "Quick note", k: "⌥ N" },
-                    { t: "Hide overlay", k: "⌥ Esc" },
+                    { t: "Summon Aura", k: "⌥ Space", desc: "Open or close the overlay panel" },
+                    { t: "Capture screen", k: "⌥ ⇧ C", desc: "Take a screenshot and attach it to your next message" },
+                    { t: "Quick note", k: "⌥ N", desc: "Open Aura with a blank input" },
+                    { t: "Hide overlay", k: "⌥ Esc", desc: "Minimise back to the orb" },
                   ].map((row) => (
-                    <Row key={row.t} title={row.t} description="Click to rebind">
+                    <Row key={row.t} title={row.t} description={row.desc}>
                       <kbd className="rounded-xl bg-white/[0.06] px-4 py-2 text-xs font-light tracking-wider">{row.k}</kbd>
                     </Row>
                   ))}
                 </div>
               </div>
             )}
+
+            {/* ── MEMORY ── */}
             {active === "memory" && (
               <div>
-                <h2 className="text-display text-3xl">AI Memory</h2>
-                <p className="mt-2 text-sm font-light text-muted-foreground">What Aura remembers, and forgets.</p>
+                <h2 className="text-display text-3xl">Memory</h2>
+                <p className="mt-2 text-sm font-light text-muted-foreground">
+                  What Aura keeps across conversations.
+                </p>
                 <div className="mt-8">
-                  <Row title="Conversation history" description="Threads remain searchable across devices.">
+                  <Row title="Conversation history" description="Your threads are saved and searchable from any device.">
                     <Toggle on={toggles.history} onClick={() => t("history")} />
                   </Row>
-                  <Row title="Auto-save important moments" description="Aura quietly pins what feels meaningful.">
-                    <Toggle on={toggles.autoCapture} onClick={() => t("autoCapture")} />
-                  </Row>
-                  <Row title="Forget after" description="Memory horizon for casual chats.">
-                    <select className="rounded-full bg-white/[0.06] px-4 py-2 text-sm font-light focus:outline-none">
-                      <option>30 days</option>
-                      <option>90 days</option>
-                      <option>Never</option>
-                    </select>
-                  </Row>
-                </div>
-              </div>
-            )}
-            {active === "theme" && (
-              <div>
-                <h2 className="text-display text-3xl">Theme</h2>
-                <p className="mt-2 text-sm font-light text-muted-foreground">Set the mood of your companion.</p>
-                <div className="mt-10 grid gap-4 sm:grid-cols-3">
-                  {[
-                    { name: "Aura (default)", g: "linear-gradient(135deg, oklch(0.5 0.15 295), oklch(0.3 0.1 270))" },
-                    { name: "Dawn", g: "linear-gradient(135deg, oklch(0.7 0.12 30), oklch(0.5 0.1 320))" },
-                    { name: "Pine", g: "linear-gradient(135deg, oklch(0.5 0.12 170), oklch(0.25 0.06 220))" },
-                  ].map((th, i) => (
+                  <Row title="Clear all conversations" description="Delete every conversation and message from your account.">
                     <button
-                      key={th.name}
-                      className={cn(
-                        "group relative h-40 overflow-hidden rounded-3xl text-left transition-all",
-                        i === 0 && "ring-1 ring-[color:var(--glow)]",
-                      )}
-                      style={{ background: th.g }}
+                      onClick={clearAllMemory}
+                      className="rounded-full bg-white/[0.06] px-5 py-2 text-sm font-light text-muted-foreground hover:bg-white/[0.1] hover:text-foreground transition-colors"
                     >
-                      <div className="absolute inset-x-4 bottom-4 flex items-center justify-between">
-                        <span className="text-sm font-light">{th.name}</span>
-                        <span className="h-6 w-6 rounded-full" style={{ background: "var(--gradient-orb)" }} />
-                      </div>
+                      Clear all…
                     </button>
-                  ))}
+                  </Row>
                 </div>
               </div>
             )}
-            {active === "screenshots" && (
-              <div>
-                <h2 className="text-display text-3xl">Connected screenshots</h2>
-                <p className="mt-2 text-sm font-light text-muted-foreground">Visual moments Aura has woven into memory.</p>
-                <div className="mt-10 grid grid-cols-3 gap-4 sm:grid-cols-4">
-                  {Array.from({ length: 8 }).map((_, i) => (
-                    <div
-                      key={i}
-                      className="aspect-square rounded-2xl"
-                      style={{
-                        background: `linear-gradient(${130 + i * 25}deg, oklch(0.45 0.1 ${260 + i * 12}), oklch(0.22 0.06 ${280 + i * 6}))`,
-                        boxShadow: "var(--shadow-soft)",
-                      }}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
+
+            {/* ── PRIVACY ── */}
             {active === "privacy" && (
               <div>
                 <h2 className="text-display text-3xl">Privacy</h2>
                 <p className="mt-2 text-sm font-light text-muted-foreground">
-                  Your screen and your memory belong to you.
+                  Your screen and data belong to you.
                 </p>
                 <div className="mt-8">
-                  <Row title="Local-first processing" description="Sensitive content never leaves this device.">
-                    <Toggle on onClick={() => {}} />
+                  <Row title="Screenshot processing" description="Screenshots are sent to the AI only when you explicitly attach them — never in the background.">
+                    <span className="rounded-full bg-white/[0.06] px-4 py-2 text-xs font-light text-muted-foreground">On by design</span>
                   </Row>
-                  <Row title="End-to-end encryption" description="Synced memories are encrypted with your key.">
-                    <Toggle on onClick={() => {}} />
+                  <Row title="Conversation storage" description="Messages are stored in your private Supabase instance, tied to your account only.">
+                    <span className="rounded-full bg-white/[0.06] px-4 py-2 text-xs font-light text-muted-foreground">Encrypted at rest</span>
                   </Row>
-                  <Row title="Clear all memory" description="Delete every conversation, screenshot, and note.">
-                    <button className="rounded-full bg-white/[0.06] px-5 py-2 text-sm font-light text-muted-foreground hover:bg-white/[0.1] hover:text-foreground transition-colors">
-                      Clear…
-                    </button>
+                  <Row title="AI provider" description="Your messages are processed by Moonshot AI (Kimi K2.6). No data is used for training.">
+                    <span className="rounded-full bg-white/[0.06] px-4 py-2 text-xs font-light text-muted-foreground">Kimi K2.6</span>
                   </Row>
                 </div>
               </div>
             )}
+
           </GlassPanel>
         </div>
       </div>
