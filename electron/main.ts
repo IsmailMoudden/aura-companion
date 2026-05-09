@@ -146,9 +146,9 @@ async function createWindow() {
   state.screenWidth = display.workAreaSize.width;
   state.screenHeight = display.workAreaSize.height;
 
-  // Bottom-right corner, safe from menu bar and taskbar
-  state.currentX = state.screenWidth - 100;
-  state.currentY = state.screenHeight - 100;
+  // Center of screen — safe default, easy to see
+  state.currentX = Math.round(state.screenWidth / 2) - 40;
+  state.currentY = Math.round(state.screenHeight / 2) - 40;
 
   state.mainWindow = new BrowserWindow({
     ...AuraWindowConfig.baseSettings,
