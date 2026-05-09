@@ -310,7 +310,7 @@ export function OverlayApp() {
                 height: 46,
                 paddingLeft: 20,
                 paddingRight: 14,
-                background: inputFocused || input.length > 0 ? 'oklch(1 0 0 / 0.092)' : 'oklch(1 0 0 / 0.055)',
+                background: inputFocused || input.length > 0 ? 'oklch(1 0 0 / 0.092)' : 'transparent',
                 boxShadow: inputFocused
                   ? 'inset 0 0 0 1px oklch(1 0 0 / 0.16), inset 0 1px 0 oklch(1 0 0 / 0.10)'
                   : 'none',
