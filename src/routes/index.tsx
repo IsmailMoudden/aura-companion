@@ -8,7 +8,7 @@ import { GlassPanel } from "@/components/aura/glass-panel";
 import { Reveal } from "@/components/aura/reveal";
 import { ArrowRight, Download, Eye, Sparkles, Brain, Wind, MessagesSquare, Layers } from "lucide-react";
 import featureSeesVideo from "@/assets/3545769-hd_1920_1080_24fps.mp4";
-import featureRemembersVideo from "@/assets/ELEVEN-young-woman-in-colored-light-with-digital-projection-924967-filmsupply.mov";
+import featureRemembersVideo from "@/assets/Keith Loutit-high-speed-light-time-lapses-606141-filmsupply.mov";
 import featureQuietVideo from "@/assets/WE SUM-artists-designing-in-blue-lit-lab-450942-filmsupply.mov";
 import featureOverlay from "@/assets/feature-overlay.jpg";
 import featureThreads from "@/assets/feature-threads.jpg";
