@@ -9,6 +9,8 @@ import {
 } from "@tanstack/react-router";
 
 import appCss from "../styles.css?url";
+import { AmbientBackground } from "@/components/aura/ambient-background";
+import { FloatingNav } from "@/components/aura/floating-nav";
 
 function NotFoundComponent() {
   return (
@@ -119,6 +121,8 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
+      <AmbientBackground />
+      <FloatingNav />
       <Outlet />
     </QueryClientProvider>
   );
