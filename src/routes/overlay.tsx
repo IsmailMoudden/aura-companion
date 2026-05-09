@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { OverlayMock, type OverlayState } from "@/components/overlay/overlay-mock";
 import { Section } from "@/components/landing/section";
 import { GlassPanel } from "@/components/aura/glass-panel";
@@ -32,8 +32,22 @@ const shortcuts = [
   { keys: ["⌥", "drag"], label: "Reposition", description: "Hold and drag the orb anywhere on screen — it snaps to your preferred corner." },
 ];
 
+const stateOrder: OverlayState[] = ["idle", "listening", "thinking", "expanded"];
+
 function OverlayPage() {
-  const [state, setState] = useState<OverlayState>("expanded");
+  const [state, setState] = useState<OverlayState>("idle");
+  const [paused, setPaused] = useState(false);
+
+  useEffect(() => {
+    if (paused) return;
+    const id = setInterval(() => {
+      setState((s) => {
+        const idx = stateOrder.indexOf(s);
+        return stateOrder[(idx + 1) % stateOrder.length];
+      });
+    }, 1500);
+    return () => clearInterval(id);
+  }, [paused]);
 
   return (
     <main className="relative pt-32">
@@ -51,7 +65,7 @@ function OverlayPage() {
             {states.map((s) => (
               <button
                 key={s.id}
-                onClick={() => setState(s.id)}
+                onClick={() => { setState(s.id); setPaused(true); setTimeout(() => setPaused(false), 5000); }}
                 className={cn(
                   "flex-1 rounded-full px-4 py-2 text-sm font-light transition-all",
                   state === s.id
