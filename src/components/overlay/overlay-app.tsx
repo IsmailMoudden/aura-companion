@@ -241,17 +241,17 @@ export function OverlayApp() {
           borderRadius,
           // Layered depth background
           background: [
-            'radial-gradient(ellipse 90% 55% at 25% 15%, oklch(0.72 0.14 228 / 0.38), transparent 65%)',
-            'radial-gradient(ellipse 55% 70% at 80% 85%, oklch(0.50 0.11 255 / 0.30), transparent 65%)',
-            'linear-gradient(158deg, oklch(0.53 0.10 238 / 0.97) 0%, oklch(0.41 0.09 254 / 0.98) 100%)',
+            'radial-gradient(ellipse 90% 55% at 25% 15%, oklch(0.72 0.14 228 / 0.22), transparent 65%)',
+            'radial-gradient(ellipse 55% 70% at 80% 85%, oklch(0.50 0.11 255 / 0.18), transparent 65%)',
+            'linear-gradient(158deg, oklch(0.53 0.10 238 / 0.62) 0%, oklch(0.41 0.09 254 / 0.68) 100%)',
           ].join(', '),
-          backdropFilter: 'blur(72px) saturate(200%)',
-          WebkitBackdropFilter: 'blur(72px) saturate(200%)',
+          backdropFilter: 'blur(48px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(48px) saturate(180%)',
           border: '1px solid oklch(1 0 0 / 0.10)',
           boxShadow: [
-            'inset 0 1px 0 oklch(1 0 0 / 0.14)',
-            'inset 0 -1px 0 oklch(0 0 0 / 0.07)',
-            '0 0 0 0.5px oklch(0 0 0 / 0.10)',
+            'inset 0 1px 0 oklch(1 0 0 / 0.10)',
+            'inset 0 -1px 0 oklch(0 0 0 / 0.05)',
+            '0 0 0 0.5px oklch(0 0 0 / 0.08)',
           ].join(', '),
           // Enter animation only — no layout transitions
           opacity: visible ? 1 : 0,
@@ -312,8 +312,8 @@ export function OverlayApp() {
         {/* ── CONVERSATION ZONE ── */}
         {hasConversation && (
           <div className="relative z-10 flex-1 overflow-hidden" style={{ minHeight: 0 }}>
-            <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-14" style={{ background: 'linear-gradient(to bottom, oklch(0.49 0.10 242 / 0.95), transparent)' }} />
-            <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-12" style={{ background: 'linear-gradient(to top, oklch(0.41 0.09 254 / 0.95), transparent)' }} />
+            <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-14" style={{ background: 'linear-gradient(to bottom, oklch(0.49 0.10 242 / 0.70), transparent)' }} />
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-12" style={{ background: 'linear-gradient(to top, oklch(0.41 0.09 254 / 0.70), transparent)' }} />
             <div ref={scrollRef} className="h-full overflow-y-auto" style={{ padding: '52px 28px 12px' }}>
               <div className="flex flex-col gap-7">
                 {messages.map((m) =>

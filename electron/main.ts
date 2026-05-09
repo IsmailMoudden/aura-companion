@@ -183,7 +183,6 @@ async function createWindow() {
 
   // Show the window
   state.mainWindow.show();
-  state.mainWindow.webContents.openDevTools({ mode: 'detach' });
   state.isVisible = true;
 
   state.mainWindow.on('move', () => {
