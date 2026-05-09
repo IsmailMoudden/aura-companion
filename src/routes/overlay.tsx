@@ -29,6 +29,7 @@ const shortcuts = [
   { keys: ["⌥", "⇧", "C"], label: "Capture screen", description: "Take a screenshot and attach it to your next message instantly." },
   { keys: ["⌥", "N"], label: "Quick note", description: "Open Aura with a blank input, ready to receive a thought." },
   { keys: ["⌥", "Esc"], label: "Dismiss", description: "Minimise back to the orb without closing the session." },
+  { keys: ["⌥", "drag"], label: "Reposition", description: "Hold and drag the orb anywhere on screen — it snaps to your preferred corner." },
 ];
 
 function OverlayPage() {
