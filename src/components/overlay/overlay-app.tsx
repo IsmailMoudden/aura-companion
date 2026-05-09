@@ -57,10 +57,16 @@ export function OverlayApp() {
   // Tell Electron how big to make the window
   useEffect(() => {
     if (!isElectron) return;
-    const w = expanded ? 460 : 80;
-    const h = expanded ? 680 : 80;
+    if (!expanded) {
+      window.aura!.updateDimensions(80, 80);
+      return;
+    }
+    // Compact when no messages, grows with content up to a max
+    const hasContent = messages.length > 0 || screenshot !== null;
+    const w = 460;
+    const h = hasContent ? 640 : 220;
     window.aura!.updateDimensions(w, h);
-  }, [expanded]);
+  }, [expanded, messages.length, screenshot]);
 
   // Auto-scroll
   useEffect(() => {
@@ -192,6 +198,8 @@ export function OverlayApp() {
         ? 'In conversation'
         : 'Your ambient companion';
 
+  const compact = messages.length === 0 && screenshot === null;
+
   return (
     <div className="flex h-full w-full items-center justify-center">
       {expanded ? (
@@ -213,6 +221,7 @@ export function OverlayApp() {
           onSwitchToChat={() => setView('chat')}
           scrollRef={scrollRef}
           inputRef={inputRef}
+          compact={compact}
         />
       ) : (
         <button
@@ -249,6 +258,7 @@ interface PanelProps {
   onSwitchToChat: () => void;
   scrollRef: React.RefObject<HTMLDivElement | null>;
   inputRef: React.RefObject<HTMLInputElement | null>;
+  compact: boolean;
 }
 
 function Panel(p: PanelProps) {
@@ -273,24 +283,26 @@ function Panel(p: PanelProps) {
         onCollapse={p.onCollapse}
       />
 
-      <div className="flex-1 overflow-hidden">
-        {p.view === 'home' ? (
-          <HomeView
-            screenshot={p.screenshot}
-            busy={p.busy}
-            messages={p.messages}
-            onQuickAction={p.onQuickAction}
-            onClearScreenshot={p.onClearScreenshot}
-            onSwitchToChat={p.onSwitchToChat}
-          />
-        ) : (
-          <ChatView
-            messages={p.messages}
-            busy={p.busy}
-            scrollRef={p.scrollRef}
-          />
-        )}
-      </div>
+      {!p.compact && (
+        <div className="flex-1 overflow-hidden">
+          {p.view === 'home' ? (
+            <HomeView
+              screenshot={p.screenshot}
+              busy={p.busy}
+              messages={p.messages}
+              onQuickAction={p.onQuickAction}
+              onClearScreenshot={p.onClearScreenshot}
+              onSwitchToChat={p.onSwitchToChat}
+            />
+          ) : (
+            <ChatView
+              messages={p.messages}
+              busy={p.busy}
+              scrollRef={p.scrollRef}
+            />
+          )}
+        </div>
+      )}
 
       <InputBar
         input={p.input}
