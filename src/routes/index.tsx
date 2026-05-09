@@ -12,7 +12,6 @@ const featureRemembersVideo = "/videos/feature-memory.mov";
 const featureQuietVideo = "/videos/feature-quiet.mov";
 const featureThreadsVideo = "/videos/feature-threads.mov";
 import featureOverlay from "@/assets/feature-overlay.jpg";
-import featureSuggestions from "@/assets/feature-suggestions.jpg";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -116,7 +115,7 @@ function Landing() {
           items={[
             { icon: <Layers className="h-5 w-5" />, title: "Floating overlay", description: "A translucent companion that lives above any app, ready in one shortcut.", image: featureOverlay, imageAlt: "Glass panel floating above a desk" },
             { icon: <MessagesSquare className="h-5 w-5" />, title: "Continuous threads", description: "Pick up any conversation hours or weeks later. Nothing is lost.", video: featureThreadsVideo },
-            { icon: <Sparkles className="h-5 w-5" />, title: "Soft suggestions", description: "Aura nudges, never interrupts. You stay the author of your day.", image: featureSuggestions, imageAlt: "Gentle sparkles drifting in soft glow" },
+            { icon: <Sparkles className="h-5 w-5" />, title: "Soft suggestions", description: "Aura nudges, never interrupts. You stay the author of your day.", video: "/videos/feature-suggestions.mov" },
           ]}
         />
       </Section>
