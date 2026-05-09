@@ -192,7 +192,7 @@ export function OverlayApp() {
         <button
           onClick={() => setExpanded(true)}
           className="relative flex items-center justify-center rounded-full outline-none animate-breathe"
-          style={{ width: 52, height: 52, WebkitAppRegion: 'no-drag', background: 'transparent', border: 'none', opacity: 0.72 } as React.CSSProperties}
+          style={{ width: 52, height: 52, WebkitAppRegion: 'no-drag', background: 'transparent', border: 'none', opacity: 0.88 } as React.CSSProperties}
           title="Open Aura  (Alt+Space)"
         >
           <Orb size={52} state={orbState} variant="overlay" noHalo />
