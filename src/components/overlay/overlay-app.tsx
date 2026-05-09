@@ -284,7 +284,7 @@ function Panel(p: PanelProps) {
       />
 
       {!p.compact && (
-        <div className="flex-1 overflow-hidden">
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
           {p.view === 'home' ? (
             <HomeView
               screenshot={p.screenshot}
@@ -326,30 +326,30 @@ function Header({
 }) {
   return (
     <div
-      className="flex items-center px-5 py-4"
+      className="flex shrink-0 items-center gap-3 px-4 py-3"
       style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
     >
       {/* Orb — left */}
-      <div style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
-        <Orb size={40} state={orbState} variant="overlay" />
+      <div className="shrink-0" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
+        <Orb size={36} state={orbState} variant="overlay" />
       </div>
 
       {/* Center label */}
-      <div className="flex-1 text-center" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
-        <p className="text-[9px] uppercase tracking-[0.35em] text-white/50">Aura</p>
-        <p className="mt-0.5 text-[15px] font-light text-white/90">{subtitle}</p>
+      <div className="min-w-0 flex-1 text-center" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
+        <p className="text-[9px] uppercase tracking-[0.32em] text-white/50">Aura</p>
+        <p className="mt-0.5 truncate text-[14px] font-light text-white/90">{subtitle}</p>
       </div>
 
       {/* Camera + collapse — right */}
       <div
-        className="flex items-center gap-1"
+        className="flex shrink-0 items-center gap-1"
         style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
       >
         <HdrBtn onClick={onCapture} title="Capture screen (Alt+Shift+C)">
-          <Camera className="h-[17px] w-[17px]" />
+          <Camera className="h-4 w-4" />
         </HdrBtn>
         <HdrBtn onClick={onCollapse} title="Minimise">
-          <ChevronDown className="h-[17px] w-[17px]" />
+          <ChevronDown className="h-4 w-4" />
         </HdrBtn>
       </div>
     </div>
@@ -383,15 +383,15 @@ function HomeView({
   const lastAssistant = [...messages].reverse().find((m) => m.role === 'assistant');
 
   return (
-    <div className="flex h-full flex-col px-5 pb-2">
+    <div className="flex min-h-0 flex-1 flex-col px-4">
       {screenshot ? (
-        <>
+        <div className="flex min-h-0 flex-1 flex-col gap-3">
           {/* Screenshot card */}
-          <div className="relative overflow-hidden rounded-2xl" style={{ background: 'oklch(1 0 0 / 0.06)' }}>
+          <div className="relative shrink-0 overflow-hidden rounded-2xl" style={{ background: 'oklch(1 0 0 / 0.06)' }}>
             <img
               src={screenshot.preview}
               alt="Your screen"
-              className="h-52 w-full object-cover"
+              className="aspect-[16/9] w-full object-cover"
               style={{ filter: 'brightness(0.92)' }}
             />
             <div className="absolute inset-x-0 bottom-0 flex items-center justify-between px-3 py-2"
@@ -410,18 +410,18 @@ function HomeView({
           </div>
 
           {/* AI response or thinking indicator */}
-          <div className="mt-4 flex-1">
+          <div className="min-h-0 flex-1 overflow-y-auto">
             {busy ? (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center justify-center gap-2 py-3">
                 <Sparkles className="h-3.5 w-3.5 animate-glow-pulse text-white/50" />
                 <span className="text-[13px] font-light text-white/50">Thinking…</span>
               </div>
             ) : lastAssistant ? (
-              <p className="text-center text-[15px] font-light leading-relaxed text-white/90">
+              <p className="text-center text-[14px] font-light leading-relaxed text-white/90">
                 {lastAssistant.content}
               </p>
             ) : (
-              <p className="text-center text-[14px] font-light text-white/60">
+              <p className="py-2 text-center text-[13px] font-light text-white/60">
                 What would you like to know about your screen?
               </p>
             )}
@@ -429,43 +429,43 @@ function HomeView({
 
           {/* Quick-action pills */}
           {!busy && (
-            <div className="mt-4 flex flex-wrap justify-center gap-2 pb-1">
+            <div className="flex shrink-0 flex-wrap justify-center gap-1.5 pb-1">
               {QUICK_ACTIONS.map((a) => (
                 <button
                   key={a.label}
                   onClick={() => onQuickAction(a.prompt)}
-                  className="flex items-center gap-2 rounded-full px-4 py-2.5 text-[13px] font-light text-white/80 transition-all hover:bg-white/15 hover:text-white"
+                  className="flex items-center gap-1.5 rounded-full px-3 py-2 text-[12px] font-light text-white/80 transition-all hover:bg-white/15 hover:text-white"
                   style={{
                     background: 'oklch(1 0 0 / 0.08)',
                     border: '1px solid oklch(1 0 0 / 0.1)',
                   }}
                 >
-                  <a.icon className="h-3.5 w-3.5 text-white/60" />
+                  <a.icon className="h-3 w-3 text-white/60" />
                   {a.label}
                 </button>
               ))}
             </div>
           )}
-        </>
+        </div>
       ) : (
         /* No screenshot — empty home */
-        <div className="flex h-full flex-col items-center justify-center text-center">
-          <Orb size={80} state="idle" variant="overlay" />
-          <p className="mt-6 text-display text-2xl text-white/90">What's on your mind?</p>
-          <p className="mt-2 text-[13px] font-light text-white/50">
+        <div className="flex min-h-0 flex-1 flex-col items-center justify-center text-center">
+          <Orb size={64} state="idle" variant="overlay" />
+          <p className="mt-5 text-display text-2xl leading-tight text-white/90">What's on your mind?</p>
+          <p className="mt-1.5 text-[12px] font-light text-white/55">
             Aura sees your screen and stays in flow.
           </p>
           {isElectron && (
             <button
               onClick={onSwitchToChat}
-              className="mt-8 flex items-center gap-2 rounded-full px-5 py-2.5 text-[13px] font-light text-white/70 transition-all hover:bg-white/10 hover:text-white/90"
+              className="mt-5 flex items-center gap-2 rounded-full px-4 py-2 text-[12px] font-light text-white/70 transition-all hover:bg-white/10 hover:text-white/90"
               style={{ background: 'oklch(1 0 0 / 0.06)', border: '1px solid oklch(1 0 0 / 0.08)' }}
             >
               Start a conversation
             </button>
           )}
           {isElectron && (
-            <p className="mt-4 text-[11px] text-white/30">Alt+Shift+C  to capture screen</p>
+            <p className="mt-3 text-[10px] tracking-wide text-white/30">Alt+Shift+C to capture screen</p>
           )}
         </div>
       )}
@@ -482,8 +482,8 @@ function ChatView({
   scrollRef: React.RefObject<HTMLDivElement | null>;
 }) {
   return (
-    <div ref={scrollRef} className="h-full overflow-y-auto px-5 pb-2 pt-2">
-      <div className="space-y-5">
+    <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto px-4 py-3">
+      <div className="space-y-4">
         {messages.map((m) =>
           m.role === 'user' ? (
             <UserBubble key={m.id} message={m} />
@@ -515,7 +515,7 @@ function InputBar({
   onClear: () => void;
 }) {
   return (
-    <div className="px-4 pb-5 pt-2">
+    <div className="shrink-0 px-3 pb-3 pt-2">
       <form onSubmit={onSend}>
         <div
           className="flex items-center gap-2 rounded-full pl-4 pr-1.5"
@@ -529,7 +529,7 @@ function InputBar({
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Ask softly…"
-            className="flex-1 bg-transparent py-3 text-[14px] font-light text-white placeholder:text-white/35 focus:outline-none"
+            className="min-w-0 flex-1 bg-transparent py-2.5 text-[14px] font-light text-white placeholder:text-white/40 focus:outline-none"
           />
           {hasMessages && (
             <button
@@ -577,9 +577,9 @@ function UserBubble({ message }: { message: Message }) {
 
 function AssistantBubble({ message }: { message: Message }) {
   return (
-    <div className="max-w-[90%]">
+    <div className="mr-auto max-w-[92%]">
       <p className="mb-1.5 text-[9px] uppercase tracking-[0.25em] text-white/35">Aura</p>
-      <p className="whitespace-pre-wrap text-[15px] font-light leading-relaxed text-white/90">
+      <p className="whitespace-pre-wrap text-[14px] font-light leading-relaxed text-white/90">
         {message.content}
       </p>
     </div>
