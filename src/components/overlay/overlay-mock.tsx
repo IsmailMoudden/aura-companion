@@ -53,18 +53,18 @@ export function OverlayMock({ state }: { state: OverlayState }) {
       <div className="flex items-center gap-3">
         <Orb size={36} />
         <div className="flex-1">
-          <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Aura</p>
-          <p className="text-sm font-light">Looking at your screen</p>
+          <p className="text-xs uppercase tracking-[0.2em] text-foreground/70">Aura</p>
+          <p className="text-sm font-light text-foreground">Looking at your screen</p>
         </div>
-        <Camera className="h-4 w-4 text-muted-foreground" />
+        <Camera className="h-4 w-4 text-foreground/80" />
       </div>
-      <div className="rounded-2xl bg-white/[0.06] p-3 border border-white/10">
+      <div className="rounded-2xl bg-foreground/[0.08] p-3 border border-foreground/15">
         <div className="aspect-[16/9] rounded-xl"
-          style={{ background: "linear-gradient(135deg, oklch(0.88 0.08 225 / 0.5), oklch(0.78 0.1 245 / 0.4))" }}
+          style={{ background: "linear-gradient(135deg, oklch(0.5 0.13 265 / 0.6), oklch(0.38 0.1 275 / 0.55))" }}
         />
-        <p className="mt-2 text-xs text-muted-foreground">Screenshot · 3:42 PM</p>
+        <p className="mt-2 text-xs text-foreground/75">Screenshot · 3:42 PM</p>
       </div>
-      <p className="text-[15px] font-light leading-relaxed">
+      <p className="text-[15px] font-light leading-relaxed text-foreground">
         This looks like a quarterly report. Want me to summarize the revenue section
         or compare it with last quarter's notes?
       </p>
@@ -77,8 +77,8 @@ export function OverlayMock({ state }: { state: OverlayState }) {
           <button
             key={a.label}
             className={cn(
-              "inline-flex items-center gap-2 rounded-full bg-white/[0.05] px-3 py-1.5 text-xs font-light",
-              "transition-colors hover:bg-white/[0.1]",
+              "inline-flex items-center gap-2 rounded-full bg-foreground/10 px-3 py-1.5 text-xs font-light text-foreground",
+              "transition-colors hover:bg-foreground/20",
             )}
           >
             <a.icon className="h-3 w-3" /> {a.label}

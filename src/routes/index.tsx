@@ -10,9 +10,9 @@ import { ArrowRight, Download, Eye, Sparkles, Brain, Wind, MessagesSquare, Layer
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Aura — Your ambient AI companion" },
+      { title: "Aura, Your ambient AI companion" },
       { name: "description", content: "A quietly brilliant desktop AI that understands your screen and stays in flow with you." },
-      { property: "og:title", content: "Aura — Your ambient AI companion" },
+      { property: "og:title", content: "Aura, Your ambient AI companion" },
       { property: "og:description", content: "Calm, contextual, always present. Aura is the AI companion for your desktop." },
     ],
   }),
@@ -39,7 +39,7 @@ function Landing() {
           style={{ animationDelay: "0.25s" }}
         >
           Aura is a calm desktop companion that understands your screen, remembers
-          what matters, and stays gently present — never in the way.
+          what matters, and stays gently present, never in the way.
         </p>
         <div
           className="mt-12 flex flex-wrap items-center justify-center gap-4 animate-fade-up"
@@ -64,22 +64,22 @@ function Landing() {
       <Section
         eyebrow="Your AI everywhere"
         title={<>One companion.<br /><em className="italic text-muted-foreground/80">Every surface.</em></>}
-        description="Aura travels with you across desktop, web, and the moments in between — a single thread of thought that never breaks."
+        description="Aura travels with you across desktop, web, and the moments in between, a single thread of thought that never breaks."
       >
         <FeatureGrid
           items={[
             { icon: <Eye className="h-5 w-5" />, title: "Sees your screen", description: "Aura quietly understands what you're working on, the moment you need it." },
-            { icon: <Brain className="h-5 w-5" />, title: "Remembers gently", description: "Conversations, screenshots, and ideas — softly woven into a memory you control." },
+            { icon: <Brain className="h-5 w-5" />, title: "Remembers gently", description: "Conversations, screenshots, and ideas, softly woven into a memory you control." },
             { icon: <Wind className="h-5 w-5" />, title: "Stays out of the way", description: "A breath of an interface. Present when called, invisible when not." },
           ]}
         />
       </Section>
 
-      {/* UNDERSTANDS YOUR SCREEN — desktop showcase */}
+      {/* UNDERSTANDS YOUR SCREEN, desktop showcase */}
       <Section
         eyebrow="Understands your screen"
         title={<>Context, captured.</>}
-        description="Press a shortcut. Aura sees what you see — a document, a design, a mistake — and meets you exactly there."
+        description="Press a shortcut. Aura sees what you see, a document, a design, a mistake, and meets you exactly there."
       >
         <DesktopMock />
       </Section>
@@ -88,7 +88,7 @@ function Landing() {
       <Section
         eyebrow="Ambient intelligence"
         title={<>An intelligence that<br /><em className="italic text-muted-foreground/80">breathes with you.</em></>}
-        description="Aura fades into the background of your work. Soft glows, calm sound, gentle motion — designed to feel less like software and more like presence."
+        description="Aura fades into the background of your work. Soft glows, calm sound, gentle motion, designed to feel less like software and more like presence."
       >
         <div className="relative flex h-[420px] items-center justify-center">
           <Orb size={320} state="thinking" />
@@ -99,7 +99,7 @@ function Landing() {
       <Section
         eyebrow="Stay in flow"
         title="Never break your rhythm."
-        description="A whisper of a panel, a single keystroke away. Aura responds in your tone, at your pace — then steps back."
+        description="A whisper of a panel, a single keystroke away. Aura responds in your tone, at your pace, then steps back."
       >
         <FeatureGrid
           items={[
@@ -125,7 +125,7 @@ function Landing() {
               <p className="mb-2 text-xs uppercase tracking-[0.2em] text-muted-foreground">Aura</p>
               <p className="text-[17px] font-light leading-relaxed">
                 Of course. The report frames a strong quarter, but three quiet
-                tensions surface — supply concentration, a softening enterprise
+                tensions surface, supply concentration, a softening enterprise
                 pipeline, and a margin shift in the EU segment. Want me to draft a
                 note for your team?
               </p>

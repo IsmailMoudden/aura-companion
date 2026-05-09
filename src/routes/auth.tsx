@@ -7,7 +7,7 @@ import { Orb } from "@/components/aura/orb";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/auth")({
-  head: () => ({ meta: [{ title: "Aura — Sign in" }] }),
+  head: () => ({ meta: [{ title: "Aura, Sign in" }] }),
   component: AuthPage,
 });
 
