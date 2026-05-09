@@ -1,4 +1,4 @@
-import { app, BrowserWindow, screen, shell } from 'electron';
+import { app, BrowserWindow, screen, shell, Tray, Menu, nativeImage } from 'electron';
 import path from 'path';
 import * as dotenv from 'dotenv';
 import { AuraWindowConfig } from './window-config/AuraWindowConfig';
@@ -11,6 +11,7 @@ dotenv.config({ path: path.join(process.cwd(), '.env') });
 
 const state = {
   mainWindow: null as BrowserWindow | null,
+  tray: null as Tray | null,
   isVisible: true,
   currentX: 0,
   currentY: 50,
@@ -181,6 +182,23 @@ async function createWindow() {
     state.mainWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
   });
 
+  // Hide from Dock (macOS) — overlay lives as a tray-only app
+  if (process.platform === 'darwin') app.dock.hide();
+
+  // Tray icon with Quit option
+  const trayIcon = nativeImage.createFromPath(
+    path.join(__dirname, '../assets/icons/mac/tray.png')
+  ).resize({ width: 16, height: 16 });
+  state.tray = new Tray(trayIcon.isEmpty() ? nativeImage.createEmpty() : trayIcon);
+  state.tray.setToolTip('Aura');
+  const trayMenu = Menu.buildFromTemplate([
+    { label: 'Show Aura', click: () => { showWindow(); state.mainWindow?.focus(); } },
+    { type: 'separator' },
+    { label: 'Quit Aura', accelerator: 'CmdOrCtrl+Q', click: () => app.quit() },
+  ]);
+  state.tray.setContextMenu(trayMenu);
+  state.tray.on('click', () => toggleWindow());
+
   // Show the window
   state.mainWindow.show();
   state.isVisible = true;
@@ -242,7 +260,8 @@ async function init() {
 }
 
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') app.quit();
+  // Always quit — tray handles reopen, we don't want zombie processes
+  app.quit();
 });
 
 app.on('activate', () => {
