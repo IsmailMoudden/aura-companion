@@ -16,7 +16,8 @@
     "electron:bundle": "esbuild electron/main.ts electron/preload.ts --bundle --platform=node --target=node20 --external:electron --outdir=dist-electron --format=cjs --sourcemap",
     "electron:cjs": "node -e \"require('fs').writeFileSync('dist-electron/package.json', JSON.stringify({type:'commonjs'}))\"",
     "electron:build": "vite build --config vite.overlay.config.ts && npm run electron:bundle && npm run electron:cjs && electron-builder",
-    "electron:pack": "vite build --config vite.overlay.config.ts && npm run electron:bundle && npm run electron:cjs && electron-builder --dir"
+    "electron:pack": "vite build --config vite.overlay.config.ts && npm run electron:bundle && npm run electron:cjs && electron-builder --dir",
+    "electron:build:win": "vite build --config vite.overlay.config.ts && npm run electron:bundle && npm run electron:cjs && electron-builder --win"
   },
   "dependencies": {
     "@cloudflare/vite-plugin": "^1.25.5",
@@ -91,6 +92,14 @@
       "hardenedRuntime": false,
       "gatekeeperAssess": false,
       "identity": null
+    },
+    "win": {
+      "target": [{ "target": "nsis", "arch": ["x64"] }],
+      "icon": "assets/icons/win/icon.ico"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false
     },
     "files": [
       "dist-overlay/**/*",
