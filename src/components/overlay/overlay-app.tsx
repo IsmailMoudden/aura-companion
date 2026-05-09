@@ -24,8 +24,8 @@ const PRESENCE_PHRASES = [
 const ORB_W = 64;
 const ORB_H = 64;
 const PANEL_W = 360;
-const PANEL_H_IDLE = 210;
-const PANEL_H_CONV = 560;
+const PANEL_H_IDLE = 300;
+const PANEL_H_CONV = 503;
 const PANEL_R_IDLE = 32;   // border-radius when compact
 const PANEL_R_CONV = 26;   // border-radius in conversation
 
