@@ -7,6 +7,12 @@ import { DesktopMock } from "@/components/landing/desktop-mock";
 import { GlassPanel } from "@/components/aura/glass-panel";
 import { Reveal } from "@/components/aura/reveal";
 import { ArrowRight, Download, Eye, Sparkles, Brain, Wind, MessagesSquare, Layers } from "lucide-react";
+import featureSees from "@/assets/feature-sees.jpg";
+import featureRemembers from "@/assets/feature-remembers.jpg";
+import featureQuiet from "@/assets/feature-quiet.jpg";
+import featureOverlay from "@/assets/feature-overlay.jpg";
+import featureThreads from "@/assets/feature-threads.jpg";
+import featureSuggestions from "@/assets/feature-suggestions.jpg";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -69,9 +75,9 @@ function Landing() {
       >
         <FeatureGrid
           items={[
-            { icon: <Eye className="h-5 w-5" />, title: "Sees your screen", description: "Aura quietly understands what you're working on, the moment you need it." },
-            { icon: <Brain className="h-5 w-5" />, title: "Remembers gently", description: "Conversations, screenshots, and ideas, softly woven into a memory you control." },
-            { icon: <Wind className="h-5 w-5" />, title: "Stays out of the way", description: "A breath of an interface. Present when called, invisible when not." },
+            { icon: <Eye className="h-5 w-5" />, title: "Sees your screen", description: "Aura quietly understands what you're working on, the moment you need it.", image: featureSees, imageAlt: "An ethereal eye watching a glowing screen" },
+            { icon: <Brain className="h-5 w-5" />, title: "Remembers gently", description: "Conversations, screenshots, and ideas, softly woven into a memory you control.", image: featureRemembers, imageAlt: "Glowing memory threads weaving through soft clouds" },
+            { icon: <Wind className="h-5 w-5" />, title: "Stays out of the way", description: "A breath of an interface. Present when called, invisible when not.", image: featureQuiet, imageAlt: "Translucent veils drifting in soft wind" },
           ]}
         />
       </Section>
@@ -108,9 +114,9 @@ function Landing() {
       >
         <FeatureGrid
           items={[
-            { icon: <Layers className="h-5 w-5" />, title: "Floating overlay", description: "A translucent companion that lives above any app, ready in one shortcut." },
-            { icon: <MessagesSquare className="h-5 w-5" />, title: "Continuous threads", description: "Pick up any conversation hours or weeks later. Nothing is lost." },
-            { icon: <Sparkles className="h-5 w-5" />, title: "Soft suggestions", description: "Aura nudges, never interrupts. You stay the author of your day." },
+            { icon: <Layers className="h-5 w-5" />, title: "Floating overlay", description: "A translucent companion that lives above any app, ready in one shortcut.", image: featureOverlay, imageAlt: "Glass panel floating above a desk" },
+            { icon: <MessagesSquare className="h-5 w-5" />, title: "Continuous threads", description: "Pick up any conversation hours or weeks later. Nothing is lost.", image: featureThreads, imageAlt: "Luminous threads of light flowing across time" },
+            { icon: <Sparkles className="h-5 w-5" />, title: "Soft suggestions", description: "Aura nudges, never interrupts. You stay the author of your day.", image: featureSuggestions, imageAlt: "Gentle sparkles drifting in soft glow" },
           ]}
         />
       </Section>
