@@ -8,9 +8,9 @@ import { Sparkles, Keyboard, Brain, Palette, Image as ImageIcon, Lock } from "lu
 export const Route = createFileRoute("/settings")({
   head: () => ({
     meta: [
-      { title: "Settings — Aura" },
+      { title: "Settings, Aura" },
       { name: "description", content: "Tune your overlay, memory, and privacy with calm controls." },
-      { property: "og:title", content: "Aura — Settings" },
+      { property: "og:title", content: "Aura, Settings" },
       { property: "og:description", content: "A premium, minimal control surface for your AI companion." },
     ],
   }),
@@ -151,7 +151,7 @@ function SettingsPage() {
             {active === "memory" && (
               <div>
                 <h2 className="text-display text-3xl">AI Memory</h2>
-                <p className="mt-2 text-sm font-light text-muted-foreground">What Aura remembers — and forgets.</p>
+                <p className="mt-2 text-sm font-light text-muted-foreground">What Aura remembers, and forgets.</p>
                 <div className="mt-8">
                   <Row title="Conversation history" description="Threads remain searchable across devices.">
                     <Toggle on={toggles.history} onClick={() => t("history")} />

@@ -8,7 +8,7 @@ export function AmbientBackground() {
         className="absolute inset-0"
         style={{ background: "var(--gradient-ambient)" }}
       />
-      {/* Human imagery — soft, blurred, low-opacity for ambient warmth */}
+      {/* Human imagery, soft, blurred, low-opacity for ambient warmth */}
       <img
         src={human1}
         alt=""
