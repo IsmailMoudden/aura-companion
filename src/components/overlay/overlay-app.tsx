@@ -241,22 +241,25 @@ export function OverlayApp() {
         {!hasConversation && (
           <div
             className="relative flex flex-col items-center justify-center"
-            style={{ paddingTop: 32, paddingBottom: 20 }}
+            style={{ paddingTop: 38, paddingBottom: 24 }}
             onClick={() => inputRef.current?.focus()}
           >
-            {/* Diffuse glow behind orb */}
+            {/* Diffuse glow — floats with the orb */}
             <div
-              className="absolute rounded-full blur-3xl animate-glow-pulse"
+              className="absolute rounded-full blur-3xl animate-glow-pulse animate-float"
               style={{
-                width: 130,
-                height: 130,
+                width: 150,
+                height: 150,
                 background: 'radial-gradient(circle, oklch(0.82 0.16 235 / 0.55), transparent 70%)',
-                top: 10,
+                top: 6,
               }}
             />
-            <Orb size={56} state={orbState} variant="overlay" noHalo />
+            {/* Orb animates exactly like landing "Ambient intelligence" section */}
+            <div className="animate-float">
+              <Orb size={64} state={orbState} variant="overlay" noHalo />
+            </div>
             <p
-              className="mt-8 text-display text-[17px] font-light text-foreground/80"
+              className="mt-9 text-display text-[17px] font-light text-foreground/80"
               style={{ letterSpacing: '-0.01em' }}
             >
               {busy ? 'Thinking…' : PRESENCE_PHRASES[phraseIndex]}
@@ -304,7 +307,7 @@ export function OverlayApp() {
         )}
 
         {/* ── Floating input — almost invisible ── */}
-        <div className="px-7 pb-6" style={{ flexShrink: 0 }}>
+        <div className="px-8 pb-7" style={{ flexShrink: 0 }}>
           <form onSubmit={sendMessage}>
             <div
               className={cn(
