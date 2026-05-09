@@ -27,6 +27,7 @@ function ChatPage() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/auth" });
@@ -64,6 +65,13 @@ function ChatPage() {
 
   const newConversation = async () => {
     if (!user) return;
+    // Avoid creating a pile of empty conversations: if the active one is
+    // already empty, just focus the input instead of creating another.
+    const active = convos.find((c) => c.id === activeId);
+    if (active && active.title === "New conversation" && messages.length === 0) {
+      inputRef.current?.focus();
+      return;
+    }
     const { data, error } = await supabase
       .from("conversations")
       .insert({ user_id: user.id, title: "New conversation" })
@@ -72,6 +80,9 @@ function ChatPage() {
     if (error) return toast.error(error.message);
     setConvos((c) => [data as Conversation, ...c]);
     setActiveId(data.id);
+    setMessages([]);
+    setInput("");
+    setTimeout(() => inputRef.current?.focus(), 50);
   };
 
   const sendMessage = async (e: React.FormEvent) => {
@@ -355,6 +366,7 @@ function ChatPage() {
             <div className="mx-auto max-w-2xl">
               <GlassPanel strong className="flex items-center gap-2 rounded-full p-2 pl-5">
                 <input
+                  ref={inputRef}
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   placeholder="Ask softly…"
