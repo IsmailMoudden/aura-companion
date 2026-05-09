@@ -15,7 +15,6 @@ export const AuraWindowConfig: WindowConfig = {
     skipTaskbar: true,
     titleBarStyle: 'hidden',
     backgroundColor: '#00000000',
-    type: 'panel',
     paintWhenInitiallyHidden: true,
     movable: true,
     resizable: false,
