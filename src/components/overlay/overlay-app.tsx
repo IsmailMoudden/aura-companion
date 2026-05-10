@@ -98,6 +98,7 @@ export function OverlayApp() {
   const [hoveringPanel, setHoveringPanel] = useState(false);
   // Voice
   const [voiceMode, setVoiceMode] = useState<'off' | 'wake' | 'command'>('off');
+  const [wakeDetected, setWakeDetected] = useState(false);
   const [ttsEnabled, setTtsEnabled] = useState(false);
   useEffect(() => { voiceModeRef.current = voiceMode; }, [voiceMode]);
   const wakeRecogRef = useRef<SpeechRecognitionInstance | null>(null);
@@ -318,7 +319,12 @@ export function OverlayApp() {
       const transcript = parts.join(' ');
       if (transcript.includes(WAKE_WORD) || transcript.includes('aura')) {
         recog.stop();
-        setVoiceMode('command');
+        setWakeDetected(true);
+        setOrbState('listening');
+        setTimeout(() => {
+          setWakeDetected(false);
+          setVoiceMode('command');
+        }, 800);
       }
     };
     recog.onend = () => {
@@ -555,16 +561,29 @@ export function OverlayApp() {
             {/* Orb glow halo */}
             <div
               className="absolute rounded-full blur-[56px] animate-glow-pulse"
-              style={{ width: 160, height: 160, background: 'radial-gradient(circle, oklch(0.82 0.16 235 / 0.48), transparent 70%)', top: '50%', left: '50%', transform: 'translate(-50%, -72%)' }}
+              style={{
+                width: wakeDetected ? 220 : 160,
+                height: wakeDetected ? 220 : 160,
+                background: `radial-gradient(circle, oklch(0.82 0.16 235 / ${wakeDetected ? '0.70' : '0.48'}), transparent 70%)`,
+                top: '50%', left: '50%', transform: 'translate(-50%, -72%)',
+                transition: 'width 0.4s ease, height 0.4s ease, background 0.4s ease',
+              }}
             />
             <div className="animate-float relative z-10" style={{ marginBottom: 0 }}>
               <Orb size={64} state={orbState} variant="overlay" noHalo />
             </div>
             <p
-              className="relative z-10 text-display font-light text-foreground/82"
-              style={{ fontSize: 17, letterSpacing: '-0.01em', lineHeight: 1.3, marginTop: 28 }}
+              className="relative z-10 text-display font-light transition-all duration-300"
+              style={{
+                fontSize: 17,
+                letterSpacing: '-0.01em',
+                lineHeight: 1.3,
+                marginTop: 28,
+                color: wakeDetected ? 'oklch(0.95 0.10 230)' : undefined,
+                opacity: wakeDetected ? 1 : 0.82,
+              }}
             >
-              {voiceMode === 'wake' ? 'Listening for "Hey Aura"…' : busy ? 'Thinking…' : PRESENCE_PHRASES[phraseIndex]}
+              {wakeDetected ? 'Hey Aura…' : voiceMode === 'wake' ? 'Listening…' : busy ? 'Thinking…' : PRESENCE_PHRASES[phraseIndex]}
             </p>
 
           </div>
