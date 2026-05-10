@@ -81,13 +81,6 @@ export function OverlayApp() {
   }, [messages.length]);
 
   const openPanel = useCallback(() => {
-    // 1. Auto-capture screen without hiding the overlay
-    if (isElectron) {
-      window.aura!.captureOnly().then((result) => {
-        if (result.success && result.path && result.preview)
-          setScreenshot({ path: result.path, preview: result.preview });
-      });
-    }
     // 2. Resize Electron window to idle panel size
     if (isElectron) window.aura!.updateDimensions(PANEL_W, PANEL_H_IDLE);
     setExpanded(true);
