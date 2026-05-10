@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { Orb } from '@/components/aura/orb';
-import { X, Camera, ChevronDown, Mic, MicOff } from 'lucide-react';
+import { X, Camera, ChevronDown, Mic, MicOff, Volume2, VolumeX } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 
@@ -98,6 +98,7 @@ export function OverlayApp() {
   const [hoveringPanel, setHoveringPanel] = useState(false);
   // Voice
   const [voiceMode, setVoiceMode] = useState<'off' | 'wake' | 'command'>('off');
+  const [ttsEnabled, setTtsEnabled] = useState(false);
   useEffect(() => { voiceModeRef.current = voiceMode; }, [voiceMode]);
   const wakeRecogRef = useRef<SpeechRecognitionInstance | null>(null);
   const cmdRecogRef = useRef<SpeechRecognitionInstance | null>(null);
@@ -257,7 +258,7 @@ export function OverlayApp() {
       }
       const reply = json.reply ?? "Something went quiet.";
       setMessages((m) => [...m, { id: crypto.randomUUID(), role: 'assistant', content: reply }]);
-      if (voiceModeRef.current !== 'off') speak(reply);
+      if (ttsEnabled) speak(reply);
 
       if (user && convoId) {
         await supabase.from('messages').insert({ conversation_id: convoId, user_id: user.id, role: 'assistant', content: reply });
@@ -270,7 +271,7 @@ export function OverlayApp() {
       setBusy(false);
       setOrbState('idle');
     }
-  }, [busy, messages, conversationId, user, clearScreenshot, growToConversation]);
+  }, [busy, messages, conversationId, user, clearScreenshot, growToConversation, ttsEnabled]);
 
   const sendMessage = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
@@ -498,6 +499,37 @@ export function OverlayApp() {
         {/* Drag strip */}
         <div className="absolute inset-x-0 top-0 z-10 h-9" style={{ WebkitAppRegion: 'drag' } as React.CSSProperties} />
 
+        {/* Voice controls — always visible left side */}
+        {SpeechRecognitionAPI && (
+          <div
+            className="absolute left-3 top-3 z-20 flex items-center gap-0.5"
+            style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
+          >
+            {/* Wake word toggle */}
+            <ControlBtn
+              onClick={toggleVoice}
+              title={voiceMode !== 'off' ? 'Stop "Hey Aura"' : 'Start "Hey Aura"'}
+              active={voiceMode !== 'off'}
+            >
+              {voiceMode !== 'off'
+                ? <MicOff className="h-3 w-3" />
+                : <Mic className="h-3 w-3" />
+              }
+            </ControlBtn>
+            {/* TTS toggle */}
+            <ControlBtn
+              onClick={() => setTtsEnabled((v) => !v)}
+              title={ttsEnabled ? 'Mute voice response' : 'Enable voice response'}
+              active={ttsEnabled}
+            >
+              {ttsEnabled
+                ? <Volume2 className="h-3 w-3" />
+                : <VolumeX className="h-3 w-3" />
+              }
+            </ControlBtn>
+          </div>
+        )}
+
         {/* Controls — hover only, slide in */}
         <div
           className={cn(
@@ -535,25 +567,6 @@ export function OverlayApp() {
               {voiceMode === 'wake' ? 'Listening for "Hey Aura"…' : busy ? 'Thinking…' : PRESENCE_PHRASES[phraseIndex]}
             </p>
 
-            {/* Mic toggle */}
-            {SpeechRecognitionAPI && (
-              <button
-                onClick={(e) => { e.stopPropagation(); toggleVoice(); }}
-                className={cn(
-                  'relative z-10 mt-5 flex items-center gap-2 rounded-full px-4 py-2 text-[11px] font-light transition-all duration-300',
-                  voiceMode !== 'off'
-                    ? 'bg-[oklch(0.82_0.16_235_/_0.20)] text-foreground/90'
-                    : 'text-foreground/35 hover:text-foreground/60',
-                )}
-                style={voiceMode !== 'off' ? { boxShadow: '0 0 16px oklch(0.82 0.16 235 / 0.3)' } : {}}
-                title={voiceMode !== 'off' ? 'Stop listening' : 'Start listening for "Hey Aura"'}
-              >
-                {voiceMode !== 'off'
-                  ? <><MicOff className="h-3 w-3" /> Stop listening</>
-                  : <><Mic className="h-3 w-3" /> Hey Aura</>
-                }
-              </button>
-            )}
           </div>
         )}
 
@@ -760,12 +773,18 @@ function AssistantBubble({ message }: { message: Message }) {
 }
 
 // ─── Control button ───────────────────────────────────────────────────────────
-function ControlBtn({ children, onClick, title }: { children: React.ReactNode; onClick: () => void; title?: string }) {
+function ControlBtn({ children, onClick, title, active }: { children: React.ReactNode; onClick: () => void; title?: string; active?: boolean }) {
   return (
     <button
       onClick={onClick}
       title={title}
-      className="flex h-7 w-7 items-center justify-center rounded-full text-foreground/30 transition-all duration-200 hover:bg-white/[0.08] hover:text-foreground/65"
+      className={cn(
+        'flex h-7 w-7 items-center justify-center rounded-full transition-all duration-200',
+        active
+          ? 'bg-[oklch(0.82_0.16_235_/_0.22)] text-foreground/90'
+          : 'text-foreground/30 hover:bg-white/[0.08] hover:text-foreground/65',
+      )}
+      style={active ? { boxShadow: '0 0 10px oklch(0.82 0.16 235 / 0.35)' } : {}}
     >
       {children}
     </button>
