@@ -95,9 +95,17 @@ export function OverlayApp() {
 
   const closePanel = useCallback(() => {
     setVisible(false);
+    // Wait for fade-out animation, then collapse React state
     setTimeout(() => {
       setExpanded(false);
-      if (isElectron) window.aura!.updateDimensions(ORB_W, ORB_H);
+      // Give React one more frame to render the orb before resizing the window,
+      // otherwise Electron shrinks the window before the orb DOM is mounted
+      // and the orb appears clipped on re-open.
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          if (isElectron) window.aura!.updateDimensions(ORB_W, ORB_H);
+        });
+      });
     }, 300);
   }, []);
 
