@@ -46,6 +46,18 @@ export function initializeIpcHandlers(deps: IpcDeps): void {
     }
   });
 
+  ipcMain.handle('screenshot:capture-only', async () => {
+    const win = deps.getMainWindow();
+    if (!win) return { success: false };
+    try {
+      const filepath = await deps.screenshotHelper.captureOnly();
+      const preview = await deps.screenshotHelper.getImagePreview(filepath);
+      return { success: true, path: filepath, preview };
+    } catch (err) {
+      return { success: false, error: String(err) };
+    }
+  });
+
   ipcMain.handle(IPC_EVENTS.SCREENSHOT.CLEAR, async (_e, filepath: string) => {
     await deps.screenshotHelper.deleteScreenshot(filepath);
     return { success: true };

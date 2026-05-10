@@ -25,27 +25,32 @@ export class ScreenshotHelper {
     return buffer;
   }
 
+  // Capture without hiding the overlay — for auto-capture on message send
+  public async captureOnly(): Promise<string> {
+    let buffer: Buffer;
+    if (process.platform === 'darwin') {
+      buffer = await this.captureScreenshotMac();
+    } else if (process.platform === 'win32') {
+      buffer = await this.captureScreenshotWindows();
+    } else {
+      throw new Error(`Platform ${process.platform} not yet supported`);
+    }
+    const screenshotPath = path.join(this.screenshotDir, `${uuidv4()}.png`);
+    await fs.promises.writeFile(screenshotPath, buffer);
+    return screenshotPath;
+  }
+
+  // Capture with overlay hidden — for manual camera button
   public async takeScreenshot(
     hideWindow: () => void,
     showWindow: () => void,
   ): Promise<string> {
     hideWindow();
-    // Wait for the window to fully disappear before capturing
     await new Promise((r) => setTimeout(r, 350));
 
     let screenshotPath = '';
     try {
-      let buffer: Buffer;
-      if (process.platform === 'darwin') {
-        buffer = await this.captureScreenshotMac();
-      } else if (process.platform === 'win32') {
-        buffer = await this.captureScreenshotWindows();
-      } else {
-        throw new Error(`Platform ${process.platform} not yet supported`);
-      }
-
-      screenshotPath = path.join(this.screenshotDir, `${uuidv4()}.png`);
-      await fs.promises.writeFile(screenshotPath, buffer);
+      screenshotPath = await this.captureOnly();
     } finally {
       await new Promise((r) => setTimeout(r, 150));
       showWindow();
