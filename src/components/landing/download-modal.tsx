@@ -3,7 +3,8 @@ import type React from "react";
 import { GlassPanel } from "@/components/aura/glass-panel";
 import { Download, X, Apple, Monitor, ChevronRight } from "lucide-react";
 
-const RELEASES_BASE = "https://github.com/IsmailMoudden/aura-companion/releases/latest/download";
+const RELEASES_LATEST = "https://github.com/IsmailMoudden/aura-companion/releases/latest";
+const RELEASES_BASE = `${RELEASES_LATEST}/download`;
 
 type GuideStep = { text: string; code?: string };
 
@@ -13,7 +14,7 @@ const platforms: { id: string; icon: React.ReactNode; label: string; sub: string
     icon: <Apple className="h-5 w-5" />,
     label: "macOS",
     sub: "Apple Silicon · M1, M2, M3…",
-    url: `${RELEASES_BASE}/Aura-0.1.0-arm64.dmg`,
+    url: `${RELEASES_BASE}/Aura-arm64.dmg`,
     badge: "Recommended",
     guide: [
       { text: "Open the .dmg and drag Aura to Applications." },
@@ -29,7 +30,7 @@ const platforms: { id: string; icon: React.ReactNode; label: string; sub: string
     icon: <Apple className="h-5 w-5" />,
     label: "macOS",
     sub: "Intel · x64",
-    url: `${RELEASES_BASE}/Aura-0.1.0-x64.dmg`,
+    url: `${RELEASES_BASE}/Aura-x64.dmg`,
     badge: null,
     guide: [
       { text: "Open the .dmg and drag Aura to Applications." },
@@ -45,7 +46,7 @@ const platforms: { id: string; icon: React.ReactNode; label: string; sub: string
     icon: <Monitor className="h-5 w-5" />,
     label: "Windows",
     sub: "x64 · .exe installer",
-    url: `${RELEASES_BASE}/Aura-0.1.0-x64.exe`,
+    url: `${RELEASES_BASE}/Aura-x64.exe`,
     badge: null,
     guide: [
       { text: 'Run the installer. If SmartScreen appears, click "More info" → "Run anyway".' },
