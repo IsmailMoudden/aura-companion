@@ -1,8 +1,35 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { Orb } from '@/components/aura/orb';
-import { X, Camera, ChevronDown } from 'lucide-react';
+import { X, Camera, ChevronDown, Mic, MicOff } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
+
+// ─── Web Speech API types ─────────────────────────────────────────────────────
+type SpeechRecognitionCtor = new () => SpeechRecognitionInstance;
+interface SpeechRecognitionInstance extends EventTarget {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  start(): void;
+  stop(): void;
+  onresult: ((e: SpeechRecognitionResultEvent) => void) | null;
+  onend: (() => void) | null;
+  onerror: (() => void) | null;
+}
+interface SpeechRecognitionResultEvent {
+  results: { [i: number]: { [j: number]: { transcript: string }; length: number }; length: number };
+}
+declare global {
+  interface Window {
+    SpeechRecognition?: SpeechRecognitionCtor;
+    webkitSpeechRecognition?: SpeechRecognitionCtor;
+  }
+}
+const SpeechRecognitionAPI: SpeechRecognitionCtor | null = typeof window !== 'undefined'
+  ? (window.SpeechRecognition ?? window.webkitSpeechRecognition ?? null)
+  : null;
+
+const WAKE_WORD = 'hey aura';
 
 type OrbState = 'idle' | 'listening' | 'thinking';
 type Message = { id: string; role: 'user' | 'assistant'; content: string; screenshot?: string; showScreenshot?: boolean };
@@ -42,6 +69,10 @@ export function OverlayApp() {
   const [user, setUser] = useState<{ id: string; email: string } | null>(null);
   const [phraseIndex] = useState(() => Math.floor(Math.random() * PRESENCE_PHRASES.length));
   const [hoveringPanel, setHoveringPanel] = useState(false);
+  // Voice
+  const [voiceMode, setVoiceMode] = useState<'off' | 'wake' | 'command'>('off');
+  const wakeRecogRef = useRef<SpeechRecognitionInstance | null>(null);
+  const cmdRecogRef = useRef<SpeechRecognitionInstance | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -227,6 +258,96 @@ export function OverlayApp() {
     void runAI(text, screenData, isManualScreenshot);
   }, [input, screenshot, runAI]);
 
+  // Keep stable refs to avoid stale closures in SpeechRecognition callbacks
+  const runAIRef = useRef(runAI);
+  const openPanelRef = useRef(openPanel);
+  useEffect(() => { runAIRef.current = runAI; }, [runAI]);
+  useEffect(() => { openPanelRef.current = openPanel; }, [openPanel]);
+
+  const startWakeListener = useCallback(() => {
+    if (!SpeechRecognitionAPI) return;
+    const recog = new SpeechRecognitionAPI();
+    recog.continuous = true;
+    recog.interimResults = true;
+    recog.lang = 'fr-FR';
+    wakeRecogRef.current = recog;
+
+    recog.onresult = (e: SpeechRecognitionResultEvent) => {
+      const parts: string[] = [];
+      for (let i = 0; i < e.results.length; i++) parts.push(e.results[i][0].transcript.toLowerCase());
+      const transcript = parts.join(' ');
+      if (transcript.includes(WAKE_WORD) || transcript.includes('aura')) {
+        recog.stop();
+        setVoiceMode('command');
+      }
+    };
+    recog.onend = () => {
+      if (wakeRecogRef.current === recog) {
+        try { recog.start(); } catch { /**/ }
+      }
+    };
+    recog.onerror = () => {
+      setTimeout(() => {
+        if (wakeRecogRef.current === recog) {
+          try { recog.start(); } catch { /**/ }
+        }
+      }, 1000);
+    };
+    try { recog.start(); } catch { /**/ }
+  }, []);
+
+  const startCommandListener = useCallback(() => {
+    if (!SpeechRecognitionAPI) return;
+    const recog = new SpeechRecognitionAPI();
+    recog.continuous = false;
+    recog.interimResults = false;
+    recog.lang = 'fr-FR';
+    cmdRecogRef.current = recog;
+    setOrbState('listening');
+
+    recog.onresult = (e: SpeechRecognitionResultEvent) => {
+      const text = e.results[0]?.[0]?.transcript?.trim();
+      if (text) {
+        setInput(text);
+        setTimeout(() => {
+          void runAIRef.current(text, undefined, false);
+          setInput('');
+        }, 400);
+      }
+    };
+    recog.onend = () => {
+      setOrbState('idle');
+      cmdRecogRef.current = null;
+      setVoiceMode('wake');
+    };
+    recog.onerror = () => {
+      setOrbState('idle');
+      cmdRecogRef.current = null;
+      setVoiceMode('wake');
+    };
+    try { recog.start(); } catch { /**/ }
+  }, []);
+
+  // Voice state machine
+  useEffect(() => {
+    if (voiceMode === 'off') {
+      if (wakeRecogRef.current) { wakeRecogRef.current.onend = null; wakeRecogRef.current.stop(); wakeRecogRef.current = null; }
+      if (cmdRecogRef.current) { cmdRecogRef.current.onend = null; cmdRecogRef.current.stop(); cmdRecogRef.current = null; }
+      setOrbState('idle');
+    } else if (voiceMode === 'wake') {
+      if (cmdRecogRef.current) { cmdRecogRef.current.onend = null; cmdRecogRef.current.stop(); cmdRecogRef.current = null; }
+      startWakeListener();
+    } else if (voiceMode === 'command') {
+      if (wakeRecogRef.current) { wakeRecogRef.current.onend = null; wakeRecogRef.current.stop(); wakeRecogRef.current = null; }
+      openPanelRef.current();
+      setTimeout(() => startCommandListener(), 350);
+    }
+  }, [voiceMode, startWakeListener, startCommandListener]);
+
+  const toggleVoice = useCallback(() => {
+    setVoiceMode((m) => m === 'off' ? 'wake' : 'off');
+  }, []);
+
   const clearConversation = useCallback(() => {
     setMessages([]);
     setConversationId(null);
@@ -347,8 +468,28 @@ export function OverlayApp() {
               className="relative z-10 text-display font-light text-foreground/82"
               style={{ fontSize: 17, letterSpacing: '-0.01em', lineHeight: 1.3, marginTop: 28 }}
             >
-              {busy ? 'Thinking…' : PRESENCE_PHRASES[phraseIndex]}
+              {voiceMode === 'wake' ? 'Listening for "Hey Aura"…' : busy ? 'Thinking…' : PRESENCE_PHRASES[phraseIndex]}
             </p>
+
+            {/* Mic toggle */}
+            {SpeechRecognitionAPI && (
+              <button
+                onClick={(e) => { e.stopPropagation(); toggleVoice(); }}
+                className={cn(
+                  'relative z-10 mt-5 flex items-center gap-2 rounded-full px-4 py-2 text-[11px] font-light transition-all duration-300',
+                  voiceMode !== 'off'
+                    ? 'bg-[oklch(0.82_0.16_235_/_0.20)] text-foreground/90'
+                    : 'text-foreground/35 hover:text-foreground/60',
+                )}
+                style={voiceMode !== 'off' ? { boxShadow: '0 0 16px oklch(0.82 0.16 235 / 0.3)' } : {}}
+                title={voiceMode !== 'off' ? 'Stop listening' : 'Start listening for "Hey Aura"'}
+              >
+                {voiceMode !== 'off'
+                  ? <><MicOff className="h-3 w-3" /> Stop listening</>
+                  : <><Mic className="h-3 w-3" /> Hey Aura</>
+                }
+              </button>
+            )}
           </div>
         )}
 
