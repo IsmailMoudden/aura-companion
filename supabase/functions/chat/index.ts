@@ -1,7 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const KIMI_BASE = 'https://api.moonshot.ai/v1';
-const MODEL_TEXT = 'kimi-k2-turbo-preview';
+const MODEL_TEXT = 'moonshot-v1-8k';
 const MODEL_VISION = 'moonshot-v1-32k-vision-preview';
 
 const SYSTEM_PROMPT = `You are Aura, an ambient AI companion that lives on the user's desktop.
