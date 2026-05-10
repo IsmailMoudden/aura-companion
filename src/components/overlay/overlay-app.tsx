@@ -263,12 +263,12 @@ export function OverlayApp() {
           borderRadius,
           // Layered depth background
           background: [
-            'radial-gradient(ellipse 90% 55% at 25% 15%, oklch(0.72 0.14 228 / 0.14), transparent 65%)',
-            'radial-gradient(ellipse 55% 70% at 80% 85%, oklch(0.50 0.11 255 / 0.10), transparent 65%)',
-            'linear-gradient(158deg, oklch(0.53 0.10 238 / 0.42) 0%, oklch(0.41 0.09 254 / 0.48) 100%)',
+            'radial-gradient(ellipse 90% 55% at 25% 15%, oklch(0.72 0.14 228 / 0.08), transparent 65%)',
+            'radial-gradient(ellipse 55% 70% at 80% 85%, oklch(0.50 0.11 255 / 0.06), transparent 65%)',
+            'linear-gradient(158deg, oklch(0.53 0.10 238 / 0.28) 0%, oklch(0.41 0.09 254 / 0.32) 100%)',
           ].join(', '),
-          backdropFilter: 'blur(40px) saturate(160%)',
-          WebkitBackdropFilter: 'blur(40px) saturate(160%)',
+          backdropFilter: 'blur(32px) saturate(140%)',
+          WebkitBackdropFilter: 'blur(32px) saturate(140%)',
           border: '1px solid oklch(1 0 0 / 0.10)',
           boxShadow: [
             'inset 0 1px 0 oklch(1 0 0 / 0.10)',
