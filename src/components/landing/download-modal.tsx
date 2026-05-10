@@ -3,7 +3,7 @@ import type React from "react";
 import { GlassPanel } from "@/components/aura/glass-panel";
 import { Download, X, Apple, Monitor, ChevronRight } from "lucide-react";
 
-const RELEASES_BASE = "https://github.com/IsmailMoudden/aura-companion/releases/download/v0.1.0";
+const RELEASES_BASE = "https://github.com/IsmailMoudden/aura-companion/releases/latest/download";
 
 type GuideStep = { text: string; code?: string };
 
