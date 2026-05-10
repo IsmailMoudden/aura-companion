@@ -189,11 +189,19 @@ export function OverlayApp() {
     const text = input.trim();
     setInput('');
 
-    // Auto-capture screen on every send
+    // Use already-attached screenshot, or auto-capture now
     let screenData = screenshot?.preview;
     if (isElectron && !screenData) {
-      const result = await window.aura!.takeScreenshot();
-      if (result.success && result.preview) screenData = result.preview;
+      try {
+        const result = await window.aura!.takeScreenshot();
+        if (result.success && result.preview) {
+          screenData = result.preview;
+          // clean up temp file after use
+          if (result.path) window.aura!.clearScreenshot(result.path);
+        }
+      } catch {
+        // screenshot failed silently — still send the message
+      }
     }
 
     void runAI(text, screenData);
