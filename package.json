@@ -86,6 +86,7 @@
   "build": {
     "appId": "ai.aura.companion",
     "productName": "Aura",
+    "artifactName": "${productName}-${arch}.${ext}",
     "mac": {
       "category": "public.app-category.productivity",
       "icon": "assets/icons/mac/icon.icns",

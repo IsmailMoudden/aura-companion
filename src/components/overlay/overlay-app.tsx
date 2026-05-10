@@ -75,21 +75,6 @@ const PRESENCE_PHRASES = [
   "Something on your mind?",
 ];
 
-// ─── Instant demo responses (no API call) ────────────────────────────────────
-const INSTANT_REPLIES: { match: (q: string) => boolean; reply: string }[] = [
-  {
-    match: (q) => /repo|this project|are you building/i.test(q),
-    reply: `This is Aura — the thing you're talking to right now.\n\nAn ambient AI companion built on Electron + React. It lives as a transparent overlay on your desktop, always on top, always one shortcut away.\n\nThe stack: TanStack Start, Tailwind v4, Supabase for auth and memory, and Kimi K2 as the brain. Screenshots go through a vision model so I can actually see what's on your screen.\n\nYou're building something genuinely different here.`,
-  },
-  {
-    match: (q) => /preview/i.test(q),
-    reply: `That globe icon at the top — click it. It opens a live preview of the web app directly in Lovable.\n\nYou can also hit the **Preview** button next to it to get a full-screen view.`,
-  },
-  {
-    match: (q) => /what (are you|is aura)|who are you/i.test(q),
-    reply: `I'm Aura.\n\nMost AI is a destination — you open it, use it, close it. I'm not that.\n\nI live here, on your desktop, above everything else. I see what you see. I wait until you need me, while you work.`,
-  },
-];
 
 // Window = panel. These are the Electron window sizes.
 const ORB_W = 88;
@@ -252,17 +237,6 @@ export function OverlayApp() {
     if (isFirst) growToConversation();
 
     try {
-      // Short-circuit for known demo questions — short fake latency, no API call
-      const instant = INSTANT_REPLIES.find((r) => r.match(userContent));
-      if (instant) {
-        await new Promise((r) => setTimeout(r, 1500));
-        setMessages((m) => [...m, { id: crypto.randomUUID(), role: 'assistant', content: instant.reply }]);
-        if (ttsEnabledRef.current) speak(instant.reply);
-        setBusy(false);
-        setOrbState('idle');
-        return;
-      }
-
       let convoId = conversationId;
       if (!convoId && user) {
         const { data, error } = await supabase
