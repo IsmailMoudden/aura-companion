@@ -31,6 +31,32 @@ const SpeechRecognitionAPI: SpeechRecognitionCtor | null = typeof window !== 'un
 
 const WAKE_WORD = 'hey aura';
 
+// ─── TTS ──────────────────────────────────────────────────────────────────────
+function speak(text: string) {
+  if (typeof window === 'undefined' || !window.speechSynthesis) return;
+  window.speechSynthesis.cancel(); // stop any ongoing speech
+  // Strip markdown before speaking
+  const clean = text
+    .replace(/```[\s\S]*?```/g, 'code block')
+    .replace(/`([^`]+)`/g, '$1')
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    .replace(/\*([^*]+)\*/g, '$1')
+    .replace(/^[-*•]\s/gm, '')
+    .replace(/^\d+\.\s/gm, '')
+    .trim();
+  const utt = new SpeechSynthesisUtterance(clean);
+  utt.lang = 'fr-FR';
+  utt.rate = 0.95;
+  utt.pitch = 1.05;
+  // Prefer a natural-sounding voice if available
+  const voices = window.speechSynthesis.getVoices();
+  const preferred = voices.find((v) =>
+    v.lang.startsWith('fr') && (v.name.includes('Amélie') || v.name.includes('Thomas') || v.name.includes('Google'))
+  ) ?? voices.find((v) => v.lang.startsWith('fr')) ?? voices.find((v) => v.lang.startsWith('en'));
+  if (preferred) utt.voice = preferred;
+  window.speechSynthesis.speak(utt);
+}
+
 type OrbState = 'idle' | 'listening' | 'thinking';
 type Message = { id: string; role: 'user' | 'assistant'; content: string; screenshot?: string; showScreenshot?: boolean };
 
@@ -71,8 +97,10 @@ export function OverlayApp() {
   const [hoveringPanel, setHoveringPanel] = useState(false);
   // Voice
   const [voiceMode, setVoiceMode] = useState<'off' | 'wake' | 'command'>('off');
+  useEffect(() => { voiceModeRef.current = voiceMode; }, [voiceMode]);
   const wakeRecogRef = useRef<SpeechRecognitionInstance | null>(null);
   const cmdRecogRef = useRef<SpeechRecognitionInstance | null>(null);
+  const voiceModeRef = useRef<'off' | 'wake' | 'command'>('off');
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -219,6 +247,7 @@ export function OverlayApp() {
       }
       const reply = json.reply ?? "Something went quiet.";
       setMessages((m) => [...m, { id: crypto.randomUUID(), role: 'assistant', content: reply }]);
+      if (voiceModeRef.current !== 'off') speak(reply);
 
       if (user && convoId) {
         await supabase.from('messages').insert({ conversation_id: convoId, user_id: user.id, role: 'assistant', content: reply });
@@ -333,6 +362,7 @@ export function OverlayApp() {
     if (voiceMode === 'off') {
       if (wakeRecogRef.current) { wakeRecogRef.current.onend = null; wakeRecogRef.current.stop(); wakeRecogRef.current = null; }
       if (cmdRecogRef.current) { cmdRecogRef.current.onend = null; cmdRecogRef.current.stop(); cmdRecogRef.current = null; }
+      if (typeof window !== 'undefined') window.speechSynthesis?.cancel();
       setOrbState('idle');
     } else if (voiceMode === 'wake') {
       if (cmdRecogRef.current) { cmdRecogRef.current.onend = null; cmdRecogRef.current.stop(); cmdRecogRef.current = null; }
