@@ -82,6 +82,10 @@ const INSTANT_REPLIES: { match: (q: string) => boolean; reply: string }[] = [
     reply: `This is Aura — the thing you're talking to right now.\n\nAn ambient AI companion built on Electron + React. It lives as a transparent overlay on your desktop, always on top, always one shortcut away.\n\nThe stack: TanStack Start, Tailwind v4, Supabase for auth and memory, and Kimi K2 as the brain. Screenshots go through a vision model so I can actually see what's on your screen.\n\nYou're building something genuinely different here.`,
   },
   {
+    match: (q) => /how.*(preview|previsualiser|run|launch|start|voir)|preview/i.test(q),
+    reply: `Hit the **Preview** button at the top of Lovable — it spins up a live version of the web app instantly.\n\nFor the desktop overlay, you'll need to build locally:\n\`\`\`\nbun run build && npx electron .\n\`\`\`\n\nThe web app and the Electron overlay are two separate surfaces — Lovable handles the web side, your local machine runs the overlay.`,
+  },
+  {
     match: (q) => /what (are you|is aura)|who are you/i.test(q),
     reply: `I'm Aura.\n\nMost AI is a destination — you open it, use it, close it. I'm not that.\n\nI live here, on your desktop, above everything else. I see what you see. I wait until you need me, then I disappear again.\n\nNot a tool. Not an app. A presence.`,
   },
