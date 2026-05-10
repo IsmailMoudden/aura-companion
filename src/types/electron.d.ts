@@ -9,6 +9,7 @@ export interface AuraAPI {
   moveUp: () => Promise<void>;
   moveDown: () => Promise<void>;
   takeScreenshot: () => Promise<{ success: boolean; path?: string; preview?: string }>;
+  captureOnly: () => Promise<{ success: boolean; path?: string; preview?: string }>;
   clearScreenshot: (filepath: string) => Promise<{ success: boolean }>;
   onScreenshotTaken: (cb: (data: { path: string; preview: string }) => void) => () => void;
   onAuthDeepLink: (cb: (data: { accessToken: string; refreshToken: string }) => void) => () => void;

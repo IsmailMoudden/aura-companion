@@ -18,8 +18,10 @@ const auraAPI = {
   moveUp: () => ipcRenderer.invoke(IPC_EVENTS.WINDOW.MOVE_UP),
   moveDown: () => ipcRenderer.invoke(IPC_EVENTS.WINDOW.MOVE_DOWN),
 
-  // Screenshot
+  // Screenshot (with hide/show — for manual camera button)
   takeScreenshot: () => ipcRenderer.invoke(IPC_EVENTS.SCREENSHOT.TAKE),
+  // Screenshot without hiding overlay — for auto-capture on message send
+  captureOnly: () => ipcRenderer.invoke('screenshot:capture-only'),
   clearScreenshot: (filepath: string) =>
     ipcRenderer.invoke(IPC_EVENTS.SCREENSHOT.CLEAR, filepath),
 
