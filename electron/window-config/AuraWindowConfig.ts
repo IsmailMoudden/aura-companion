@@ -19,8 +19,6 @@ export const AuraWindowConfig: WindowConfig = {
     paintWhenInitiallyHidden: true,
     movable: true,
     resizable: true,
-    minWidth: 320,
-    minHeight: 200,
   },
   behavior: {
     showBehavior: {
