@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { GlassPanel } from "@/components/aura/glass-panel";
 import { Orb } from "@/components/aura/orb";
-import { Send, Plus, LogOut, Sparkles, Search, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { Send, Plus, LogOut, Sparkles, Search, PanelLeftClose, PanelLeftOpen, Keyboard } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
@@ -26,6 +26,7 @@ function ChatPage() {
   const [search, setSearch] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -312,6 +313,13 @@ function ChatPage() {
                 <Plus className="h-4 w-4" />
               </button>
               <button
+                onClick={() => setShortcutsOpen((v) => !v)}
+                className={`rounded-full p-2 transition-colors hover:bg-white/10 hover:text-foreground ${shortcutsOpen ? "bg-white/10 text-foreground" : "text-muted-foreground"}`}
+                title="Keyboard shortcuts"
+              >
+                <Keyboard className="h-4 w-4" />
+              </button>
+              <button
                 onClick={signOut}
                 className="rounded-full p-2 text-muted-foreground hover:bg-white/10 hover:text-foreground"
                 title="Sign out"
@@ -321,6 +329,54 @@ function ChatPage() {
               <Orb size={32} className="hidden sm:block" />
             </div>
           </div>
+
+          {/* Shortcuts panel */}
+          {shortcutsOpen && (
+            <div className="border-b border-white/[0.08] px-4 py-5 sm:px-8 animate-fade-in">
+              <p className="mb-4 text-[10px] uppercase tracking-[0.25em] text-muted-foreground">Desktop overlay shortcuts</p>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {[
+                  { label: "Summon / dismiss", mac: ["⌥", "Space"], win: ["Alt", "Space"] },
+                  { label: "Capture screen", mac: ["⌘", "⇧", "S"], win: ["Ctrl", "Shift", "S"] },
+                  { label: "Quick note", mac: ["⌥", "N"], win: ["Alt", "N"] },
+                  { label: "Dismiss to orb", mac: ["⌥", "Esc"], win: ["Alt", "Esc"] },
+                  { label: "Move overlay", mac: ["⌥", "↑↓←→"], win: ["Alt", "↑↓←→"] },
+                  { label: "Opacity +", mac: ["⌥", "="], win: ["Alt", "="] },
+                  { label: "Opacity −", mac: ["⌥", "−"], win: ["Alt", "−"] },
+                  { label: "Hide from screen capture", mac: ["⌥", "⇧", "H"], win: ["Alt", "Shift", "H"] },
+                ].map((s) => (
+                  <div key={s.label} className="flex items-center justify-between gap-4 rounded-2xl bg-white/[0.04] px-4 py-3">
+                    <span className="text-sm font-light text-muted-foreground">{s.label}</span>
+                    <div className="flex items-center gap-3 shrink-0">
+                      <div className="flex items-center gap-1">
+                        {s.mac.map((k, i) => (
+                          <kbd
+                            key={i}
+                            className="inline-flex h-6 min-w-[1.5rem] items-center justify-center rounded-md bg-white/[0.08] px-1.5 text-[10px] font-light tracking-wide text-foreground/70"
+                            style={{ boxShadow: "inset 0 -1px 0 oklch(0 0 0 / 0.2), 0 1px 0 oklch(1 0 0 / 0.06)" }}
+                          >
+                            {k}
+                          </kbd>
+                        ))}
+                      </div>
+                      <span className="text-muted-foreground/30 text-xs">·</span>
+                      <div className="flex items-center gap-1">
+                        {s.win.map((k, i) => (
+                          <kbd
+                            key={i}
+                            className="inline-flex h-6 min-w-[1.5rem] items-center justify-center rounded-md bg-white/[0.08] px-1.5 text-[10px] font-light tracking-wide text-foreground/70"
+                            style={{ boxShadow: "inset 0 -1px 0 oklch(0 0 0 / 0.2), 0 1px 0 oklch(1 0 0 / 0.06)" }}
+                          >
+                            {k}
+                          </kbd>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 sm:px-10 py-6 sm:py-10">
             <div className="mx-auto max-w-2xl space-y-8">
