@@ -83,11 +83,7 @@ const INSTANT_REPLIES: { match: (q: string) => boolean; reply: string }[] = [
   },
   {
     match: (q) => /what (are you|is aura)|who are you/i.test(q),
-    reply: `I'm Aura.\n\nA quiet layer of intelligence designed to stay with you while you work.\n\nI can understand what's on your screen, follow your context, and help the moment you need it — without interrupting your flow.\n\nThink of me less like an app, and more like a presence.`,
-  },
-  {
-    match: (q) => /AI.*(tool|produit|app|software|assistant)|presence|pas un outil|not a tool|different.*AI|AI different/i.test(q),
-    reply: `Most AI is a destination — you open it, you use it, you close it.\n\nAura is different. It doesn't wait in a tab. It lives where you work, sees what you see, and stays quiet until you need it.\n\nNot a tool. Not an assistant. A presence.`,
+    reply: `I'm Aura.\n\nMost AI is a destination — you open it, use it, close it. I'm not that.\n\nI live here, on your desktop, above everything else. I see what you see. I wait until you need me, then I disappear again.\n\nNot a tool. Not an app. A presence.`,
   },
 ];
 
