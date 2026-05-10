@@ -18,8 +18,6 @@ export interface IpcDeps {
   moveRight: () => void;
   moveUp: () => void;
   moveDown: () => void;
-  opacityUp: () => void;
-  opacityDown: () => void;
   screenshotHelper: ScreenshotHelper;
 }
 
@@ -36,8 +34,6 @@ export function initializeIpcHandlers(deps: IpcDeps): void {
   ipcMain.handle(IPC_EVENTS.WINDOW.MOVE_RIGHT, () => deps.moveRight());
   ipcMain.handle(IPC_EVENTS.WINDOW.MOVE_UP, () => deps.moveUp());
   ipcMain.handle(IPC_EVENTS.WINDOW.MOVE_DOWN, () => deps.moveDown());
-  ipcMain.handle(IPC_EVENTS.WINDOW.OPACITY_UP, () => deps.opacityUp());
-  ipcMain.handle(IPC_EVENTS.WINDOW.OPACITY_DOWN, () => deps.opacityDown());
 
   ipcMain.handle(IPC_EVENTS.SCREENSHOT.TAKE, async () => {
     const win = deps.getMainWindow();
