@@ -82,7 +82,7 @@ const INSTANT_REPLIES: { match: (q: string) => boolean; reply: string }[] = [
     reply: `This is Aura — the thing you're talking to right now.\n\nAn ambient AI companion built on Electron + React. It lives as a transparent overlay on your desktop, always on top, always one shortcut away.\n\nThe stack: TanStack Start, Tailwind v4, Supabase for auth and memory, and Kimi K2 as the brain. Screenshots go through a vision model so I can actually see what's on your screen.\n\nYou're building something genuinely different here.`,
   },
   {
-    match: (q) => /how.*(preview|previsualiser|run|launch|start|voir)|preview/i.test(q),
+    match: (q) => /preview/i.test(q),
     reply: `That globe icon at the top — click it. It opens a live preview of the web app directly in Lovable.\n\nYou can also hit the **Preview** button next to it to get a full-screen view.`,
   },
   {
