@@ -1,7 +1,8 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const KIMI_BASE = 'https://api.moonshot.ai/v1';
-const MODEL = 'kimi-k2.6';
+const MODEL_TEXT = 'kimi-k2.6';
+const MODEL_VISION = 'moonshot-v1-32k-vision-preview';
 
 const SYSTEM_PROMPT = `You are Aura, an ambient AI companion that lives on the user's desktop.
 
@@ -102,6 +103,7 @@ Deno.serve(async (req: Request) => {
       kimiMessages.push({ role: lastMsg.role as 'user', content: lastMsg.content });
     }
 
+    const hasImage = !!screenshot && lastMsg.role === 'user';
     const kimiRes = await fetch(`${KIMI_BASE}/chat/completions`, {
       method: 'POST',
       headers: {
@@ -109,7 +111,7 @@ Deno.serve(async (req: Request) => {
         Authorization: `Bearer ${Deno.env.get('KIMI_API_KEY')}`,
       },
       body: JSON.stringify({
-        model: MODEL,
+        model: hasImage ? MODEL_VISION : MODEL_TEXT,
         messages: kimiMessages,
         // K2.6 Thinking has fixed params — omit temperature/top_p
       }),
