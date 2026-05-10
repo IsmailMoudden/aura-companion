@@ -661,7 +661,13 @@ export function OverlayApp() {
                 onChange={(e) => setInput(e.target.value)}
                 onFocus={() => setInputFocused(true)}
                 onBlur={() => setInputFocused(false)}
-                placeholder="Ask softly…"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && e.shiftKey && SpeechRecognitionAPI) {
+                    e.preventDefault();
+                    setVoiceMode('command');
+                  }
+                }}
+                placeholder="Ask softly… (Shift+Enter to speak)"
                 className="flex-1 bg-transparent text-[13px] font-light italic text-foreground placeholder:text-foreground/38 focus:outline-none"
               />
               {/* Orb send dot */}
