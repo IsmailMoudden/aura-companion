@@ -87,7 +87,7 @@ const INSTANT_REPLIES: { match: (q: string) => boolean; reply: string }[] = [
   },
   {
     match: (q) => /what (are you|is aura)|who are you/i.test(q),
-    reply: `I'm Aura.\n\nMost AI is a destination — you open it, use it, close it. I'm not that.\n\nI live here, on your desktop, above everything else. I see what you see. I wait until you need me, then I disappear again.\n\nNot a tool. Not an app. A presence.`,
+    reply: `I'm Aura.\n\nMost AI is a destination — you open it, use it, close it. I'm not that.\n\nI live here, on your desktop, above everything else. I see what you see. I wait until you need me, while you work.`,
   },
 ];
 
@@ -120,6 +120,7 @@ export function OverlayApp() {
   const [voiceMode, setVoiceMode] = useState<'off' | 'wake' | 'command'>('off');
   const [wakeDetected, setWakeDetected] = useState(false);
   const [ttsEnabled, setTtsEnabled] = useState(false);
+  const [isListeningCmd, setIsListeningCmd] = useState(false);
   const ttsEnabledRef = useRef(false);
   useEffect(() => { voiceModeRef.current = voiceMode; }, [voiceMode]);
   useEffect(() => { ttsEnabledRef.current = ttsEnabled; }, [ttsEnabled]);
@@ -379,28 +380,45 @@ export function OverlayApp() {
     if (!SpeechRecognitionAPI) return;
     const recog = new SpeechRecognitionAPI();
     recog.continuous = false;
-    recog.interimResults = false;
+    recog.interimResults = true;
     recog.lang = 'fr-FR';
     cmdRecogRef.current = recog;
     setOrbState('listening');
+    setIsListeningCmd(true);
+    setInput('');
 
     recog.onresult = (e: SpeechRecognitionResultEvent) => {
-      const text = e.results[0]?.[0]?.transcript?.trim();
-      if (text) {
-        setInput(text);
-        setTimeout(() => {
-          void runAIRef.current(text, undefined, false);
-          setInput('');
-        }, 400);
+      // Show interim transcript live in input
+      let interim = '';
+      for (let i = 0; i < e.results.length; i++) {
+        interim += e.results[i][0].transcript;
+      }
+      setInput(interim);
+
+      // Final result — send it
+      const last = e.results[e.results.length - 1];
+      if ((last as unknown as { isFinal: boolean }).isFinal) {
+        const text = interim.trim();
+        if (text) {
+          setIsListeningCmd(false);
+          setInput(text);
+          setTimeout(() => {
+            void runAIRef.current(text, undefined, false);
+            setInput('');
+          }, 300);
+        }
       }
     };
     recog.onend = () => {
       setOrbState('idle');
+      setIsListeningCmd(false);
       cmdRecogRef.current = null;
       setVoiceMode('wake');
     };
     recog.onerror = () => {
       setOrbState('idle');
+      setIsListeningCmd(false);
+      setInput('');
       cmdRecogRef.current = null;
       setVoiceMode('wake');
     };
@@ -675,8 +693,10 @@ export function OverlayApp() {
                 height: 46,
                 paddingLeft: 20,
                 paddingRight: 14,
-                background: inputFocused || input.length > 0 ? 'oklch(1 0 0 / 0.092)' : 'transparent',
-                boxShadow: inputFocused
+                background: isListeningCmd ? 'oklch(0.82 0.16 235 / 0.10)' : inputFocused || input.length > 0 ? 'oklch(1 0 0 / 0.092)' : 'transparent',
+                boxShadow: isListeningCmd
+                  ? 'inset 0 0 0 1px oklch(0.82 0.16 235 / 0.45), 0 0 16px oklch(0.82 0.16 235 / 0.20)'
+                  : inputFocused
                   ? 'inset 0 0 0 1px oklch(1 0 0 / 0.16), inset 0 1px 0 oklch(1 0 0 / 0.10)'
                   : 'none',
                 transition: 'background 0.35s ease, box-shadow 0.35s ease',
@@ -694,7 +714,7 @@ export function OverlayApp() {
                     setVoiceMode('command');
                   }
                 }}
-                placeholder="Ask softly… (Shift+Enter to speak)"
+                placeholder={isListeningCmd ? 'Listening…' : 'Ask softly… (Shift+Enter to speak)'}
                 className="flex-1 bg-transparent text-[13px] font-light italic text-foreground placeholder:text-foreground/38 focus:outline-none"
               />
               {/* Orb send dot */}
