@@ -2,8 +2,8 @@ import { WindowConfig } from './WindowConfig';
 
 export const AuraWindowConfig: WindowConfig = {
   baseSettings: {
-    width: 420,
-    height: 420,
+    width: 440,
+    height: 440,
     alwaysOnTop: true,
     show: true,
     fullscreenable: false,
