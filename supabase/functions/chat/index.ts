@@ -90,10 +90,9 @@ Deno.serve(async (req: Request) => {
         role: 'user',
         content: [
           {
-            type: 'image',
-            image: {
-              format,
-              source: `data:image/${format};base64,${base64}`,
+            type: 'image_url',
+            image_url: {
+              url: `data:image/${format};base64,${base64}`,
             },
           },
           { type: 'text', text: lastMsg.content },
@@ -143,7 +142,7 @@ Deno.serve(async (req: Request) => {
 // ─── Kimi types ───────────────────────────────────────────────────────────────
 type KimiContentPart =
   | { type: 'text'; text: string }
-  | { type: 'image'; image: { format: string; source: string } };
+  | { type: 'image_url'; image_url: { url: string } };
 
 type KimiMessage = {
   role: 'system' | 'user' | 'assistant';
