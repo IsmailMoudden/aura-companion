@@ -100,7 +100,9 @@ export function OverlayApp() {
   const [voiceMode, setVoiceMode] = useState<'off' | 'wake' | 'command'>('off');
   const [wakeDetected, setWakeDetected] = useState(false);
   const [ttsEnabled, setTtsEnabled] = useState(false);
+  const ttsEnabledRef = useRef(false);
   useEffect(() => { voiceModeRef.current = voiceMode; }, [voiceMode]);
+  useEffect(() => { ttsEnabledRef.current = ttsEnabled; }, [ttsEnabled]);
   const wakeRecogRef = useRef<SpeechRecognitionInstance | null>(null);
   const cmdRecogRef = useRef<SpeechRecognitionInstance | null>(null);
   const voiceModeRef = useRef<'off' | 'wake' | 'command'>('off');
@@ -259,7 +261,7 @@ export function OverlayApp() {
       }
       const reply = json.reply ?? "Something went quiet.";
       setMessages((m) => [...m, { id: crypto.randomUUID(), role: 'assistant', content: reply }]);
-      if (ttsEnabled) speak(reply);
+      if (ttsEnabledRef.current) speak(reply);
 
       if (user && convoId) {
         await supabase.from('messages').insert({ conversation_id: convoId, user_id: user.id, role: 'assistant', content: reply });
@@ -272,7 +274,7 @@ export function OverlayApp() {
       setBusy(false);
       setOrbState('idle');
     }
-  }, [busy, messages, conversationId, user, clearScreenshot, growToConversation, ttsEnabled]);
+  }, [busy, messages, conversationId, user, clearScreenshot, growToConversation]);
 
   const sendMessage = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
@@ -310,14 +312,14 @@ export function OverlayApp() {
     const recog = new SpeechRecognitionAPI();
     recog.continuous = true;
     recog.interimResults = true;
-    recog.lang = 'fr-FR';
+    recog.lang = 'en-US';
     wakeRecogRef.current = recog;
 
     recog.onresult = (e: SpeechRecognitionResultEvent) => {
       const parts: string[] = [];
       for (let i = 0; i < e.results.length; i++) parts.push(e.results[i][0].transcript.toLowerCase());
       const transcript = parts.join(' ');
-      if (transcript.includes(WAKE_WORD) || transcript.includes('aura')) {
+      if (transcript.includes(WAKE_WORD) || transcript.includes('aura') || transcript.includes('hora') || transcript.includes('ora')) {
         recog.stop();
         setWakeDetected(true);
         setOrbState('listening');
