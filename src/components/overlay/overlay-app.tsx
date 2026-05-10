@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { Orb } from '@/components/aura/orb';
-import { X, Camera, ChevronDown, Mic, MicOff, Volume2, VolumeX } from 'lucide-react';
+import { X, Camera, ChevronDown, Mic, MicOff, Volume2, VolumeX, Sun } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 
@@ -96,6 +96,8 @@ export function OverlayApp() {
   const [user, setUser] = useState<{ id: string; email: string } | null>(null);
   const [phraseIndex] = useState(() => Math.floor(Math.random() * PRESENCE_PHRASES.length));
   const [hoveringPanel, setHoveringPanel] = useState(false);
+  const [panelOpacity, setPanelOpacity] = useState(0.30);
+  const [showOpacitySlider, setShowOpacitySlider] = useState(false);
   // Voice
   const [voiceMode, setVoiceMode] = useState<'off' | 'wake' | 'command'>('off');
   const [wakeDetected, setWakeDetected] = useState(false);
@@ -476,11 +478,11 @@ export function OverlayApp() {
         className="relative flex h-full w-full flex-col overflow-hidden"
         style={{
           borderRadius,
-          // Layered depth background
+          // Layered depth background — opacity controlled by slider
           background: [
-            'radial-gradient(ellipse 90% 55% at 25% 15%, oklch(0.72 0.14 228 / 0.08), transparent 65%)',
-            'radial-gradient(ellipse 55% 70% at 80% 85%, oklch(0.50 0.11 255 / 0.06), transparent 65%)',
-            'linear-gradient(158deg, oklch(0.53 0.10 238 / 0.28) 0%, oklch(0.41 0.09 254 / 0.32) 100%)',
+            `radial-gradient(ellipse 90% 55% at 25% 15%, oklch(0.72 0.14 228 / 0.08), transparent 65%)`,
+            `radial-gradient(ellipse 55% 70% at 80% 85%, oklch(0.50 0.11 255 / 0.06), transparent 65%)`,
+            `linear-gradient(158deg, oklch(0.53 0.10 238 / ${panelOpacity}) 0%, oklch(0.41 0.09 254 / ${Math.min(panelOpacity + 0.04, 0.60)}) 100%)`,
           ].join(', '),
           backdropFilter: 'blur(32px) saturate(140%)',
           WebkitBackdropFilter: 'blur(32px) saturate(140%)',
@@ -538,14 +540,29 @@ export function OverlayApp() {
           </div>
         )}
 
-        {/* Controls — hover only, slide in */}
+        {/* Controls — always visible right side */}
         <div
-          className={cn(
-            'absolute right-3 top-3 z-20 flex items-center gap-0.5 transition-all duration-400',
-            hoveringPanel ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-1 pointer-events-none',
-          )}
+          className="absolute right-3 top-3 z-20 flex items-center gap-0.5"
           style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
         >
+          {/* Opacity slider — expands on Sun click */}
+          {showOpacitySlider && (
+            <div className="flex items-center gap-2 mr-1" style={{ width: 80 }}>
+              <input
+                type="range"
+                min={0.12}
+                max={0.55}
+                step={0.01}
+                value={panelOpacity}
+                onChange={(e) => setPanelOpacity(parseFloat(e.target.value))}
+                className="w-full"
+                style={{ accentColor: 'oklch(0.82 0.16 235)' }}
+              />
+            </div>
+          )}
+          <ControlBtn onClick={() => setShowOpacitySlider((v) => !v)} title="Opacity" active={showOpacitySlider}>
+            <Sun className="h-3 w-3" />
+          </ControlBtn>
           {hasConversation && (
             <ControlBtn onClick={clearConversation} title="Clear"><X className="h-3 w-3" /></ControlBtn>
           )}
