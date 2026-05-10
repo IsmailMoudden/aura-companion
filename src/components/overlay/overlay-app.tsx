@@ -81,10 +81,17 @@ export function OverlayApp() {
   }, [messages.length]);
 
   const openPanel = useCallback(() => {
-    // 1. Resize Electron window to idle panel size
+    // 1. Auto-capture screen before showing the panel
+    if (isElectron) {
+      window.aura!.takeScreenshot().then((result) => {
+        if (result.success && result.path && result.preview)
+          setScreenshot({ path: result.path, preview: result.preview });
+      });
+    }
+    // 2. Resize Electron window to idle panel size
     if (isElectron) window.aura!.updateDimensions(PANEL_W, PANEL_H_IDLE);
     setExpanded(true);
-    // 2. Tiny delay then fade/scale in so the animation is visible
+    // 3. Tiny delay then fade/scale in so the animation is visible
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
         setVisible(true);
@@ -241,12 +248,12 @@ export function OverlayApp() {
           borderRadius,
           // Layered depth background
           background: [
-            'radial-gradient(ellipse 90% 55% at 25% 15%, oklch(0.72 0.14 228 / 0.22), transparent 65%)',
-            'radial-gradient(ellipse 55% 70% at 80% 85%, oklch(0.50 0.11 255 / 0.18), transparent 65%)',
-            'linear-gradient(158deg, oklch(0.53 0.10 238 / 0.62) 0%, oklch(0.41 0.09 254 / 0.68) 100%)',
+            'radial-gradient(ellipse 90% 55% at 25% 15%, oklch(0.72 0.14 228 / 0.14), transparent 65%)',
+            'radial-gradient(ellipse 55% 70% at 80% 85%, oklch(0.50 0.11 255 / 0.10), transparent 65%)',
+            'linear-gradient(158deg, oklch(0.53 0.10 238 / 0.42) 0%, oklch(0.41 0.09 254 / 0.48) 100%)',
           ].join(', '),
-          backdropFilter: 'blur(48px) saturate(180%)',
-          WebkitBackdropFilter: 'blur(48px) saturate(180%)',
+          backdropFilter: 'blur(40px) saturate(160%)',
+          WebkitBackdropFilter: 'blur(40px) saturate(160%)',
           border: '1px solid oklch(1 0 0 / 0.10)',
           boxShadow: [
             'inset 0 1px 0 oklch(1 0 0 / 0.10)',
