@@ -1,6 +1,6 @@
 import path from 'node:path';
 import fs from 'node:fs';
-import { app } from 'electron';
+import { app, screen, BrowserWindow } from 'electron';
 import { v4 as uuidv4 } from 'uuid';
 import { execFile } from 'child_process';
 import { promisify } from 'util';
@@ -17,24 +17,59 @@ export class ScreenshotHelper {
     }
   }
 
-  private async captureScreenshotMac(): Promise<Buffer> {
+  private async captureScreenshotMac(win?: BrowserWindow | null): Promise<Buffer> {
     const tmpPath = path.join(app.getPath('temp'), `${uuidv4()}.png`);
-    await execFileAsync('screencapture', ['-x', tmpPath]);
+
+    // Find which display the overlay window is on
+    const displayId = win ? (() => {
+      const bounds = win.getBounds();
+      const center = { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 };
+      const display = screen.getDisplayNearestPoint(center);
+      return display.id;
+    })() : null;
+
+    if (displayId !== null) {
+      // -D <id> captures a specific display
+      await execFileAsync('screencapture', ['-x', '-D', String(displayId), tmpPath]);
+    } else {
+      await execFileAsync('screencapture', ['-x', tmpPath]);
+    }
+
     const buffer = await fs.promises.readFile(tmpPath);
     await fs.promises.unlink(tmpPath);
     return buffer;
   }
 
-  // Capture without hiding the overlay — for auto-capture on message send
-  public async captureOnly(): Promise<string> {
-    let buffer: Buffer;
+  private async capture(win?: BrowserWindow | null): Promise<Buffer> {
     if (process.platform === 'darwin') {
-      buffer = await this.captureScreenshotMac();
+      return this.captureScreenshotMac(win);
     } else if (process.platform === 'win32') {
-      buffer = await this.captureScreenshotWindows();
-    } else {
-      throw new Error(`Platform ${process.platform} not yet supported`);
+      return this.captureScreenshotWindows();
     }
+    throw new Error(`Platform ${process.platform} not yet supported`);
+  }
+
+  private async resizeForApi(buffer: Buffer): Promise<Buffer> {
+    // Downsample to max 1280px wide to keep base64 payload manageable
+    const tmpIn = path.join(app.getPath('temp'), `${uuidv4()}-in.png`);
+    const tmpOut = path.join(app.getPath('temp'), `${uuidv4()}-out.png`);
+    await fs.promises.writeFile(tmpIn, buffer);
+    try {
+      await execFileAsync('sips', ['-Z', '1280', tmpIn, '--out', tmpOut]);
+      const resized = await fs.promises.readFile(tmpOut);
+      return resized;
+    } catch {
+      return buffer; // sips failed, use original
+    } finally {
+      await fs.promises.unlink(tmpIn).catch(() => {});
+      await fs.promises.unlink(tmpOut).catch(() => {});
+    }
+  }
+
+  // Capture without hiding the overlay — for auto-capture on message send
+  public async captureOnly(win?: BrowserWindow | null): Promise<string> {
+    let buffer = await this.capture(win);
+    if (process.platform === 'darwin') buffer = await this.resizeForApi(buffer);
     const screenshotPath = path.join(this.screenshotDir, `${uuidv4()}.png`);
     await fs.promises.writeFile(screenshotPath, buffer);
     return screenshotPath;
@@ -44,18 +79,17 @@ export class ScreenshotHelper {
   public async takeScreenshot(
     hideWindow: () => void,
     showWindow: () => void,
+    win?: BrowserWindow | null,
   ): Promise<string> {
     hideWindow();
     await new Promise((r) => setTimeout(r, 350));
-
     let screenshotPath = '';
     try {
-      screenshotPath = await this.captureOnly();
+      screenshotPath = await this.captureOnly(win);
     } finally {
       await new Promise((r) => setTimeout(r, 150));
       showWindow();
     }
-
     return screenshotPath;
   }
 
