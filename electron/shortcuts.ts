@@ -19,7 +19,7 @@ export class ShortcutsHelper {
     globalShortcut.register('Alt+Space', () => this.deps.toggleWindow());
 
     // Capture screenshot + attach to next message
-    globalShortcut.register('CommandOrControl+Shift+S', () => {
+    globalShortcut.register('Alt+Shift+S', () => {
       void this.deps.takeScreenshot();
     });
 
@@ -36,7 +36,7 @@ export class ShortcutsHelper {
     globalShortcut.unregisterAll();
     setTimeout(() => {
       globalShortcut.register('Alt+Space', () => this.deps.toggleWindow());
-      globalShortcut.register('CommandOrControl+Shift+S', () => {
+      globalShortcut.register('Alt+Shift+S', () => {
         void this.deps.takeScreenshot();
       });
     }, 500);

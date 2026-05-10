@@ -183,12 +183,20 @@ export function OverlayApp() {
     }
   }, [busy, messages, conversationId, user, clearScreenshot, growToConversation]);
 
-  const sendMessage = useCallback((e: React.FormEvent) => {
+  const sendMessage = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim()) return;
     const text = input.trim();
     setInput('');
-    void runAI(text, screenshot?.preview);
+
+    // Auto-capture screen on every send
+    let screenData = screenshot?.preview;
+    if (isElectron && !screenData) {
+      const result = await window.aura!.takeScreenshot();
+      if (result.success && result.preview) screenData = result.preview;
+    }
+
+    void runAI(text, screenData);
   }, [input, screenshot, runAI]);
 
   const clearConversation = useCallback(() => {
