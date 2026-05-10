@@ -5,7 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 
 type OrbState = 'idle' | 'listening' | 'thinking';
-type Message = { id: string; role: 'user' | 'assistant'; content: string; screenshot?: string };
+type Message = { id: string; role: 'user' | 'assistant'; content: string; screenshot?: string; showScreenshot?: boolean };
 
 const isElectron = typeof window !== 'undefined' && !!window.aura;
 
@@ -120,12 +120,12 @@ export function OverlayApp() {
     setScreenshot(null);
   }, [screenshot]);
 
-  const runAI = useCallback(async (userContent: string, attachedScreenshot?: string) => {
+  const runAI = useCallback(async (userContent: string, attachedScreenshot?: string, showScreenshot?: boolean) => {
     if (busy) return;
     setBusy(true);
     setOrbState('thinking');
 
-    const userMsg: Message = { id: crypto.randomUUID(), role: 'user', content: userContent, screenshot: attachedScreenshot };
+    const userMsg: Message = { id: crypto.randomUUID(), role: 'user', content: userContent, screenshot: attachedScreenshot, showScreenshot: showScreenshot ?? false };
     const isFirst = messages.length === 0;
     setMessages((m) => [...m, userMsg]);
 
@@ -182,7 +182,9 @@ export function OverlayApp() {
     const text = input.trim();
     setInput('');
 
-    // Use already-attached screenshot, or auto-capture without hiding overlay
+    const isManualScreenshot = !!screenshot;
+
+    // Use manually attached screenshot, or silently auto-capture for context
     let screenData = screenshot?.preview;
     if (isElectron && !screenData) {
       try {
@@ -192,11 +194,11 @@ export function OverlayApp() {
           if (result.path) window.aura!.clearScreenshot(result.path);
         }
       } catch {
-        // screenshot failed silently — still send the message
+        // silent
       }
     }
 
-    void runAI(text, screenData);
+    void runAI(text, screenData, isManualScreenshot);
   }, [input, screenshot, runAI]);
 
   const clearConversation = useCallback(() => {
@@ -419,7 +421,7 @@ function UserBubble({ message }: { message: Message }) {
   return (
     <div className="flex justify-end">
       <div className="max-w-[80%]">
-        {message.screenshot && (
+        {message.screenshot && message.showScreenshot && (
           <img src={message.screenshot} alt="" className="mb-2 w-full rounded-2xl object-cover opacity-55" />
         )}
         <div
