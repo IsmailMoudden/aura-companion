@@ -13,6 +13,7 @@ const state = {
   mainWindow: null as BrowserWindow | null,
   tray: null as Tray | null,
   isVisible: true,
+  isInvisible: false,
   currentX: 0,
   currentY: 50,
   screenWidth: 0,
@@ -111,6 +112,13 @@ function setWindowSize(width: number, height: number) {
   win.setBounds({ x, y, width: w, height: h });
   state.currentX = x;
   state.currentY = y;
+}
+
+function toggleInvisible() {
+  const win = state.mainWindow;
+  if (!win || win.isDestroyed()) return;
+  state.isInvisible = !state.isInvisible;
+  win.setContentProtection(state.isInvisible);
 }
 
 function moveLeft() {
@@ -236,6 +244,7 @@ async function init() {
       const preview = await state.screenshotHelper!.getImagePreview(filepath);
       win.webContents.send('screenshot:taken', { path: filepath, preview });
     },
+    toggleInvisible,
     moveLeft,
     moveRight,
     moveUp,
