@@ -155,7 +155,7 @@ export function DownloadModal({ open, onClose }: DownloadModalProps) {
         </div>
 
         <p className="mt-6 text-center text-xs text-muted-foreground/60">
-          macOS · Windows · Web · v0.1.0
+          macOS · Windows · Web · v0.1.4
         </p>
       </GlassPanel>
 
