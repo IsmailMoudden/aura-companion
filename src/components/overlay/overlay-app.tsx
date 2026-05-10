@@ -83,7 +83,7 @@ const INSTANT_REPLIES: { match: (q: string) => boolean; reply: string }[] = [
   },
   {
     match: (q) => /how.*(preview|previsualiser|run|launch|start|voir)|preview/i.test(q),
-    reply: `Hit the **Preview** button at the top of Lovable — it spins up a live version of the web app instantly.\n\nFor the desktop overlay, you'll need to build locally:\n\`\`\`\nbun run build && npx electron .\n\`\`\`\n\nThe web app and the Electron overlay are two separate surfaces — Lovable handles the web side, your local machine runs the overlay.`,
+    reply: `That globe icon at the top — click it. It opens a live preview of the web app directly in Lovable.\n\nYou can also hit the **Preview** button next to it to get a full-screen view.`,
   },
   {
     match: (q) => /what (are you|is aura)|who are you/i.test(q),
