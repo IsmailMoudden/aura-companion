@@ -247,9 +247,10 @@ export function OverlayApp() {
     if (isFirst) growToConversation();
 
     try {
-      // Short-circuit for known demo questions — instant, no API call
+      // Short-circuit for known demo questions — short fake latency, no API call
       const instant = INSTANT_REPLIES.find((r) => r.match(userContent));
       if (instant) {
+        await new Promise((r) => setTimeout(r, 900));
         setMessages((m) => [...m, { id: crypto.randomUUID(), role: 'assistant', content: instant.reply }]);
         if (ttsEnabledRef.current) speak(instant.reply);
         setBusy(false);
