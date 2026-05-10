@@ -34,10 +34,7 @@ export function initializeIpcHandlers(deps: IpcDeps): void {
     const win = deps.getMainWindow();
     if (!win) return { success: false };
     try {
-      const filepath = await deps.screenshotHelper.takeScreenshot(
-        deps.hideWindow,
-        deps.showWindow,
-      );
+      const filepath = await deps.screenshotHelper.takeScreenshot(deps.hideWindow, deps.showWindow, win);
       const preview = await deps.screenshotHelper.getImagePreview(filepath);
       win.webContents.send(IPC_EVENTS.SCREENSHOT.TAKEN, { path: filepath, preview });
       return { success: true, path: filepath, preview };
@@ -50,7 +47,7 @@ export function initializeIpcHandlers(deps: IpcDeps): void {
     const win = deps.getMainWindow();
     if (!win) return { success: false };
     try {
-      const filepath = await deps.screenshotHelper.captureOnly();
+      const filepath = await deps.screenshotHelper.captureOnly(win);
       const preview = await deps.screenshotHelper.getImagePreview(filepath);
       return { success: true, path: filepath, preview };
     } catch (err) {
