@@ -17,6 +17,8 @@ export const IPC_EVENTS = {
     MOVE_RIGHT: 'window:move-right',
     MOVE_UP: 'window:move-up',
     MOVE_DOWN: 'window:move-down',
+    OPACITY_UP: 'window:opacity-up',
+    OPACITY_DOWN: 'window:opacity-down',
   },
   AUTH: {
     SET_TOKEN: 'auth:set-token',
