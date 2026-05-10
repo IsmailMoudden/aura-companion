@@ -81,9 +81,9 @@ export function OverlayApp() {
   }, [messages.length]);
 
   const openPanel = useCallback(() => {
-    // 1. Auto-capture screen before showing the panel
+    // 1. Auto-capture screen without hiding the overlay
     if (isElectron) {
-      window.aura!.takeScreenshot().then((result) => {
+      window.aura!.captureOnly().then((result) => {
         if (result.success && result.path && result.preview)
           setScreenshot({ path: result.path, preview: result.preview });
       });
@@ -189,14 +189,13 @@ export function OverlayApp() {
     const text = input.trim();
     setInput('');
 
-    // Use already-attached screenshot, or auto-capture now
+    // Use already-attached screenshot, or auto-capture without hiding overlay
     let screenData = screenshot?.preview;
     if (isElectron && !screenData) {
       try {
-        const result = await window.aura!.takeScreenshot();
+        const result = await window.aura!.captureOnly();
         if (result.success && result.preview) {
           screenData = result.preview;
-          // clean up temp file after use
           if (result.path) window.aura!.clearScreenshot(result.path);
         }
       } catch {
