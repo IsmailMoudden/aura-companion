@@ -19,6 +19,7 @@ const state = {
   screenWidth: 0,
   screenHeight: 0,
   step: 60,
+  opacity: 1.0,
   screenshotHelper: null as ScreenshotHelper | null,
   shortcutsHelper: null as ShortcutsHelper | null,
 };
@@ -149,6 +150,23 @@ function moveDown() {
   state.mainWindow.setPosition(Math.round(state.currentX), Math.round(state.currentY));
 }
 
+const OPACITY_STEP = 0.1;
+const OPACITY_MIN = 0.2;
+
+function opacityUp() {
+  const win = state.mainWindow;
+  if (!win || win.isDestroyed()) return;
+  state.opacity = Math.min(1.0, Math.round((state.opacity + OPACITY_STEP) * 10) / 10);
+  win.setOpacity(state.opacity);
+}
+
+function opacityDown() {
+  const win = state.mainWindow;
+  if (!win || win.isDestroyed()) return;
+  state.opacity = Math.max(OPACITY_MIN, Math.round((state.opacity - OPACITY_STEP) * 10) / 10);
+  win.setOpacity(state.opacity);
+}
+
 // ─── Create window ────────────────────────────────────────────────────────────
 async function createWindow() {
   const display = screen.getPrimaryDisplay();
@@ -249,6 +267,8 @@ async function init() {
     moveRight,
     moveUp,
     moveDown,
+    opacityUp,
+    opacityDown,
   });
 
   initializeIpcHandlers({
@@ -261,6 +281,8 @@ async function init() {
     moveRight,
     moveUp,
     moveDown,
+    opacityUp,
+    opacityDown,
     screenshotHelper: state.screenshotHelper,
   });
 
