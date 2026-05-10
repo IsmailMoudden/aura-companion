@@ -78,7 +78,7 @@ const PRESENCE_PHRASES = [
 // ─── Instant demo responses (no API call) ────────────────────────────────────
 const INSTANT_REPLIES: { match: (q: string) => boolean; reply: string }[] = [
   {
-    match: (q) => /what (is |are )?(this )?repo|this project|are you building|what('s| is) aura|what is this/i.test(q),
+    match: (q) => /repo|this project|are you building/i.test(q),
     reply: `This is Aura — the thing you're talking to right now.\n\nAn ambient AI companion built on Electron + React. It lives as a transparent overlay on your desktop, always on top, always one shortcut away.\n\nThe stack: TanStack Start, Tailwind v4, Supabase for auth and memory, and Kimi K2 as the brain. Screenshots go through a vision model so I can actually see what's on your screen.\n\nYou're building something genuinely different here.`,
   },
   {
