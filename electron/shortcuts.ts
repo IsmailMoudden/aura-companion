@@ -8,6 +8,8 @@ export interface ShortcutDeps {
   moveRight: () => void;
   moveUp: () => void;
   moveDown: () => void;
+  opacityUp: () => void;
+  opacityDown: () => void;
 }
 
 export class ShortcutsHelper {
@@ -32,6 +34,10 @@ export class ShortcutsHelper {
     globalShortcut.register('Alt+Right', () => this.deps.moveRight());
     globalShortcut.register('Alt+Up', () => this.deps.moveUp());
     globalShortcut.register('Alt+Down', () => this.deps.moveDown());
+
+    // Opacity
+    globalShortcut.register('Alt+Equal', () => this.deps.opacityUp());   // ⌥=  (+ without shift)
+    globalShortcut.register('Alt+Minus', () => this.deps.opacityDown());  // ⌥-
 
     app.on('will-quit', () => globalShortcut.unregisterAll());
   }

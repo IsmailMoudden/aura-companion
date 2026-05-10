@@ -55,6 +55,18 @@ const shortcuts = [
     mac: ["⌥", "drag"],
     win: ["Alt", "drag"],
   },
+  {
+    label: "Opacity +",
+    description: "Increase overlay opacity — make Aura more visible above your apps.",
+    mac: ["⌥", "="],
+    win: ["Alt", "="],
+  },
+  {
+    label: "Opacity −",
+    description: "Decrease overlay opacity — let Aura fade into the background.",
+    mac: ["⌥", "-"],
+    win: ["Alt", "-"],
+  },
 ];
 
 const stateOrder: OverlayState[] = ["idle", "listening", "thinking", "expanded"];
