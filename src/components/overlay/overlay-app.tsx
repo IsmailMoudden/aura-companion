@@ -402,17 +402,41 @@ export function OverlayApp() {
     window.aura!.openExternal(`${webUrl}/auth?overlay=true`);
   }, []);
 
-  // ─── Not authenticated — show Connect screen instead of orb ──────────────────
+  // ─── Not authenticated — show login prompt ───────────────────────────────────
   if (!user && isElectron) {
     return (
-      <div className="flex h-full w-full items-center justify-center" style={{ background: 'transparent' }}>
+      <div
+        className="flex h-full w-full flex-col items-center justify-center gap-5"
+        style={{
+          borderRadius: PANEL_R_IDLE,
+          background: [
+            'radial-gradient(ellipse 90% 55% at 25% 15%, oklch(0.72 0.14 228 / 0.08), transparent 65%)',
+            'linear-gradient(158deg, oklch(0.53 0.10 238 / 0.28) 0%, oklch(0.41 0.09 254 / 0.32) 100%)',
+          ].join(', '),
+          backdropFilter: 'blur(32px) saturate(140%)',
+          WebkitBackdropFilter: 'blur(32px) saturate(140%)',
+          border: '1px solid oklch(1 0 0 / 0.10)',
+          WebkitAppRegion: 'no-drag',
+        } as React.CSSProperties}
+      >
+        <div className="animate-float">
+          <Orb size={54} state="idle" variant="overlay" noHalo />
+        </div>
+        <div className="flex flex-col items-center gap-1 text-center" style={{ padding: '0 28px' }}>
+          <p className="text-display text-foreground/90" style={{ fontSize: 17, letterSpacing: '-0.01em' }}>Welcome to Aura</p>
+          <p className="text-foreground/45 font-light" style={{ fontSize: 12, lineHeight: 1.5 }}>Sign in to start chatting</p>
+        </div>
         <button
           onClick={connectToWeb}
-          className="flex items-center justify-center rounded-full outline-none animate-breathe"
-          style={{ width: ORB_W, height: ORB_H, background: 'transparent', border: 'none', WebkitAppRegion: 'no-drag' } as React.CSSProperties}
-          title="Connect Aura — click to sign in"
+          className="rounded-full font-light text-foreground/90 transition-all duration-300 hover:text-foreground"
+          style={{
+            fontSize: 13,
+            padding: '9px 24px',
+            background: 'radial-gradient(circle at 38% 32%, oklch(0.96 0.06 218 / 0.9), oklch(0.72 0.18 242 / 0.9))',
+            boxShadow: '0 0 20px oklch(0.82 0.16 235 / 0.35), inset 0 1px 0 oklch(1 0 0 / 0.25)',
+          }}
         >
-          <Orb size={ORB_W} state="idle" variant="overlay" noHalo />
+          Sign in
         </button>
       </div>
     );
