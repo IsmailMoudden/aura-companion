@@ -3,6 +3,7 @@ import { globalShortcut, app } from 'electron';
 export interface ShortcutDeps {
   toggleWindow: () => void;
   takeScreenshot: () => Promise<void>;
+  toggleInvisible: () => void;
   moveLeft: () => void;
   moveRight: () => void;
   moveUp: () => void;
@@ -23,6 +24,9 @@ export class ShortcutsHelper {
       void this.deps.takeScreenshot();
     });
 
+    // Toggle content protection (invisible to screen capture / screen sharing)
+    globalShortcut.register('Alt+Shift+H', () => this.deps.toggleInvisible());
+
     // Nudge overlay position
     globalShortcut.register('Alt+Left', () => this.deps.moveLeft());
     globalShortcut.register('Alt+Right', () => this.deps.moveRight());
@@ -39,6 +43,7 @@ export class ShortcutsHelper {
       globalShortcut.register('Alt+Shift+S', () => {
         void this.deps.takeScreenshot();
       });
+      globalShortcut.register('Alt+Shift+H', () => this.deps.toggleInvisible());
     }, 500);
   }
 }
