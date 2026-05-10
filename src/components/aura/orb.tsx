@@ -12,7 +12,7 @@ export function Orb({ size = 200, state = "idle", variant = "default", noHalo = 
   const isOverlay = variant === "overlay";
 
   const orbGradient = isOverlay
-    ? "radial-gradient(circle at 38% 32%, oklch(1 0 0) 0%, oklch(0.88 0.10 210) 25%, oklch(0.72 0.18 220) 55%, oklch(0.52 0.20 235) 85%, oklch(0.42 0.18 245) 100%)"
+    ? "radial-gradient(circle at 38% 32%, oklch(1 0 0 / 0.55) 0%, oklch(0.88 0.10 210 / 0.50) 25%, oklch(0.72 0.18 220 / 0.45) 55%, oklch(0.52 0.20 235 / 0.40) 85%, oklch(0.42 0.18 245 / 0.35) 100%)"
     : "var(--gradient-orb)";
 
   const haloColor = isOverlay
