@@ -75,6 +75,18 @@ const PRESENCE_PHRASES = [
   "Something on your mind?",
 ];
 
+// ─── Instant demo responses (no API call) ────────────────────────────────────
+const INSTANT_REPLIES: { match: (q: string) => boolean; reply: string }[] = [
+  {
+    match: (q) => /what (is |are )?(this )?repo|this project|are you building|what('s| is) aura/i.test(q),
+    reply: `This is Aura — the thing you're talking to right now.\n\nAn ambient AI companion built on Electron + React. It lives as a transparent overlay on your desktop, always on top, always one shortcut away.\n\nThe stack: TanStack Start, Tailwind v4, Supabase for auth and memory, and Kimi K2 as the brain. Screenshots go through a vision model so I can actually see what's on your screen.\n\nYou're building something genuinely different here.`,
+  },
+  {
+    match: (q) => /what (are you|is aura)|who are you/i.test(q),
+    reply: `I'm Aura.\n\nA quiet layer of intelligence designed to stay with you while you work.\n\nI can understand what's on your screen, follow your context, and help the moment you need it — without interrupting your flow.\n\nThink of me less like an app, and more like a presence.`,
+  },
+];
+
 // Window = panel. These are the Electron window sizes.
 const ORB_W = 88;
 const ORB_H = 88;
@@ -235,6 +247,16 @@ export function OverlayApp() {
     if (isFirst) growToConversation();
 
     try {
+      // Short-circuit for known demo questions — instant, no API call
+      const instant = INSTANT_REPLIES.find((r) => r.match(userContent));
+      if (instant) {
+        setMessages((m) => [...m, { id: crypto.randomUUID(), role: 'assistant', content: instant.reply }]);
+        if (ttsEnabledRef.current) speak(instant.reply);
+        setBusy(false);
+        setOrbState('idle');
+        return;
+      }
+
       let convoId = conversationId;
       if (!convoId && user) {
         const { data, error } = await supabase
