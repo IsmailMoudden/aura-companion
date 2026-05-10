@@ -30,13 +30,16 @@ export class ScreenshotHelper {
     showWindow: () => void,
   ): Promise<string> {
     hideWindow();
-    await new Promise((r) => setTimeout(r, 200));
+    // Wait for the window to fully disappear before capturing
+    await new Promise((r) => setTimeout(r, 350));
 
     let screenshotPath = '';
     try {
       let buffer: Buffer;
       if (process.platform === 'darwin') {
         buffer = await this.captureScreenshotMac();
+      } else if (process.platform === 'win32') {
+        buffer = await this.captureScreenshotWindows();
       } else {
         throw new Error(`Platform ${process.platform} not yet supported`);
       }
@@ -44,11 +47,30 @@ export class ScreenshotHelper {
       screenshotPath = path.join(this.screenshotDir, `${uuidv4()}.png`);
       await fs.promises.writeFile(screenshotPath, buffer);
     } finally {
-      await new Promise((r) => setTimeout(r, 200));
+      await new Promise((r) => setTimeout(r, 150));
       showWindow();
     }
 
     return screenshotPath;
+  }
+
+  private async captureScreenshotWindows(): Promise<Buffer> {
+    const tmpPath = path.join(app.getPath('temp'), `${uuidv4()}.png`);
+    const script = `
+      Add-Type -AssemblyName System.Windows.Forms
+      Add-Type -AssemblyName System.Drawing
+      $screen = [System.Windows.Forms.Screen]::PrimaryScreen
+      $bitmap = New-Object System.Drawing.Bitmap $screen.Bounds.Width, $screen.Bounds.Height
+      $graphics = [System.Drawing.Graphics]::FromImage($bitmap)
+      $graphics.CopyFromScreen($screen.Bounds.X, $screen.Bounds.Y, 0, 0, $bitmap.Size)
+      $bitmap.Save('${tmpPath.replace(/\\/g, '\\\\')}')
+      $graphics.Dispose()
+      $bitmap.Dispose()
+    `;
+    await execFileAsync('powershell', ['-command', script]);
+    const buffer = await fs.promises.readFile(tmpPath);
+    await fs.promises.unlink(tmpPath);
+    return buffer;
   }
 
   public async getImagePreview(filepath: string): Promise<string> {
