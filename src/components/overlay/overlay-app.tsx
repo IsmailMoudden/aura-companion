@@ -45,14 +45,16 @@ function speak(text: string) {
     .replace(/^\d+\.\s/gm, '')
     .trim();
   const utt = new SpeechSynthesisUtterance(clean);
-  utt.lang = 'fr-FR';
+  utt.lang = 'en-US';
   utt.rate = 0.95;
   utt.pitch = 1.05;
-  // Prefer a natural-sounding voice if available
+  // Prefer a natural-sounding English voice (Samantha on macOS is the best built-in)
   const voices = window.speechSynthesis.getVoices();
-  const preferred = voices.find((v) =>
-    v.lang.startsWith('fr') && (v.name.includes('Amélie') || v.name.includes('Thomas') || v.name.includes('Google'))
-  ) ?? voices.find((v) => v.lang.startsWith('fr')) ?? voices.find((v) => v.lang.startsWith('en'));
+  const preferred = voices.find((v) => v.name === 'Samantha')
+    ?? voices.find((v) => v.name === 'Karen')
+    ?? voices.find((v) => v.name === 'Moira')
+    ?? voices.find((v) => v.lang === 'en-US' && v.localService)
+    ?? voices.find((v) => v.lang.startsWith('en'));
   if (preferred) utt.voice = preferred;
   window.speechSynthesis.speak(utt);
 }
