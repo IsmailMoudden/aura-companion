@@ -72,7 +72,8 @@ function AuthPage() {
   const handleGoogle = async () => {
     setBusy(true);
     const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin + "/app",
+      redirect_uri:
+        window.location.origin + (isOverlayFlow ? "/auth?overlay=true" : "/app"),
     });
     if (result.error) {
       toast.error("Google sign-in failed");
@@ -80,6 +81,11 @@ function AuthPage() {
       return;
     }
     if (result.redirected) return;
+    const { data } = await supabase.auth.getSession();
+    if (isOverlayFlow && data.session) {
+      redirectToOverlay(data.session.access_token, data.session.refresh_token);
+      return;
+    }
     navigate({ to: "/app" });
   };
 
