@@ -46,12 +46,30 @@ export function OverlayApp() {
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
+    const init = async () => {
+      // Try to restore persisted session from electron-store first
+      if (isElectron) {
+        const saved = await window.aura!.loadSession();
+        if (saved) {
+          await supabase.auth.setSession({ access_token: saved.access_token, refresh_token: saved.refresh_token });
+        }
+      }
+      const { data } = await supabase.auth.getSession();
       if (data.session?.user)
         setUser({ id: data.session.user.id, email: data.session.user.email ?? '' });
-    });
+    };
+    init();
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
       setUser(session?.user ? { id: session.user.id, email: session.user.email ?? '' } : null);
+      // Persist or clear session on auth state change
+      if (isElectron) {
+        if (session?.access_token && session?.refresh_token) {
+          window.aura!.saveSession({ access_token: session.access_token, refresh_token: session.refresh_token });
+        } else {
+          window.aura!.clearSession();
+        }
+      }
     });
     return () => subscription.unsubscribe();
   }, []);

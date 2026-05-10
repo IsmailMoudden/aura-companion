@@ -13,6 +13,9 @@ export interface AuraAPI {
   clearScreenshot: (filepath: string) => Promise<{ success: boolean }>;
   onScreenshotTaken: (cb: (data: { path: string; preview: string }) => void) => () => void;
   onAuthDeepLink: (cb: (data: { accessToken: string; refreshToken: string }) => void) => () => void;
+  saveSession: (tokens: { access_token: string; refresh_token: string }) => Promise<void>;
+  loadSession: () => Promise<{ access_token: string; refresh_token: string } | null>;
+  clearSession: () => Promise<void>;
   openExternal: (url: string) => Promise<void>;
   platform: string;
 }

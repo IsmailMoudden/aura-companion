@@ -39,6 +39,11 @@ const auraAPI = {
     return () => ipcRenderer.removeListener('auth:deep-link', sub);
   },
 
+  // Persist session across relaunches
+  saveSession: (tokens: { access_token: string; refresh_token: string }) => ipcRenderer.invoke('session:save', tokens),
+  loadSession: () => ipcRenderer.invoke('session:load') as Promise<{ access_token: string; refresh_token: string } | null>,
+  clearSession: () => ipcRenderer.invoke('session:clear'),
+
   // Open URL in system browser
   openExternal: (url: string) => ipcRenderer.invoke('shell:open-external', url),
 

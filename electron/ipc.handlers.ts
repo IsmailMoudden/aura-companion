@@ -2,6 +2,11 @@ import { ipcMain, app, shell } from 'electron';
 import { IPC_EVENTS } from '../shared/constants';
 import { ScreenshotHelper } from './screenshot.helper';
 import type { BrowserWindow } from 'electron';
+import Store from 'electron-store';
+
+const store = new Store<{ session: { access_token: string; refresh_token: string } | null }>({
+  defaults: { session: null },
+});
 
 export interface IpcDeps {
   getMainWindow: () => BrowserWindow | null;
@@ -59,6 +64,13 @@ export function initializeIpcHandlers(deps: IpcDeps): void {
     await deps.screenshotHelper.deleteScreenshot(filepath);
     return { success: true };
   });
+
+  // Persist session tokens so overlay stays logged in across relaunches
+  ipcMain.handle('session:save', (_e, tokens: { access_token: string; refresh_token: string }) => {
+    store.set('session', tokens);
+  });
+  ipcMain.handle('session:load', () => store.get('session') ?? null);
+  ipcMain.handle('session:clear', () => store.delete('session'));
 
   // Quit app
   ipcMain.handle('app:quit', () => app.quit());
