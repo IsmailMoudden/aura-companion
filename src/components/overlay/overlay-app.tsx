@@ -79,6 +79,7 @@ const ORB_H = 76;
 const PANEL_W = 360;
 const PANEL_H_IDLE = 300;
 const PANEL_H_CONV = 503;
+const PANEL_H_CONV_SCREENSHOT = 580; // extra room for screenshot thumbnail in conversation
 const PANEL_R_IDLE = 32;   // border-radius when compact
 const PANEL_R_CONV = 26;   // border-radius in conversation
 
@@ -190,6 +191,15 @@ export function OverlayApp() {
   const growToConversation = useCallback(() => {
     if (isElectron) window.aura!.updateDimensions(PANEL_W, PANEL_H_CONV);
   }, []);
+
+  // Resize when screenshot is attached/removed during a conversation
+  useEffect(() => {
+    if (!isElectron || !expanded) return;
+    const hasConv = messages.length > 0;
+    if (!hasConv) return; // idle panel handles its own size
+    const h = screenshot ? PANEL_H_CONV_SCREENSHOT : PANEL_H_CONV;
+    window.aura!.updateDimensions(PANEL_W, h);
+  }, [screenshot, expanded, messages.length]);
 
   const captureScreenshot = useCallback(async () => {
     if (!isElectron) return;
