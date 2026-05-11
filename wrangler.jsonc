@@ -5,6 +5,7 @@
   "compatibility_flags": ["nodejs_compat"],
   "main": "src/server.ts",
   "vars": {
-    "VITE_WEB_URL": "https://aura.aura-companion.workers.dev"
+    "VITE_WEB_URL": "https://aura.aura-companion.workers.dev",
+    "VITE_SUPABASE_URL": "https://mkzdienngrisxrvkvgrv.supabase.co"
   }
 }
