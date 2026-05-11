@@ -274,7 +274,7 @@ export function OverlayApp() {
       const json = await res.json() as { reply?: string; error?: string; limit?: number };
       if (res.status === 429) {
         const modelLabel = MODELS.find((m) => m.id === selectedModel)?.label ?? selectedModel;
-        setMessages((m) => [...m, { id: crypto.randomUUID(), role: 'assistant', content: `Daily limit reached for ${modelLabel} (${json.limit} messages/day). Switch models or come back tomorrow.` }]);
+        setMessages((m) => [...m, { id: crypto.randomUUID(), role: 'assistant', content: `I've reached my limit for ${modelLabel} today. Try switching to a different model, or come back tomorrow.` }]);
         return;
       }
       if (!res.ok) {
@@ -341,7 +341,7 @@ export function OverlayApp() {
       const parts: string[] = [];
       for (let i = 0; i < e.results.length; i++) parts.push(e.results[i][0].transcript.toLowerCase());
       const transcript = parts.join(' ');
-      if (transcript.includes(WAKE_WORD) || transcript.includes('aura') || transcript.includes('hora') || transcript.includes('ora')) {
+      if (transcript.includes(WAKE_WORD) || transcript.includes('aura')) {
         recog.stop();
         setWakeDetected(true);
         setOrbState('listening');
@@ -371,7 +371,7 @@ export function OverlayApp() {
     const recog = new SpeechRecognitionAPI();
     recog.continuous = false;
     recog.interimResults = true;
-    recog.lang = 'fr-FR';
+    recog.lang = 'en-US';
     cmdRecogRef.current = recog;
     setOrbState('listening');
     setIsListeningCmd(true);
@@ -569,7 +569,6 @@ export function OverlayApp() {
                     className={`flex w-full items-center justify-between px-4 py-2.5 text-left transition-colors hover:bg-white/[0.06] ${selectedModel === m.id ? 'text-foreground' : 'text-muted-foreground'}`}
                   >
                     <span className="text-[11px] font-light">{m.label}</span>
-                    <span className="text-[9px] text-muted-foreground/50">{m.limit}/day</span>
                   </button>
                 ))}
               </div>
