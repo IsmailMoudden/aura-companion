@@ -22,15 +22,17 @@ function AuthPage() {
   const isOverlayFlow = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('overlay') === 'true';
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      if (data.session) {
+    // Handle OAuth callback — Supabase puts tokens in the URL hash after redirect
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session) {
         if (isOverlayFlow) {
-          redirectToOverlay(data.session.access_token, data.session.refresh_token);
+          redirectToOverlay(session.access_token, session.refresh_token);
         } else {
           navigate({ to: "/app" });
         }
       }
     });
+    return () => subscription.unsubscribe();
   }, [navigate, isOverlayFlow]);
 
   function redirectToOverlay(accessToken: string, refreshToken: string) {
