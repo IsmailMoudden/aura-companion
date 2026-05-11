@@ -1,154 +1,131 @@
 <p align="center">
-  <img src="public/hero.png" alt="Aura — Your ambient AI" width="100%" />
+  <img src="public/hero.png" alt="Aura" width="100%" />
 </p>
 
 <h1 align="center">Aura</h1>
 
 <p align="center">
-  <strong>Your ambient AI. Quietly brilliant.</strong><br/>
-  A calm desktop companion that understands your screen, remembers what matters,<br/>and stays gently present — never in the way.
+  An ambient AI companion that lives on your desktop.<br/>
+  It sees your screen, understands your context, and stays out of the way until you need it.
 </p>
 
 <p align="center">
-  <a href="https://aura.aura-companion.workers.dev">Web App</a> ·
-  <a href="https://github.com/IsmailMoudden/aura-companion/releases/latest">Download</a> ·
-  <a href="#keyboard-shortcuts">Shortcuts</a> ·
-  <a href="#stack">Stack</a> ·
+  <a href="https://aura.aura-companion.workers.dev">Web App</a> &nbsp;|&nbsp;
+  <a href="https://github.com/IsmailMoudden/aura-companion/releases/latest">Download</a> &nbsp;|&nbsp;
+  <a href="#shortcuts">Shortcuts</a> &nbsp;|&nbsp;
   <a href="#development">Development</a>
 </p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/Electron-39-47848F?style=flat&logo=electron&logoColor=white" />
   <img src="https://img.shields.io/badge/React-19-61DAFB?style=flat&logo=react&logoColor=white" />
-  <img src="https://img.shields.io/badge/TanStack_Start-1.x-FF4154?style=flat" />
   <img src="https://img.shields.io/badge/Supabase-backend-3ECF8E?style=flat&logo=supabase&logoColor=white" />
   <img src="https://img.shields.io/badge/license-MIT-blue?style=flat" />
 </p>
 
----
+<br/>
 
 <p align="center">
-  <img src="public/overlay-preview.png" alt="Aura overlay on desktop" width="380" />
+  <img src="public/overlay-preview.png" alt="Aura overlay" width="360" />
 </p>
 
----
+<br/>
 
-## What it is
+## Overview
 
-Aura is not an app you open. It's a presence that floats above everything else on your desktop — always one shortcut away, never in the way.
-
-It sees your screen. It understands your context. It responds in plain language, then disappears.
+Aura is not an app you open. It floats above your desktop, always one shortcut away. It sees your screen, responds to your questions in plain language, and disappears when you're done.
 
 **Two surfaces:**
 
-- **Desktop overlay** — a transparent, always-on-top Electron window. Summon it with `Alt+Space`, ask anything, dismiss it. Sees your screen automatically on every message.
-- **Web app** — full conversational interface with history, memory, and multi-model access at [aura.aura-companion.workers.dev](https://aura.aura-companion.workers.dev)
+- **Desktop overlay** — a transparent, always-on-top Electron window. Summon it with `Alt+Space`, ask anything, dismiss it. Screen context is captured automatically on every message.
+- **Web app** — full conversational interface with history and multi-model access at [aura.aura-companion.workers.dev](https://aura.aura-companion.workers.dev)
 
----
+Both share the same Supabase backend, so your conversation history is always in sync.
+
+<br/>
 
 ## Download
 
 | Platform | Installer |
 |---|---|
-| macOS Apple Silicon (M1/M2/M3) | [Aura-arm64.dmg](https://github.com/IsmailMoudden/aura-companion/releases/latest/download/Aura-arm64.dmg) |
+| macOS Apple Silicon | [Aura-arm64.dmg](https://github.com/IsmailMoudden/aura-companion/releases/latest/download/Aura-arm64.dmg) |
 | macOS Intel | [Aura-x64.dmg](https://github.com/IsmailMoudden/aura-companion/releases/latest/download/Aura-x64.dmg) |
 | Windows x64 | [Aura-x64.exe](https://github.com/IsmailMoudden/aura-companion/releases/latest/download/Aura-x64.exe) |
 
-Free during early access · No account needed to start
+Free during early access.
 
-> **macOS:** Unsigned build. On first launch: right-click → Open, or run `xattr -cr /Applications/Aura.app` in Terminal.
+> **macOS note:** The app is unsigned. On first launch, right-click and choose Open, or run `xattr -cr /Applications/Aura.app` in Terminal.
 
----
+<br/>
 
-## Keyboard shortcuts
+## Shortcuts
 
 | Shortcut | Action |
 |---|---|
 | `Alt+Space` | Summon / dismiss overlay |
 | `Alt+Shift+S` | Capture screenshot manually |
 | `Alt+Shift+H` | Toggle invisible mode (hidden from screen recording) |
-| `Shift+Enter` | Trigger voice input directly |
-| `Alt+←↑↓→` | Nudge overlay position |
+| `Shift+Enter` | Trigger voice input |
+| `Alt+Arrow` | Nudge overlay position |
 
----
+<br/>
 
 ## Stack
 
 | Layer | Tech |
 |---|---|
-| Desktop | Electron 39 · transparent overlay window · always-on-top |
+| Desktop | Electron 39, transparent overlay, always-on-top |
 | Framework | TanStack Start (React 19 + TanStack Router) |
-| Styling | Tailwind CSS v4 · custom design tokens via CSS variables |
-| AI — default | Kimi K2.6 / moonshot-v1-8k (Moonshot AI) |
-| AI — vision | moonshot-v1-32k-vision-preview (auto-selected with screenshot) |
-| AI — extras | GPT-4o · Claude Sonnet · Gemini Flash · Llama 3.3 70B via OpenRouter |
-| Backend / Auth | Supabase (email + Google OAuth · `conversations` + `messages` tables) |
-| Edge functions | Supabase Edge Functions (Deno) |
+| Styling | Tailwind CSS v4, custom design tokens |
+| AI | Kimi K2.6 (Moonshot AI), with vision support |
+| AI extras | GPT-4o, Claude Sonnet, Gemini Flash, Llama 3.3 via OpenRouter |
+| Backend | Supabase (auth, database, edge functions) |
 | Hosting | Cloudflare Workers |
-| Build | Vite 7 · esbuild · electron-builder |
-| Package manager | Bun |
+| Build | Vite 7, esbuild, electron-builder, Bun |
 
----
+<br/>
 
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────┐
-│              Electron Overlay               │
-│  Transparent window · always-on-top · macOS/Win │
-│                                             │
-│  • Screen capture (sips resize → base64)    │
-│  • Voice input (Web Speech API)             │
-│  • TTS output (SpeechSynthesis)             │
-│  • Wake word detection ("Hey Aura")         │
-│  • Session via electron-store               │
-└────────────────┬────────────────────────────┘
-                 │ fetch
-                 ▼
-┌─────────────────────────────────────────────┐
-│         Supabase Edge Function /chat        │
-│                                             │
-│  • Auth validation                          │
-│  • Daily per-model rate limits              │
-│  • Multimodal screenshot injection          │
-│  • Routes to Kimi or OpenRouter             │
-└──────┬───────────────────────┬──────────────┘
-       │                       │
-       ▼                       ▼
-  Moonshot AI            OpenRouter API
-  (Kimi K2.6)     (GPT-4o · Claude · Gemini…)
+Electron Overlay
+  Screen capture, voice input, TTS, wake word ("Hey Aura")
+       |
+       | HTTPS
+       v
+Supabase Edge Function /chat
+  Auth, rate limits, screenshot injection, model routing
+       |
+       +---> Moonshot AI (Kimi K2.6)
+       +---> OpenRouter (GPT-4o, Claude, Gemini, Llama)
 
-┌─────────────────────────────────────────────┐
-│           Web App (Cloudflare Workers)      │
-│  TanStack Start · SSR · same Supabase DB    │
-│  Shared auth · shared conversation history  │
-└─────────────────────────────────────────────┘
+Web App (Cloudflare Workers)
+  TanStack Start SSR, same Supabase DB
+  Shared auth and conversation history
 ```
 
----
+<br/>
 
 ## Auth flow
 
-The overlay has no login form. When signed out, clicking the orb opens the web app at `?overlay=true`. After sign-in, the web app redirects to `aura://auth?access_token=...&refresh_token=...`. Electron intercepts this deep link and restores the session — persisted across relaunches via `electron-store`.
+The overlay has no login form. When signed out, clicking the orb opens the web app at `?overlay=true`. After sign-in, the web app redirects to `aura://auth?access_token=...`. Electron intercepts the deep link and stores the session via `electron-store`.
 
-Add this redirect URL in **Supabase → Authentication → URL Configuration**:
+Add this URL in **Supabase > Authentication > URL Configuration > Redirect URLs**:
 ```
 aura://auth
 ```
 
----
+<br/>
 
 ## Development
 
 ```bash
-# Install dependencies
 bun install
 
-# Copy env file
 cp .env.example .env
-# Fill in your keys (see .env.example)
+# Fill in your keys
 
-# Web app (dev server)
+# Web app
 bun dev
 
 # Electron overlay
@@ -159,77 +136,67 @@ bun run electron:dev
 
 | Variable | Description |
 |---|---|
-| `VITE_SUPABASE_URL` | Your Supabase project URL |
+| `VITE_SUPABASE_URL` | Supabase project URL |
 | `VITE_SUPABASE_PUBLISHABLE_KEY` | Supabase anon key |
 | `VITE_WEB_URL` | Public URL of the web app |
-| `KIMI_API_KEY` | Moonshot AI API key (set as Supabase secret) |
-| `OPENROUTER_API_KEY` | OpenRouter API key (set as Supabase secret) |
+| `KIMI_API_KEY` | Moonshot AI key (set as Supabase secret) |
+| `OPENROUTER_API_KEY` | OpenRouter key (set as Supabase secret) |
 
----
+<br/>
 
 ## Building
 
 ```bash
-# macOS (run on macOS)
-bunx electron-builder --mac dmg --arm64 --publish never   # Apple Silicon
-bunx electron-builder --mac dmg --x64 --publish never     # Intel
+# macOS
+bunx electron-builder --mac dmg --arm64 --publish never
+bunx electron-builder --mac dmg --x64 --publish never
 
-# Windows (run on Windows or via CI)
+# Windows
 bunx electron-builder --win nsis --x64 --publish never
 ```
 
 Releases are built automatically via GitHub Actions on every `v*` tag:
 
 ```bash
-git tag v0.2.0
-git push origin v0.2.0
+git tag v0.4.0
+git push origin v0.4.0
 ```
 
-The workflow builds macOS arm64, macOS x64, and Windows x64 in parallel and publishes a GitHub Release automatically.
+<br/>
 
----
-
-## Deploying the Supabase edge function
+## Deploying the edge function
 
 ```bash
-# Set secrets
 supabase secrets set KIMI_API_KEY=sk-...
 supabase secrets set OPENROUTER_API_KEY=sk-or-...
-
-# Deploy
 supabase functions deploy chat --project-ref <your-project-ref>
 ```
 
-Or push to `main` — the GitHub Actions workflow [`.github/workflows/deploy-functions.yml`](.github/workflows/deploy-functions.yml) deploys automatically on changes to `supabase/functions/`.
+The workflow in `.github/workflows/deploy-functions.yml` deploys automatically on push to `main` when files in `supabase/functions/` change.
 
----
+<br/>
 
 ## GitHub Actions secrets
-
-Set these in **Settings → Secrets → Actions**:
 
 | Secret | Description |
 |---|---|
 | `VITE_SUPABASE_URL` | Supabase project URL |
 | `VITE_SUPABASE_PUBLISHABLE_KEY` | Supabase anon key |
 | `VITE_WEB_URL` | Public URL of the web app |
-| `SUPABASE_PROJECT_REF` | Supabase project ref (for function deploy) |
+| `SUPABASE_PROJECT_REF` | Supabase project ref |
 | `SUPABASE_ACCESS_TOKEN` | Supabase CLI access token |
 
----
+<br/>
 
 ## Contributing
 
-Pull requests are welcome. For major changes, open an issue first to discuss what you'd like to change.
-
 1. Fork the repo
-2. Create your branch: `git checkout -b feat/your-feature`
-3. Commit your changes: `git commit -m 'feat: add some feature'`
-4. Push to the branch: `git push origin feat/your-feature`
-5. Open a pull request
+2. Create a branch: `git checkout -b feat/your-feature`
+3. Commit your changes: `git commit -m 'feat: your feature'`
+4. Push and open a pull request
 
----
+<br/>
 
 ## License
 
-MIT — see [LICENSE](LICENSE) for details.
+MIT. See [LICENSE](LICENSE).

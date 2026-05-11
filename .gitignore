@@ -49,3 +49,5 @@ release
 .lovable/
 supabase/.temp/
 supabase/functions/.env
+CLAUDE.md
+package-lock.json
