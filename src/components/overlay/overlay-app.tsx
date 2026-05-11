@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { Orb } from '@/components/aura/orb';
-import { X, Camera, ChevronDown, Mic, MicOff, Volume2, VolumeX, Sun } from 'lucide-react';
+import { X, Camera, ChevronDown, Mic, MicOff, Volume2, VolumeX, Sun, Keyboard } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 
@@ -112,6 +112,7 @@ export function OverlayApp() {
   const [showOpacitySlider, setShowOpacitySlider] = useState(false);
   const [selectedModel, setSelectedModel] = useState<ModelId>('auto');
   const [modelPickerOpen, setModelPickerOpen] = useState(false);
+  const [showShortcuts, setShowShortcuts] = useState(false);
   // Voice
   const [voiceMode, setVoiceMode] = useState<'off' | 'wake' | 'command'>('off');
   const [wakeDetected, setWakeDetected] = useState(false);
@@ -454,7 +455,7 @@ export function OverlayApp() {
   if (!user && isElectron) {
     return (
       <div
-        className="flex h-full w-full flex-col items-center justify-center gap-5"
+        className="relative flex h-full w-full flex-col items-center justify-center gap-5"
         style={{
           borderRadius: PANEL_R_IDLE,
           background: [
@@ -486,9 +487,34 @@ export function OverlayApp() {
         >
           Sign in
         </button>
-        <p className="text-foreground/25 font-light" style={{ fontSize: 10, letterSpacing: '0.08em' }}>
-          Alt+Space to hide
-        </p>
+
+        {/* Keyboard shortcuts toggle */}
+        <div className="flex flex-col items-center gap-2">
+          <button
+            onClick={() => setShowShortcuts(v => !v)}
+            className="flex items-center gap-1.5 rounded-full px-3 py-1 transition-all duration-200 hover:bg-white/[0.07]"
+            style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
+          >
+            <Keyboard className="h-3 w-3 text-foreground/25" />
+            <span className="text-foreground/25 font-light" style={{ fontSize: 10, letterSpacing: '0.08em' }}>Shortcuts</span>
+          </button>
+          {showShortcuts && (
+            <div className="animate-fade-in flex flex-col gap-1 rounded-2xl px-4 py-3" style={{ background: 'oklch(0 0 0 / 0.25)', border: '1px solid oklch(1 0 0 / 0.07)', minWidth: 200 }}>
+              {[
+                ['Alt+Space', 'Show / hide'],
+                ['Alt+Shift+H', 'Invisible mode'],
+                ['Alt+Shift+S', 'Screenshot'],
+                ['Shift+Enter', 'Voice input'],
+                ['Alt+Arrows', 'Move overlay'],
+              ].map(([key, desc]) => (
+                <div key={key} className="flex items-center justify-between gap-4">
+                  <span className="text-[10px] font-light text-foreground/35">{desc}</span>
+                  <kbd className="rounded px-1.5 py-0.5 text-[9px] font-light text-foreground/40" style={{ background: 'oklch(1 0 0 / 0.06)', border: '1px solid oklch(1 0 0 / 0.08)' }}>{key}</kbd>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     );
   }
@@ -564,16 +590,50 @@ export function OverlayApp() {
           {modelPickerOpen && (
             <>
               <div className="fixed inset-0 z-10" onClick={() => setModelPickerOpen(false)} />
-              <div className="absolute left-1/2 top-full z-20 mt-1 w-44 -translate-x-1/2 overflow-hidden rounded-2xl border border-white/[0.08] shadow-xl animate-fade-in" style={{ background: 'oklch(0.18 0.04 250 / 0.97)', backdropFilter: 'blur(24px)' }}>
-                {MODELS.map((m) => (
+              <div className="absolute left-1/2 top-full z-20 mt-1 w-52 -translate-x-1/2 overflow-hidden rounded-2xl border border-white/[0.08] shadow-xl animate-fade-in" style={{ background: 'oklch(0.15 0.04 250 / 0.98)', backdropFilter: 'blur(32px)' }}>
+                {/* Models */}
+                <div className="px-3 pt-3 pb-1">
+                  <p className="text-[9px] uppercase tracking-[0.15em] text-foreground/25 px-1 mb-1">Model</p>
+                  {MODELS.map((m) => (
+                    <button
+                      key={m.id}
+                      onClick={() => { setSelectedModel(m.id); setModelPickerOpen(false); }}
+                      className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left transition-colors hover:bg-white/[0.06] ${selectedModel === m.id ? 'text-foreground' : 'text-foreground/45'}`}
+                    >
+                      <span className="text-[11px] font-light">{m.label}</span>
+                      {selectedModel === m.id && <div className="h-1.5 w-1.5 rounded-full" style={{ background: 'oklch(0.82 0.16 235)' }} />}
+                    </button>
+                  ))}
+                </div>
+                {/* Divider */}
+                <div className="mx-3 my-1 h-px bg-white/[0.06]" />
+                {/* Shortcuts */}
+                <div className="px-3 pb-3 pt-1">
                   <button
-                    key={m.id}
-                    onClick={() => { setSelectedModel(m.id); setModelPickerOpen(false); }}
-                    className={`flex w-full items-center justify-between px-4 py-2.5 text-left transition-colors hover:bg-white/[0.06] ${selectedModel === m.id ? 'text-foreground' : 'text-muted-foreground'}`}
+                    onClick={() => setShowShortcuts(v => !v)}
+                    className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left transition-colors hover:bg-white/[0.06] text-foreground/45 hover:text-foreground/70"
                   >
-                    <span className="text-[11px] font-light">{m.label}</span>
+                    <Keyboard className="h-3 w-3 flex-shrink-0" />
+                    <span className="text-[11px] font-light">Shortcuts</span>
+                    <ChevronDown className={`h-2.5 w-2.5 ml-auto transition-transform duration-200 ${showShortcuts ? 'rotate-180' : ''}`} />
                   </button>
-                ))}
+                  {showShortcuts && (
+                    <div className="mt-1 flex flex-col gap-0.5 px-1">
+                      {[
+                        ['Alt+Space', 'Show / hide'],
+                        ['Alt+Shift+H', 'Invisible mode'],
+                        ['Alt+Shift+S', 'Screenshot'],
+                        ['Shift+Enter', 'Voice input'],
+                        ['Alt+Arrows', 'Move overlay'],
+                      ].map(([key, desc]) => (
+                        <div key={key} className="flex items-center justify-between py-1">
+                          <span className="text-[10px] font-light text-foreground/35">{desc}</span>
+                          <kbd className="rounded px-1.5 py-0.5 text-[9px] font-light text-foreground/40" style={{ background: 'oklch(1 0 0 / 0.06)', border: '1px solid oklch(1 0 0 / 0.08)' }}>{key}</kbd>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             </>
           )}
