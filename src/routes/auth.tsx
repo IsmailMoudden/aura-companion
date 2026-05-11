@@ -22,7 +22,18 @@ function AuthPage() {
   const isOverlayFlow = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('overlay') === 'true';
 
   useEffect(() => {
-    // Handle OAuth callback — Supabase puts tokens in the URL hash after redirect
+    // On OAuth callback, Supabase puts tokens in the URL hash — extract them client-side
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session) {
+        if (isOverlayFlow) {
+          redirectToOverlay(data.session.access_token, data.session.refresh_token);
+        } else {
+          navigate({ to: "/app" });
+        }
+        return;
+      }
+    });
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session) {
         if (isOverlayFlow) {
@@ -81,7 +92,11 @@ function AuthPage() {
     const redirectTo = window.location.origin + (isOverlayFlow ? "/auth?overlay=true" : "/auth");
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo },
+      options: {
+        redirectTo,
+        skipBrowserRedirect: false,
+        queryParams: { access_type: "offline", prompt: "consent" },
+      },
     });
     if (error) {
       toast.error("Google sign-in failed");
