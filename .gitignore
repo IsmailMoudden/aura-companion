@@ -47,3 +47,4 @@ release
 *.sln
 *.sw?
 .lovable/
+supabase/.temp/
