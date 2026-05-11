@@ -144,7 +144,12 @@ function ChatPage() {
           body: JSON.stringify({ messages: history, conversationId: convoId, model: selectedModel }),
         },
       );
-      const fnJson = await fnRes.json() as { reply?: string; error?: string };
+      const fnJson = await fnRes.json() as { reply?: string; error?: string; limit?: number; remaining?: number };
+      if (fnRes.status === 429) {
+        toast.error(`Daily limit reached for ${MODELS.find(m => m.id === selectedModel)?.label} (${fnJson.limit} messages/day). Switch models or come back tomorrow.`);
+        setBusy(false);
+        return;
+      }
       const reply = fnJson.reply ?? "I'm here — something went quiet. Try again?";
       const { data: aiInserted } = await supabase
         .from("messages")

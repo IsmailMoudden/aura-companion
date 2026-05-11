@@ -111,6 +111,36 @@ Deno.serve(async (req: Request) => {
     const modelId: ModelId = body.model && MODELS[body.model] ? body.model : 'auto';
     const modelCfg = MODELS[modelId];
 
+    // ─── Rate limiting ────────────────────────────────────────────────────────
+    const today = new Date().toISOString().split('T')[0];
+
+    // Use service role client to bypass RLS for upsert
+    const adminSupabase = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+    );
+
+    const { data: usageRow } = await adminSupabase
+      .from('model_usage')
+      .select('count')
+      .eq('user_id', user.id)
+      .eq('model', modelId)
+      .eq('date', today)
+      .single();
+
+    const currentCount = usageRow?.count ?? 0;
+
+    if (currentCount >= modelCfg.dailyLimit) {
+      return new Response(JSON.stringify({
+        error: 'daily_limit_reached',
+        limit: modelCfg.dailyLimit,
+        model: modelId,
+      }), {
+        status: 429,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     // Build message list
     const chatMessages: ChatMessage[] = [{ role: 'system', content: SYSTEM_PROMPT }];
 
@@ -173,7 +203,14 @@ Deno.serve(async (req: Request) => {
       apiReply = data.choices?.[0]?.message?.content ?? "I'm here — try again?";
     }
 
-    return new Response(JSON.stringify({ reply: apiReply, model: modelId, dailyLimit: modelCfg.dailyLimit }), {
+    // Increment usage counter
+    await adminSupabase.from('model_usage').upsert(
+      { user_id: user.id, model: modelId, date: today, count: currentCount + 1 },
+      { onConflict: 'user_id,model,date' },
+    );
+
+    const remaining = modelCfg.dailyLimit - (currentCount + 1);
+    return new Response(JSON.stringify({ reply: apiReply, model: modelId, dailyLimit: modelCfg.dailyLimit, remaining }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
