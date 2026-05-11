@@ -1,8 +1,7 @@
-FROM oven/bun:1.2-slim AS base
+FROM node:20-slim AS base
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y curl ca-certificates nodejs npm && \
-    rm -rf /var/lib/apt/lists/*
+RUN npm install -g bun
 
 # Dependencies
 FROM base AS deps
@@ -24,9 +23,11 @@ ENV VITE_WEB_URL=$VITE_WEB_URL
 
 RUN bun run build
 
-# Runtime — only ship the built output + wrangler
-FROM base AS runner
+# Runtime
+FROM node:20-slim AS runner
 WORKDIR /app
+
+RUN npm install -g bun
 
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
