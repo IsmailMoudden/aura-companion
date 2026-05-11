@@ -1,7 +1,9 @@
 # Environment — never commit secrets
 .env
-.env.*
+.env.local
+.env.*.local
 !.env.example
+!.env.production
 
 # Heavy assets — store externally
 src/assets/*.mov
