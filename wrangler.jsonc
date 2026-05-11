@@ -6,6 +6,6 @@
   "main": "src/server.ts",
   "name": "aura-companion",
   "vars": {
-    "VITE_WEB_URL": "https://aura-companion.aura-companion.workers.dev"
+    "VITE_WEB_URL": "https://aura.aura-companion.workers.dev"
   }
 }
