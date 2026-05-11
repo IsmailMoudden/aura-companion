@@ -7,6 +7,10 @@
 src/assets/*.mov
 src/assets/*.mp4
 
+# Screenshots (use public/ for repo images)
+Screenshot*.png
+Screenshot*.jpg
+
 # Logs
 logs
 *.log
