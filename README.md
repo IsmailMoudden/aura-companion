@@ -1,6 +1,8 @@
 # Aura — Ambient AI Companion
 
-> A calm, intelligent presence for your desktop. Understands your screen, remembers what matters, stays out of the way.
+> A calm, intelligent presence that lives on your desktop. It sees your screen, understands your context, and steps back when you don't need it.
+
+![Aura overlay](public/aura-preview.png)
 
 ---
 
@@ -8,31 +10,44 @@
 
 | Platform | Installer |
 |---|---|
-| macOS Apple Silicon (M1/M2/M3) | [Aura-arm64.dmg](https://github.com/IsmailMoudden/aura-companion/releases/latest) |
-| macOS Intel (x64) | [Aura-x64.dmg](https://github.com/IsmailMoudden/aura-companion/releases/latest) |
-| Windows x64 | [Aura-x64-setup.exe](https://github.com/IsmailMoudden/aura-companion/releases/latest) |
+| macOS Apple Silicon (M1/M2/M3) | [Aura-arm64.dmg](https://github.com/IsmailMoudden/aura-companion/releases/latest/download/Aura-arm64.dmg) |
+| macOS Intel | [Aura-x64.dmg](https://github.com/IsmailMoudden/aura-companion/releases/latest/download/Aura-x64.dmg) |
+| Windows x64 | [Aura-x64.exe](https://github.com/IsmailMoudden/aura-companion/releases/latest/download/Aura-x64.exe) |
 
-Free during early access. No account needed to start.
+Free during early access · [companionaura.lovable.app](https://companionaura.lovable.app)
 
 ---
 
 ## What it is
 
-Aura has two surfaces:
+Aura is not an app you open. It's a presence that floats above everything else on your desktop — always one shortcut away, never in the way.
 
-- **Desktop overlay** — a transparent, always-on-top Electron companion that floats above any app. Press a shortcut, talk to it, it steps back.
-- **Web app** — full conversational interface with history, screenshots, and memory at [companionaura.lovable.app](https://companionaura.lovable.app)
+**Two surfaces:**
+- **Desktop overlay** — transparent, always-on-top Electron window. Sees your screen. Responds to voice or text. Disappears when you're done.
+- **Web app** — full conversational interface with history and memory at [companionaura.lovable.app](https://companionaura.lovable.app)
+
+**Keyboard shortcuts:**
+| Shortcut | Action |
+|---|---|
+| `Alt+Space` | Summon / dismiss overlay |
+| `Alt+Shift+S` | Capture screenshot manually |
+| `Alt+Shift+H` | Toggle invisible mode (hidden from screen capture) |
+| `Shift+Enter` | Trigger voice input |
+| `Alt+←↑↓→` | Nudge overlay position |
 
 ---
 
 ## Stack
 
-- **Framework**: TanStack Start (React 19 + TanStack Router, file-based routing)
-- **Styling**: Tailwind CSS v4 with custom design tokens via CSS variables
-- **AI**: Kimi K2.6 (Moonshot AI) via Supabase Edge Functions
-- **Backend/Auth**: Supabase (email/password auth, `conversations` + `messages` tables)
-- **Desktop**: Electron 39, transparent overlay window
-- **Build**: Vite 7, deployed to Cloudflare Pages
+| Layer | Tech |
+|---|---|
+| Framework | TanStack Start (React 19 + TanStack Router) |
+| Styling | Tailwind CSS v4, custom design tokens via CSS variables |
+| AI | Kimi K2.6 / moonshot-v1-8k (Moonshot AI) via Supabase Edge Functions |
+| Vision | moonshot-v1-32k-vision-preview (auto-selected when screenshot attached) |
+| Backend / Auth | Supabase (email/password, `conversations` + `messages` tables) |
+| Desktop | Electron 39, transparent overlay window |
+| Build | Vite 7, deployed to Cloudflare Pages |
 
 ---
 
@@ -44,17 +59,14 @@ bun install
 # Web app
 bun dev
 
-# Electron overlay (dev mode with hot reload)
+# Electron overlay
 bun run electron:dev
 ```
 
-Requires a `.env` file at the root:
+Copy `.env.example` to `.env` and fill in your keys:
 
-```env
-VITE_SUPABASE_URL=...
-VITE_SUPABASE_PUBLISHABLE_KEY=...
-VITE_WEB_URL=https://companionaura.lovable.app
-KIMI_API_KEY=...
+```bash
+cp .env.example .env
 ```
 
 ---
@@ -62,29 +74,29 @@ KIMI_API_KEY=...
 ## Building
 
 ```bash
-# macOS DMG (current machine arch)
-bun run electron:build
+# macOS
+bunx electron-builder --mac dmg --arm64 --publish never
 
-# Windows NSIS installer (run on Windows or via CI)
-bun run electron:build:win
+# Windows (run on Windows or via CI)
+bunx electron-builder --win nsis --x64 --publish never
 ```
 
 Releases are built automatically via GitHub Actions on every `v*` tag:
 
 ```bash
-git tag v0.2.0
-git push origin v0.2.0
+git tag v1.0.0
+git push origin v1.0.0
 ```
 
-The workflow builds macOS arm64, macOS x64, and Windows x64 in parallel and publishes a GitHub Release with all three installers.
+The workflow builds macOS arm64, macOS x64, and Windows x64 in parallel and publishes a GitHub Release.
 
-> **Note**: macOS builds are unsigned (no Apple Developer certificate). On first launch, right-click → Open to bypass Gatekeeper.
+> macOS builds are unsigned. On first launch: right-click → Open, or run `xattr -cr /Applications/Aura.app` in Terminal.
 
 ---
 
 ## GitHub Actions secrets
 
-Add these in **Settings → Secrets → Actions** before triggering a release:
+Set these in **Settings → Secrets → Actions**:
 
 | Secret | Description |
 |---|---|
@@ -94,11 +106,11 @@ Add these in **Settings → Secrets → Actions** before triggering a release:
 
 ---
 
-## Auth flow (overlay ↔ web)
+## Auth flow
 
-The overlay has no in-app login form. When the user isn't signed in, clicking the orb opens the web app in the system browser with `?overlay=true`. After sign-in, the web app redirects to `aura://auth?access_token=...&refresh_token=...`. Electron intercepts this deep link and restores the session inside the overlay.
+The overlay has no login form. When signed out, clicking the orb opens the web app at `?overlay=true`. After sign-in, the web app redirects to `aura://auth?access_token=...&refresh_token=...`. Electron intercepts this deep link and restores the session inside the overlay — persisted across relaunches via `electron-store`.
 
-Register the redirect URL in **Supabase → Authentication → URL Configuration**:
+Add this redirect URL in **Supabase → Authentication → URL Configuration**:
 ```
 aura://auth
 ```
@@ -107,4 +119,4 @@ aura://auth
 
 ## License
 
-Private — all rights reserved.
+MIT

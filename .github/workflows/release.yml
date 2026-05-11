@@ -118,9 +118,9 @@ jobs:
             ### Download
             | Platform | File |
             |---|---|
-            | macOS Apple Silicon | `Aura-${{ github.ref_name }}-arm64.dmg` |
-            | macOS Intel | `Aura-${{ github.ref_name }}-x64.dmg` |
-            | Windows x64 | `Aura Setup ${{ github.ref_name }}.exe` |
+            | macOS Apple Silicon | `Aura-arm64.dmg` |
+            | macOS Intel | `Aura-x64.dmg` |
+            | Windows x64 | `Aura-x64.exe` |
 
             ### Install
             - **macOS**: open the `.dmg`, drag Aura to Applications. Right-click → Open the first time (unsigned build).
