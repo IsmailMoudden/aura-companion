@@ -271,7 +271,12 @@ export function OverlayApp() {
         body: JSON.stringify(body),
       });
 
-      const json = await res.json() as { reply?: string; error?: string };
+      const json = await res.json() as { reply?: string; error?: string; limit?: number };
+      if (res.status === 429) {
+        const modelLabel = MODELS.find((m) => m.id === selectedModel)?.label ?? selectedModel;
+        setMessages((m) => [...m, { id: crypto.randomUUID(), role: 'assistant', content: `Daily limit reached for ${modelLabel} (${json.limit} messages/day). Switch models or come back tomorrow.` }]);
+        return;
+      }
       if (!res.ok) {
         console.error('chat error:', res.status, json);
         throw new Error(json.error ?? `HTTP ${res.status}`);
