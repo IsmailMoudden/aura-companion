@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { GlassPanel } from "@/components/aura/glass-panel";
 import { Orb } from "@/components/aura/orb";
-import { Send, Plus, LogOut, Sparkles, Search, PanelLeftClose, PanelLeftOpen, Keyboard } from "lucide-react";
+import { Send, Plus, LogOut, Sparkles, Search, PanelLeftClose, PanelLeftOpen, Keyboard, ChevronDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
@@ -11,6 +11,15 @@ export const Route = createFileRoute("/app")({
   head: () => ({ meta: [{ title: "Aura, Conversations" }] }),
   component: ChatPage,
 });
+
+type ModelId = "auto" | "gpt-4o" | "claude-sonnet" | "gemini-flash" | "llama-3.3-70b";
+const MODELS: { id: ModelId; label: string; limit: number }[] = [
+  { id: "auto",          label: "Auto (Kimi)",    limit: 100 },
+  { id: "gemini-flash",  label: "Gemini Flash",   limit: 80  },
+  { id: "llama-3.3-70b", label: "Llama 3.3 70B",  limit: 60  },
+  { id: "claude-sonnet", label: "Claude Sonnet",  limit: 25  },
+  { id: "gpt-4o",        label: "GPT-4o",         limit: 20  },
+];
 
 type Conversation = { id: string; title: string; updated_at: string };
 type Message = { id: string; role: "user" | "assistant" | "system"; content: string; created_at: string };
@@ -27,6 +36,8 @@ function ChatPage() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [selectedModel, setSelectedModel] = useState<ModelId>("auto");
+  const [modelPickerOpen, setModelPickerOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -130,7 +141,7 @@ function ChatPage() {
             "Content-Type": "application/json",
             Authorization: `Bearer ${session?.access_token ?? ""}`,
           },
-          body: JSON.stringify({ messages: history, conversationId: convoId }),
+          body: JSON.stringify({ messages: history, conversationId: convoId, model: selectedModel }),
         },
       );
       const fnJson = await fnRes.json() as { reply?: string; error?: string };
@@ -305,6 +316,33 @@ function ChatPage() {
               </div>
             </div>
             <div className="flex shrink-0 items-center gap-1 sm:gap-2">
+              {/* Model picker */}
+              <div className="relative">
+                <button
+                  onClick={() => setModelPickerOpen((v) => !v)}
+                  className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-light transition-colors hover:bg-white/10 ${modelPickerOpen ? "bg-white/10 text-foreground" : "text-muted-foreground"}`}
+                >
+                  {MODELS.find((m) => m.id === selectedModel)?.label}
+                  <ChevronDown className="h-3 w-3" />
+                </button>
+                {modelPickerOpen && (
+                  <>
+                    <div className="fixed inset-0 z-10" onClick={() => setModelPickerOpen(false)} />
+                    <div className="absolute right-0 top-full z-20 mt-2 w-48 overflow-hidden rounded-2xl border border-white/[0.08] bg-[oklch(0.18_0.04_250)] shadow-xl animate-fade-in">
+                      {MODELS.map((m) => (
+                        <button
+                          key={m.id}
+                          onClick={() => { setSelectedModel(m.id); setModelPickerOpen(false); }}
+                          className={`flex w-full items-center justify-between px-4 py-2.5 text-left text-sm font-light transition-colors hover:bg-white/[0.06] ${selectedModel === m.id ? "text-foreground" : "text-muted-foreground"}`}
+                        >
+                          <span>{m.label}</span>
+                          <span className="text-[10px] text-muted-foreground/50">{m.limit}/day</span>
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
               <button
                 onClick={newConversation}
                 className="rounded-full p-2 text-muted-foreground hover:bg-white/10 hover:text-foreground"

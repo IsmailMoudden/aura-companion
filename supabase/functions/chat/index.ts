@@ -1,8 +1,18 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const KIMI_BASE = 'https://api.moonshot.ai/v1';
-const MODEL_TEXT = 'moonshot-v1-8k';
-const MODEL_VISION = 'moonshot-v1-32k-vision-preview';
+const OPENROUTER_BASE = 'https://openrouter.ai/api/v1';
+
+// ─── Model registry ───────────────────────────────────────────────────────────
+type ModelId = 'auto' | 'gpt-4o' | 'claude-sonnet' | 'gemini-flash' | 'llama-3.3-70b';
+
+const MODELS: Record<ModelId, { label: string; apiId: string; apiIdVision?: string; provider: 'kimi' | 'openrouter'; dailyLimit: number }> = {
+  'auto':           { label: 'Auto (Kimi)',      apiId: 'moonshot-v1-8k',                    apiIdVision: 'moonshot-v1-32k-vision-preview', provider: 'kimi',        dailyLimit: 100 },
+  'gpt-4o':         { label: 'GPT-4o',           apiId: 'openai/gpt-4o',                     provider: 'openrouter', dailyLimit: 20  },
+  'claude-sonnet':  { label: 'Claude Sonnet',    apiId: 'anthropic/claude-sonnet-4-5',        provider: 'openrouter', dailyLimit: 25  },
+  'gemini-flash':   { label: 'Gemini Flash',     apiId: 'google/gemini-flash-1.5',           provider: 'openrouter', dailyLimit: 80  },
+  'llama-3.3-70b':  { label: 'Llama 3.3 70B',   apiId: 'meta-llama/llama-3.3-70b-instruct', provider: 'openrouter', dailyLimit: 60  },
+};
 
 const SYSTEM_PROMPT = `You are Aura, an ambient AI companion that lives on the user's desktop.
 
@@ -46,6 +56,19 @@ The stack: TanStack Start, Tailwind v4, Supabase for auth and memory, and Kimi K
 
 You're building something genuinely different here.`;
 
+type ContentPart =
+  | { type: 'text'; text: string }
+  | { type: 'image_url'; image_url: { url: string } };
+
+type ChatMessage = {
+  role: 'system' | 'user' | 'assistant';
+  content: string | ContentPart[];
+};
+
+type ApiResponse = {
+  choices: { message: { content: string } }[];
+};
+
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, {
@@ -63,15 +86,10 @@ Deno.serve(async (req: Request) => {
   };
 
   try {
-    // Auth — verify caller is a logged-in user
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_ANON_KEY')!,
-      {
-        global: {
-          headers: { Authorization: req.headers.get('Authorization') ?? '' },
-        },
-      },
+      { global: { headers: { Authorization: req.headers.get('Authorization') ?? '' } } },
     );
 
     const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -84,74 +102,81 @@ Deno.serve(async (req: Request) => {
 
     const body = await req.json() as {
       messages: { role: string; content: string }[];
-      screenshot?: string;  // base64 data-url
+      screenshot?: string;
       conversationId?: string;
+      model?: ModelId;
     };
 
     const { messages, screenshot } = body;
+    const modelId: ModelId = body.model && MODELS[body.model] ? body.model : 'auto';
+    const modelCfg = MODELS[modelId];
 
-    // Build Kimi messages
-    const kimiMessages: KimiMessage[] = [
-      { role: 'system', content: SYSTEM_PROMPT },
-    ];
+    // Build message list
+    const chatMessages: ChatMessage[] = [{ role: 'system', content: SYSTEM_PROMPT }];
 
-    // Prepend conversation history (text only — screenshots are one-shot)
     for (const m of messages.slice(0, -1)) {
-      kimiMessages.push({ role: m.role as 'user' | 'assistant', content: m.content });
+      chatMessages.push({ role: m.role as 'user' | 'assistant', content: m.content });
     }
 
-    // Last user message — may include a screenshot
     const lastMsg = messages[messages.length - 1];
-    if (screenshot && lastMsg.role === 'user') {
-      // Strip the data-url prefix, keep raw base64
-      const base64 = screenshot.replace(/^data:image\/[a-z]+;base64,/, '');
-      const format = screenshot.startsWith('data:image/png') ? 'png' : 'jpeg';
+    const hasImage = !!screenshot && lastMsg.role === 'user';
 
-      kimiMessages.push({
+    if (hasImage) {
+      const base64 = screenshot!.replace(/^data:image\/[a-z]+;base64,/, '');
+      const format = screenshot!.startsWith('data:image/png') ? 'png' : 'jpeg';
+      chatMessages.push({
         role: 'user',
         content: [
-          {
-            type: 'image_url',
-            image_url: {
-              url: `data:image/${format};base64,${base64}`,
-            },
-          },
+          { type: 'image_url', image_url: { url: `data:image/${format};base64,${base64}` } },
           { type: 'text', text: lastMsg.content },
         ],
       });
     } else {
-      kimiMessages.push({ role: lastMsg.role as 'user', content: lastMsg.content });
+      chatMessages.push({ role: lastMsg.role as 'user', content: lastMsg.content });
     }
 
-    const hasImage = !!screenshot && lastMsg.role === 'user';
-    const kimiRes = await fetch(`${KIMI_BASE}/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${Deno.env.get('KIMI_API_KEY')}`,
-      },
-      body: JSON.stringify({
-        model: hasImage ? MODEL_VISION : MODEL_TEXT,
-        messages: kimiMessages,
-        // K2.6 Thinking has fixed params — omit temperature/top_p
-      }),
-    });
+    // ─── Route to provider ────────────────────────────────────────────────────
+    let apiReply: string;
 
-    if (!kimiRes.ok) {
-      const errText = await kimiRes.text();
-      console.error('Kimi error:', kimiRes.status, errText);
-      return new Response(JSON.stringify({ error: 'AI unavailable', detail: errText }), {
-        status: 502,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    if (modelCfg.provider === 'kimi') {
+      const selectedModel = hasImage && modelCfg.apiIdVision ? modelCfg.apiIdVision : modelCfg.apiId;
+      const res = await fetch(`${KIMI_BASE}/chat/completions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${Deno.env.get('KIMI_API_KEY')}` },
+        body: JSON.stringify({ model: selectedModel, messages: chatMessages }),
       });
+      if (!res.ok) {
+        const err = await res.text();
+        console.error('Kimi error:', res.status, err);
+        return new Response(JSON.stringify({ error: 'AI unavailable', detail: err }), { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+      const data = await res.json() as ApiResponse;
+      apiReply = data.choices?.[0]?.message?.content ?? "I'm here — try again?";
+
+    } else {
+      const res = await fetch(`${OPENROUTER_BASE}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${Deno.env.get('OPENROUTER_API_KEY')}`,
+          'HTTP-Referer': 'https://aura-companion.app',
+          'X-Title': 'Aura',
+        },
+        body: JSON.stringify({ model: modelCfg.apiId, messages: chatMessages }),
+      });
+      if (!res.ok) {
+        const err = await res.text();
+        console.error('OpenRouter error:', res.status, err);
+        return new Response(JSON.stringify({ error: 'AI unavailable', detail: err }), { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+      const data = await res.json() as ApiResponse;
+      apiReply = data.choices?.[0]?.message?.content ?? "I'm here — try again?";
     }
 
-    const kimiData = await kimiRes.json() as KimiResponse;
-    const reply = kimiData.choices?.[0]?.message?.content ?? "I'm here — try again?";
-
-    return new Response(JSON.stringify({ reply }), {
+    return new Response(JSON.stringify({ reply: apiReply, model: modelId, dailyLimit: modelCfg.dailyLimit }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
+
   } catch (err) {
     console.error('chat function error:', err);
     return new Response(JSON.stringify({ error: 'Internal error' }), {
@@ -160,17 +185,3 @@ Deno.serve(async (req: Request) => {
     });
   }
 });
-
-// ─── Kimi types ───────────────────────────────────────────────────────────────
-type KimiContentPart =
-  | { type: 'text'; text: string }
-  | { type: 'image_url'; image_url: { url: string } };
-
-type KimiMessage = {
-  role: 'system' | 'user' | 'assistant';
-  content: string | KimiContentPart[];
-};
-
-type KimiResponse = {
-  choices: { message: { content: string } }[];
-};

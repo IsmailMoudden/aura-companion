@@ -86,6 +86,15 @@ const PANEL_H_CONV_SCREENSHOT = 820; // extra room for screenshot thumbnail in c
 const PANEL_R_IDLE = 32;   // border-radius when compact
 const PANEL_R_CONV = 26;   // border-radius in conversation
 
+type ModelId = 'auto' | 'gpt-4o' | 'claude-sonnet' | 'gemini-flash' | 'llama-3.3-70b';
+const MODELS: { id: ModelId; label: string; limit: number }[] = [
+  { id: 'auto',          label: 'Auto',          limit: 100 },
+  { id: 'gemini-flash',  label: 'Gemini Flash',  limit: 80  },
+  { id: 'llama-3.3-70b', label: 'Llama 3.3',     limit: 60  },
+  { id: 'claude-sonnet', label: 'Claude',         limit: 25  },
+  { id: 'gpt-4o',        label: 'GPT-4o',        limit: 20  },
+];
+
 export function OverlayApp() {
   const [expanded, setExpanded] = useState(false);
   const [visible, setVisible] = useState(false); // controls CSS opacity/scale for enter animation
@@ -101,6 +110,8 @@ export function OverlayApp() {
   const [hoveringPanel, setHoveringPanel] = useState(false);
   const [panelOpacity, setPanelOpacity] = useState(0.30);
   const [showOpacitySlider, setShowOpacitySlider] = useState(false);
+  const [selectedModel, setSelectedModel] = useState<ModelId>('auto');
+  const [modelPickerOpen, setModelPickerOpen] = useState(false);
   // Voice
   const [voiceMode, setVoiceMode] = useState<'off' | 'wake' | 'command'>('off');
   const [wakeDetected, setWakeDetected] = useState(false);
@@ -250,7 +261,7 @@ export function OverlayApp() {
       }
 
       const history = messages.map((m) => ({ role: m.role, content: m.content }));
-      const body: Record<string, unknown> = { messages: [...history, { role: 'user', content: userContent }], conversationId: convoId };
+      const body: Record<string, unknown> = { messages: [...history, { role: 'user', content: userContent }], conversationId: convoId, model: selectedModel };
       if (attachedScreenshot) body.screenshot = attachedScreenshot;
 
       const { data: { session } } = await supabase.auth.getSession();
@@ -529,6 +540,37 @@ export function OverlayApp() {
 
         {/* Drag strip */}
         <div className="absolute inset-x-0 top-0 z-10 h-9" style={{ WebkitAppRegion: 'drag' } as React.CSSProperties} />
+
+        {/* Model picker — centered in top bar */}
+        <div
+          className="absolute left-1/2 top-2 z-20 -translate-x-1/2"
+          style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
+        >
+          <button
+            onClick={() => setModelPickerOpen((v) => !v)}
+            className="flex items-center gap-1 rounded-full bg-white/[0.06] px-3 py-1 text-[10px] font-light text-muted-foreground hover:bg-white/[0.1] hover:text-foreground transition-colors"
+          >
+            {MODELS.find((m) => m.id === selectedModel)?.label}
+            <ChevronDown className="h-2.5 w-2.5" />
+          </button>
+          {modelPickerOpen && (
+            <>
+              <div className="fixed inset-0 z-10" onClick={() => setModelPickerOpen(false)} />
+              <div className="absolute left-1/2 top-full z-20 mt-1 w-44 -translate-x-1/2 overflow-hidden rounded-2xl border border-white/[0.08] shadow-xl animate-fade-in" style={{ background: 'oklch(0.18 0.04 250 / 0.97)', backdropFilter: 'blur(24px)' }}>
+                {MODELS.map((m) => (
+                  <button
+                    key={m.id}
+                    onClick={() => { setSelectedModel(m.id); setModelPickerOpen(false); }}
+                    className={`flex w-full items-center justify-between px-4 py-2.5 text-left transition-colors hover:bg-white/[0.06] ${selectedModel === m.id ? 'text-foreground' : 'text-muted-foreground'}`}
+                  >
+                    <span className="text-[11px] font-light">{m.label}</span>
+                    <span className="text-[9px] text-muted-foreground/50">{m.limit}/day</span>
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
 
         {/* Voice controls — always visible left side */}
         {SpeechRecognitionAPI && (
