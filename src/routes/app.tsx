@@ -146,7 +146,7 @@ function ChatPage() {
       );
       const fnJson = await fnRes.json() as { reply?: string; error?: string; limit?: number; remaining?: number };
       if (fnRes.status === 429) {
-        toast.error(`Daily limit reached for ${MODELS.find(m => m.id === selectedModel)?.label} (${fnJson.limit} messages/day). Switch models or come back tomorrow.`);
+        toast.error(`I've reached my limit for ${MODELS.find(m => m.id === selectedModel)?.label} today. Try a different model, or come back tomorrow.`);
         setBusy(false);
         return;
       }
@@ -341,7 +341,6 @@ function ChatPage() {
                           className={`flex w-full items-center justify-between px-4 py-2.5 text-left text-sm font-light transition-colors hover:bg-white/[0.06] ${selectedModel === m.id ? "text-foreground" : "text-muted-foreground"}`}
                         >
                           <span>{m.label}</span>
-                          <span className="text-[10px] text-muted-foreground/50">{m.limit}/day</span>
                         </button>
                       ))}
                     </div>
