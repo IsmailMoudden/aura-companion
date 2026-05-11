@@ -43,15 +43,21 @@ function AuthPage() {
     setBusy(true);
     try {
       if (mode === "signup") {
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
-          options: {
-            emailRedirectTo: window.location.origin,
-            data: { full_name: name },
-          },
+          options: { data: { full_name: name } },
         });
         if (error) throw error;
+        if (data.session) {
+          if (isOverlayFlow) {
+            redirectToOverlay(data.session.access_token, data.session.refresh_token);
+            return;
+          }
+          navigate({ to: "/app" });
+          return;
+        }
+        // fallback if email confirmation is still enabled on Supabase
         toast.success("Check your email to confirm your account.");
       } else {
         const { data, error } = await supabase.auth.signInWithPassword({ email, password });
