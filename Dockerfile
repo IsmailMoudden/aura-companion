@@ -37,4 +37,4 @@ ENV NODE_ENV=production
 
 EXPOSE 3000
 
-CMD ["node_modules/.bin/wrangler", "dev", "--local", "--port", "3000", "--config", "dist/server/wrangler.json"]
+CMD ["node_modules/.bin/wrangler", "dev", "--local", "--port", "3000", "--host", "0.0.0.0", "--config", "dist/server/wrangler.json"]
