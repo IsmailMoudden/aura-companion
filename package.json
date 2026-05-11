@@ -18,7 +18,7 @@
     "electron:build": "vite build --config vite.overlay.config.ts && npm run electron:bundle && npm run electron:cjs && electron-builder",
     "electron:pack": "vite build --config vite.overlay.config.ts && npm run electron:bundle && npm run electron:cjs && electron-builder --dir",
     "electron:build:win": "vite build --config vite.overlay.config.ts && npm run electron:bundle && npm run electron:cjs && electron-builder --win",
-    "start": "wrangler dev --local --port $PORT --config dist/server/wrangler.json"
+    "start": "wrangler dev --local --port $PORT --host 0.0.0.0 --config dist/server/wrangler.json"
   },
   "dependencies": {
     "@cloudflare/vite-plugin": "^1.25.5",
