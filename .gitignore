@@ -48,3 +48,4 @@ release
 *.sw?
 .lovable/
 supabase/.temp/
+supabase/functions/.env
