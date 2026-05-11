@@ -446,7 +446,7 @@ export function OverlayApp() {
   const connectToWeb = useCallback(() => {
     if (!isElectron) return;
     // VITE_SUPABASE_URL gives us the Supabase URL — derive the web app URL from env
-    const webUrl = import.meta.env.VITE_WEB_URL ?? 'http://localhost:3000';
+    const webUrl = import.meta.env.VITE_WEB_URL ?? 'https://aura.aura-companion.workers.dev';
     window.aura!.openExternal(`${webUrl}/auth?overlay=true`);
   }, []);
 
@@ -486,6 +486,9 @@ export function OverlayApp() {
         >
           Sign in
         </button>
+        <p className="text-foreground/25 font-light" style={{ fontSize: 10, letterSpacing: '0.08em' }}>
+          Alt+Space to hide
+        </p>
       </div>
     );
   }
