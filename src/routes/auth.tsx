@@ -1,7 +1,6 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable/index";
 import { GlassPanel } from "@/components/aura/glass-panel";
 import { Orb } from "@/components/aura/orb";
 import { toast } from "sonner";
@@ -77,22 +76,15 @@ function AuthPage() {
 
   const handleGoogle = async () => {
     setBusy(true);
-    const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri:
-        window.location.origin + (isOverlayFlow ? "/auth?overlay=true" : "/app"),
+    const redirectTo = window.location.origin + (isOverlayFlow ? "/auth?overlay=true" : "/auth");
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo },
     });
-    if (result.error) {
+    if (error) {
       toast.error("Google sign-in failed");
       setBusy(false);
-      return;
     }
-    if (result.redirected) return;
-    const { data } = await supabase.auth.getSession();
-    if (isOverlayFlow && data.session) {
-      redirectToOverlay(data.session.access_token, data.session.refresh_token);
-      return;
-    }
-    navigate({ to: "/app" });
   };
 
   return (
