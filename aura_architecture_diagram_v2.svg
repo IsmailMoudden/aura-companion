@@ -1,0 +1,260 @@
+<svg width="100%" viewBox="0 0 680 1020" role="img" xmlns="http://www.w3.org/2000/svg">
+  <title>Aura Architecture Diagram</title>
+  <desc>System architecture showing Electron overlay, web app, Supabase backend, Ambient Memory layer, and AI providers</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+    <marker id="arrow-purple" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M2 1L8 5L2 9" fill="none" stroke="#7c5cbf" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+  </defs>
+
+  <!-- ═══════════════════════════════════════════════
+       ELECTRON OVERLAY container
+  ═══════════════════════════════════════════════ -->
+  <rect x="20" y="20" width="290" height="260" rx="14" stroke-width="0.5" fill="#eeedfe" fill-opacity="0.08" stroke="#534ab7"/>
+  <text x="36" y="44" font-size="11" font-weight="500" opacity="0.7" fill="#141413" font-family="-apple-system,system-ui,sans-serif">ELECTRON OVERLAY</text>
+
+  <!-- main.ts -->
+  <g onclick="sendPrompt('How does the Electron main process work in Aura?')">
+    <rect x="36" y="54" width="118" height="48" rx="6" stroke-width="0.5" fill="#eeedfe" stroke="#534ab7"/>
+    <text x="95" y="74" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#3c3489" font-family="-apple-system,system-ui,sans-serif">main.ts</text>
+    <text x="95" y="90" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#534ab7" font-family="-apple-system,system-ui,sans-serif">Window · Tray</text>
+  </g>
+
+  <!-- Shortcuts -->
+  <g onclick="sendPrompt('What shortcuts does Aura support?')">
+    <rect x="172" y="54" width="118" height="48" rx="6" stroke-width="0.5" fill="#eeedfe" stroke="#534ab7"/>
+    <text x="231" y="74" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#3c3489" font-family="-apple-system,system-ui,sans-serif">Shortcuts</text>
+    <text x="231" y="90" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#534ab7" font-family="-apple-system,system-ui,sans-serif">Alt+Space · Voice</text>
+  </g>
+
+  <!-- Screenshot -->
+  <g onclick="sendPrompt('How does Aura capture screenshots?')">
+    <rect x="36" y="120" width="118" height="48" rx="6" stroke-width="0.5" fill="#eeedfe" stroke="#534ab7"/>
+    <text x="95" y="140" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#3c3489" font-family="-apple-system,system-ui,sans-serif">Screenshot</text>
+    <text x="95" y="156" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#534ab7" font-family="-apple-system,system-ui,sans-serif">desktopCapturer</text>
+  </g>
+
+  <!-- IPC Bridge -->
+  <g onclick="sendPrompt('How does the IPC bridge work in Aura?')">
+    <rect x="172" y="120" width="118" height="48" rx="6" stroke-width="0.5" fill="#eeedfe" stroke="#534ab7"/>
+    <text x="231" y="140" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#3c3489" font-family="-apple-system,system-ui,sans-serif">IPC Bridge</text>
+    <text x="231" y="156" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#534ab7" font-family="-apple-system,system-ui,sans-serif">preload · store</text>
+  </g>
+
+  <!-- Overlay UI -->
+  <g onclick="sendPrompt('What does the Aura overlay UI look like?')">
+    <rect x="36" y="200" width="254" height="64" rx="6" stroke-width="0.5" fill="#eeedfe" stroke="#534ab7"/>
+    <text x="163" y="224" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#3c3489" font-family="-apple-system,system-ui,sans-serif">Overlay UI</text>
+    <text x="163" y="244" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#534ab7" font-family="-apple-system,system-ui,sans-serif">Chat · Voice · Model picker · Orb</text>
+  </g>
+
+  <!-- Electron internal arrows -->
+  <line x1="95" y1="102" x2="95" y2="118" stroke="#737269" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="231" y1="102" x2="231" y2="118" stroke="#737269" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="95" y1="168" x2="95" y2="198" stroke="#737269" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="231" y1="168" x2="231" y2="198" stroke="#737269" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- ═══════════════════════════════════════════════
+       WEB APP container
+  ═══════════════════════════════════════════════ -->
+  <rect x="370" y="20" width="290" height="260" rx="14" stroke-width="0.5" fill="#e1f5ee" fill-opacity="0.08" stroke="#0f6e56"/>
+  <text x="386" y="44" font-size="11" font-weight="500" opacity="0.7" fill="#141413" font-family="-apple-system,system-ui,sans-serif">WEB APP</text>
+
+  <!-- Cloudflare -->
+  <g onclick="sendPrompt('How does Aura deploy to Cloudflare Workers?')">
+    <rect x="386" y="54" width="118" height="48" rx="6" stroke-width="0.5" fill="#e1f5ee" stroke="#0f6e56"/>
+    <text x="445" y="74" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#085041" font-family="-apple-system,system-ui,sans-serif">Cloudflare</text>
+    <text x="445" y="90" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#0f6e56" font-family="-apple-system,system-ui,sans-serif">Worker · SSR</text>
+  </g>
+
+  <!-- TanStack Start -->
+  <g onclick="sendPrompt('What pages does the Aura web app have?')">
+    <rect x="522" y="54" width="118" height="48" rx="6" stroke-width="0.5" fill="#e1f5ee" stroke="#0f6e56"/>
+    <text x="581" y="74" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#085041" font-family="-apple-system,system-ui,sans-serif">TanStack Start</text>
+    <text x="581" y="90" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#0f6e56" font-family="-apple-system,system-ui,sans-serif">Chat · Auth · Settings</text>
+  </g>
+
+  <!-- Auth page -->
+  <g onclick="sendPrompt('How does Aura authentication work in the web app?')">
+    <rect x="386" y="120" width="118" height="48" rx="6" stroke-width="0.5" fill="#e1f5ee" stroke="#0f6e56"/>
+    <text x="445" y="140" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#085041" font-family="-apple-system,system-ui,sans-serif">Auth page</text>
+    <text x="445" y="156" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#0f6e56" font-family="-apple-system,system-ui,sans-serif">Google OAuth PKCE</text>
+  </g>
+
+  <!-- Chat history -->
+  <g onclick="sendPrompt('How does Aura sync conversation history?')">
+    <rect x="522" y="120" width="118" height="48" rx="6" stroke-width="0.5" fill="#e1f5ee" stroke="#0f6e56"/>
+    <text x="581" y="140" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#085041" font-family="-apple-system,system-ui,sans-serif">Chat history</text>
+    <text x="581" y="156" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#0f6e56" font-family="-apple-system,system-ui,sans-serif">Shared Supabase DB</text>
+  </g>
+
+  <!-- GitHub Actions -->
+  <g onclick="sendPrompt('How is the Aura web app built and deployed?')">
+    <rect x="386" y="200" width="254" height="64" rx="6" stroke-width="0.5" fill="#e1f5ee" stroke="#0f6e56"/>
+    <text x="513" y="224" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#085041" font-family="-apple-system,system-ui,sans-serif">GitHub Actions CI/CD</text>
+    <text x="513" y="244" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#0f6e56" font-family="-apple-system,system-ui,sans-serif">wrangler deploy · electron-builder releases</text>
+  </g>
+
+  <!-- Web internal arrows -->
+  <line x1="504" y1="78" x2="522" y2="78" stroke="#737269" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="445" y1="102" x2="445" y2="118" stroke="#737269" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="581" y1="102" x2="581" y2="118" stroke="#737269" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="445" y1="168" x2="445" y2="198" stroke="#737269" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="581" y1="168" x2="581" y2="198" stroke="#737269" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- ── Cross arrow: Overlay → Web (deep link auth) ── -->
+  <path d="M310 230 L340 230 L340 290 L370 290" fill="none" stroke="#737269" stroke-width="0.8" stroke-dasharray="4 3" opacity="0.5" marker-end="url(#arrow)"/>
+  <text x="340" y="285" text-anchor="middle" font-size="10" opacity="0.6" fill="#3d3d3a" font-family="-apple-system,system-ui,sans-serif">deep link auth</text>
+
+  <!-- ═══════════════════════════════════════════════
+       SUPABASE BACKEND container
+  ═══════════════════════════════════════════════ -->
+  <rect x="150" y="340" width="380" height="180" rx="14" stroke-width="0.5" fill="#eaf3de" fill-opacity="0.08" stroke="#3b6d11"/>
+  <text x="166" y="364" font-size="11" font-weight="500" opacity="0.7" fill="#141413" font-family="-apple-system,system-ui,sans-serif">SUPABASE BACKEND</text>
+
+  <!-- Auth node -->
+  <g onclick="sendPrompt('How does Supabase Auth work in Aura?')">
+    <rect x="166" y="374" width="100" height="48" rx="6" stroke-width="0.5" fill="#eaf3de" stroke="#3b6d11"/>
+    <text x="216" y="394" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#27500a" font-family="-apple-system,system-ui,sans-serif">Auth</text>
+    <text x="216" y="410" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#3b6d11" font-family="-apple-system,system-ui,sans-serif">Email · Google</text>
+  </g>
+
+  <!-- Postgres DB — updated with new fields -->
+  <g onclick="sendPrompt('What does the Aura database schema look like?')">
+    <rect x="290" y="374" width="110" height="58" rx="6" stroke-width="0.5" fill="#eaf3de" stroke="#3b6d11"/>
+    <text x="345" y="392" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#27500a" font-family="-apple-system,system-ui,sans-serif">Postgres DB</text>
+    <text x="345" y="407" text-anchor="middle" dominant-baseline="central" font-size="11" fill="#3b6d11" font-family="-apple-system,system-ui,sans-serif">conversations · msgs</text>
+    <text x="345" y="421" text-anchor="middle" dominant-baseline="central" font-size="10" fill="#3b6d11" opacity="0.8" font-family="-apple-system,system-ui,sans-serif">last_message_at · profile_extracted_at</text>
+  </g>
+
+  <!-- Edge Function /chat — updated to show user_profile read -->
+  <g onclick="sendPrompt('What does the Aura Edge Function do?')">
+    <rect x="418" y="374" width="100" height="68" rx="6" stroke-width="0.5" fill="#eaf3de" stroke="#3b6d11"/>
+    <text x="468" y="394" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#27500a" font-family="-apple-system,system-ui,sans-serif">Edge Function</text>
+    <text x="468" y="409" text-anchor="middle" dominant-baseline="central" font-size="11" fill="#3b6d11" font-family="-apple-system,system-ui,sans-serif">/chat</text>
+    <text x="468" y="423" text-anchor="middle" dominant-baseline="central" font-size="10" fill="#3b6d11" opacity="0.85" font-family="-apple-system,system-ui,sans-serif">JWT · rate limit</text>
+    <text x="468" y="436" text-anchor="middle" dominant-baseline="central" font-size="10" fill="#27500a" font-weight="500" font-family="-apple-system,system-ui,sans-serif">reads user_profile →</text>
+  </g>
+
+  <!-- RLS note -->
+  <g onclick="sendPrompt('How does Row Level Security work in Supabase?')">
+    <rect x="166" y="455" width="348" height="52" rx="6" stroke-width="0.5" fill="#eaf3de" stroke="#3b6d11"/>
+    <text x="340" y="472" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#27500a" font-family="-apple-system,system-ui,sans-serif">Row Level Security</text>
+    <text x="340" y="490" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#3b6d11" font-family="-apple-system,system-ui,sans-serif">user_id isolation per conversation</text>
+  </g>
+  <line x1="340" y1="432" x2="340" y2="453" stroke="#737269" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Vertical arrows: overlay/web → Supabase -->
+  <line x1="163" y1="264" x2="216" y2="372" stroke="#737269" stroke-width="0.8" marker-end="url(#arrow)" opacity="0.5"/>
+  <line x1="445" y1="264" x2="340" y2="372" stroke="#737269" stroke-width="0.8" marker-end="url(#arrow)" opacity="0.5"/>
+
+  <!-- Overlay → Edge Function -->
+  <path d="M310 232 L530 232 L530 340 L468 372" fill="none" stroke="#737269" stroke-width="0.8" opacity="0.45" marker-end="url(#arrow)"/>
+  <text x="530" y="316" text-anchor="middle" font-size="10" opacity="0.5" fill="#3d3d3a" font-family="-apple-system,system-ui,sans-serif">POST /chat</text>
+
+  <!-- ═══════════════════════════════════════════════
+       AMBIENT MEMORY container  (NEW)
+  ═══════════════════════════════════════════════ -->
+  <rect x="150" y="550" width="380" height="180" rx="14" stroke-width="0.5" fill="#f0eaff" fill-opacity="0.15" stroke="#7c5cbf"/>
+  <text x="166" y="574" font-size="11" font-weight="500" opacity="0.7" fill="#141413" font-family="-apple-system,system-ui,sans-serif">AMBIENT MEMORY</text>
+
+  <!-- user_profile table -->
+  <g onclick="sendPrompt('How does the user_profile table work in Aura ambient memory?')">
+    <rect x="166" y="585" width="148" height="76" rx="6" stroke-width="0.5" fill="#ede8ff" stroke="#7c5cbf"/>
+    <text x="240" y="605" text-anchor="middle" dominant-baseline="central" font-size="13" font-weight="500" fill="#4a2fa0" font-family="-apple-system,system-ui,sans-serif">user_profile</text>
+    <text x="240" y="622" text-anchor="middle" dominant-baseline="central" font-size="10" fill="#7c5cbf" font-family="-apple-system,system-ui,sans-serif">identity · projects · topics</text>
+    <text x="240" y="636" text-anchor="middle" dominant-baseline="central" font-size="10" fill="#7c5cbf" font-family="-apple-system,system-ui,sans-serif">memory_notes</text>
+    <text x="240" y="650" text-anchor="middle" dominant-baseline="central" font-size="10" fill="#7c5cbf" opacity="0.75" font-family="-apple-system,system-ui,sans-serif">upsert on extraction</text>
+  </g>
+
+  <!-- pg_cron -->
+  <g onclick="sendPrompt('How does pg_cron trigger the extract-profile function?')">
+    <rect x="332" y="585" width="90" height="48" rx="6" stroke-width="0.5" fill="#ede8ff" stroke="#7c5cbf"/>
+    <text x="377" y="605" text-anchor="middle" dominant-baseline="central" font-size="13" font-weight="500" fill="#4a2fa0" font-family="-apple-system,system-ui,sans-serif">pg_cron</text>
+    <text x="377" y="621" text-anchor="middle" dominant-baseline="central" font-size="10" fill="#7c5cbf" font-family="-apple-system,system-ui,sans-serif">fires every 30 min</text>
+  </g>
+
+  <!-- extract-profile edge function -->
+  <g onclick="sendPrompt('What does the extract-profile edge function do?')">
+    <rect x="438" y="585" width="78" height="76" rx="6" stroke-width="0.5" fill="#ede8ff" stroke="#7c5cbf"/>
+    <text x="477" y="605" text-anchor="middle" dominant-baseline="central" font-size="12" font-weight="500" fill="#4a2fa0" font-family="-apple-system,system-ui,sans-serif">extract-profile</text>
+    <text x="477" y="621" text-anchor="middle" dominant-baseline="central" font-size="10" fill="#7c5cbf" font-family="-apple-system,system-ui,sans-serif">Edge Function</text>
+    <text x="477" y="636" text-anchor="middle" dominant-baseline="central" font-size="10" fill="#7c5cbf" font-family="-apple-system,system-ui,sans-serif">transcript →</text>
+    <text x="477" y="650" text-anchor="middle" dominant-baseline="central" font-size="10" fill="#7c5cbf" font-family="-apple-system,system-ui,sans-serif">profile merge</text>
+  </g>
+
+  <!-- ── AMBIENT MEMORY internal flows ── -->
+
+  <!-- pg_cron → extract-profile -->
+  <line x1="422" y1="609" x2="438" y2="609" stroke="#7c5cbf" stroke-width="1" marker-end="url(#arrow-purple)" opacity="0.8"/>
+
+  <!-- extract-profile → user_profile (upsert) -->
+  <path d="M438 630 L314 630" fill="none" stroke="#7c5cbf" stroke-width="1" opacity="0.7" marker-end="url(#arrow-purple)"/>
+  <text x="376" y="643" text-anchor="middle" font-size="9" fill="#7c5cbf" opacity="0.8" font-family="-apple-system,system-ui,sans-serif">upsert</text>
+
+  <!-- ═══════════════════════════════════════════════
+       CROSS-LAYER FLOWS  (NEW)
+  ═══════════════════════════════════════════════ -->
+
+  <!-- conversations (30min inactivity) → pg_cron [Supabase → Ambient Memory] -->
+  <path d="M345 432 L345 510 L377 510 L377 583" fill="none" stroke="#7c5cbf" stroke-width="0.9" stroke-dasharray="5 3" opacity="0.65" marker-end="url(#arrow-purple)"/>
+  <text x="305" y="507" text-anchor="middle" font-size="9" fill="#7c5cbf" opacity="0.75" font-family="-apple-system,system-ui,sans-serif">30 min inactivity</text>
+
+  <!-- extract-profile → Moonshot AI (goes down into AI Providers) -->
+  <path d="M477 661 L477 720 L300 720 L300 820 L247 848" fill="none" stroke="#7c5cbf" stroke-width="0.9" opacity="0.6" marker-end="url(#arrow-purple)"/>
+  <text x="410" y="716" text-anchor="middle" font-size="9" fill="#7c5cbf" opacity="0.75" font-family="-apple-system,system-ui,sans-serif">extraction call</text>
+
+  <!-- user_profile → /chat Edge Function (upward, Ambient Memory → Supabase) -->
+  <path d="M240 583 L240 540 L160 540 L160 442 L216 442" fill="none" stroke="#7c5cbf" stroke-width="0.9" opacity="0.7" marker-end="url(#arrow-purple)"/>
+  <text x="155" y="490" text-anchor="end" font-size="9" fill="#7c5cbf" opacity="0.8" font-family="-apple-system,system-ui,sans-serif">profile inject</text>
+
+  <!-- /chat Edge Function → system prompt enrichment (self-annotation) -->
+  <text x="540" y="448" text-anchor="middle" font-size="9" fill="#27500a" opacity="0.8" font-family="-apple-system,system-ui,sans-serif">→ system prompt</text>
+  <text x="540" y="459" text-anchor="middle" font-size="9" fill="#27500a" opacity="0.8" font-family="-apple-system,system-ui,sans-serif">context enrichment</text>
+
+  <!-- ═══════════════════════════════════════════════
+       AI PROVIDERS container  (shifted down from 570 → 860)
+  ═══════════════════════════════════════════════ -->
+  <rect x="150" y="860" width="380" height="150" rx="14" stroke-width="0.5" fill="#faeedb" fill-opacity="0.08" stroke="#854f0b"/>
+  <text x="166" y="884" font-size="11" font-weight="500" opacity="0.7" fill="#141413" font-family="-apple-system,system-ui,sans-serif">AI PROVIDERS</text>
+
+  <!-- Moonshot AI (Kimi) -->
+  <g onclick="sendPrompt('What is Kimi K2.6 and how does Aura use it?')">
+    <rect x="166" y="895" width="158" height="100" rx="6" stroke-width="0.5" fill="#faeedb" stroke="#854f0b"/>
+    <text x="245" y="924" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#633806" font-family="-apple-system,system-ui,sans-serif">Moonshot AI (Kimi)</text>
+    <text x="245" y="944" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#854f0b" font-family="-apple-system,system-ui,sans-serif">moonshot-v1-8k</text>
+    <text x="245" y="962" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#854f0b" font-family="-apple-system,system-ui,sans-serif">vision-32k (screenshots)</text>
+    <text x="245" y="978" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#854f0b" font-family="-apple-system,system-ui,sans-serif">auto mode</text>
+  </g>
+
+  <!-- OpenRouter -->
+  <g onclick="sendPrompt('What models does Aura support via OpenRouter?')">
+    <rect x="356" y="895" width="158" height="100" rx="6" stroke-width="0.5" fill="#faeedb" stroke="#854f0b"/>
+    <text x="435" y="924" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#633806" font-family="-apple-system,system-ui,sans-serif">OpenRouter</text>
+    <text x="435" y="944" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#854f0b" font-family="-apple-system,system-ui,sans-serif">GPT-4o · Claude Sonnet</text>
+    <text x="435" y="962" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#854f0b" font-family="-apple-system,system-ui,sans-serif">Gemini Flash</text>
+    <text x="435" y="978" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#854f0b" font-family="-apple-system,system-ui,sans-serif">Llama 3.3 70B</text>
+  </g>
+
+  <!-- Edge Function /chat → AI providers (main call) -->
+  <line x1="468" y1="442" x2="435" y2="858" stroke="#737269" stroke-width="0.8" marker-end="url(#arrow)" opacity="0.45"/>
+
+  <!-- Edge Function /chat → Moonshot (direct, existing) -->
+  <path d="M468 442 L468 730 L245 730 L245 893" fill="none" stroke="#737269" stroke-width="0.8" opacity="0.35" marker-end="url(#arrow)"/>
+
+  <!-- Ambient Memory → AI Providers connector label -->
+  <text x="166" y="850" font-size="9" opacity="0.55" fill="#3d3d3a" font-family="-apple-system,system-ui,sans-serif">↓ extraction call via extract-profile</text>
+
+  <!-- ═══════════════════════════════════════════════
+       Legend
+  ═══════════════════════════════════════════════ -->
+  <rect x="20" y="974" width="8" height="8" rx="2" fill="none" stroke="#737269" stroke-dasharray="3 2" stroke-width="0.8" opacity="0.6"/>
+  <text x="34" y="982" font-size="10" opacity="0.55" fill="#3d3d3a" font-family="-apple-system,system-ui,sans-serif">dashed = optional / deep link flow</text>
+  <line x1="180" y1="978" x2="204" y2="978" stroke="#737269" stroke-width="0.8" opacity="0.5" marker-end="url(#arrow)"/>
+  <text x="212" y="982" font-size="10" opacity="0.55" fill="#3d3d3a" font-family="-apple-system,system-ui,sans-serif">HTTPS</text>
+  <line x1="270" y1="978" x2="294" y2="978" stroke="#7c5cbf" stroke-width="0.9" opacity="0.7" marker-end="url(#arrow-purple)"/>
+  <text x="302" y="982" font-size="10" opacity="0.7" fill="#7c5cbf" font-family="-apple-system,system-ui,sans-serif">Ambient Memory flow</text>
+</svg>

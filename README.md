@@ -73,7 +73,7 @@ Free during early access.
 ## Architecture
 
 <p align="center">
-  <img src="./aura_architecture_diagram.svg" alt="Aura Architecture Diagram" width="680" />
+  <img src="./aura_architecture_diagram_v2.svg" alt="Aura Architecture Diagram" width="680" />
 </p>
 
 <br/>
