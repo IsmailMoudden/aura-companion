@@ -93,6 +93,50 @@ Free during early access.
 
 <br/>
 
+## Ambient Memory
+
+Aura builds a living model of who you are — silently, in the background, without ever asking.
+
+Every conversation you have is analysed after 30 minutes of inactivity. A secondary AI pass reads the full transcript and extracts structured facts: what you're building, what stack you're using, how you communicate, what keeps coming up. These facts are merged into a persistent `user_profile` stored in Supabase, and injected quietly into Aura's system prompt on every future request.
+
+The result: Aura gets sharper over time. It stops asking you to explain your stack. It knows you prefer concise answers. It remembers that you're shipping on Cloudflare and that your overlay is Electron-based. It references your actual projects by name.
+
+**How it works:**
+
+```
+Every message you send
+  └── stored in Supabase (conversations + messages)
+
+Every 30 minutes — pg_cron fires
+  └── finds conversations inactive since 30min, not yet processed
+  └── sends full transcript to Kimi for structured extraction
+      └── identity  { name, job, timezone, languages, style }
+      └── projects  [{ name, stack[], description, status }]
+      └── topics    [{ label, count }] — ranked by frequency
+      └── notes     [{ fact }] — free-form observations
+  └── merges extracted data into user_profile (upsert, no overwrites)
+
+Next time you open Aura
+  └── profile is loaded and injected into system prompt
+  └── Aura already knows who you are
+```
+
+**Profile schema** (`user_profile` table):
+
+| Field | Type | Description |
+|---|---|---|
+| `identity` | `jsonb` | Name, job, timezone, languages, communication style |
+| `projects` | `jsonb[]` | Active projects with stack, description, status |
+| `topics` | `jsonb[]` | Recurring themes ranked by frequency across sessions |
+| `memory_notes` | `jsonb[]` | Free-form facts (max 50, deduplicated) |
+| `profile_updated_at` | `timestamptz` | Last extraction timestamp |
+
+The profile is **never shown to you directly** — it lives entirely in the model's context. No memory UI, no review screen. It just makes Aura feel like it knows you.
+
+> Privacy note: all profile data is stored in your own Supabase project, isolated by RLS. Nothing leaves your instance.
+
+<br/>
+
 ## Auth flow
 
 The overlay has no login form. When signed out, clicking the orb opens the web app at `?overlay=true`. After sign-in, the web app redirects to `aura://auth?access_token=...`. Electron intercepts the deep link and stores the session via `electron-store`.
