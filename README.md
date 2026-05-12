@@ -70,6 +70,14 @@ Free during early access.
 
 <br/>
 
+## Architecture
+
+<p align="center">
+  <img src="./aura_architecture_diagram.svg" alt="Aura Architecture Diagram" width="680" />
+</p>
+
+<br/>
+
 ## Stack
 
 | Layer | Tech |
@@ -82,14 +90,6 @@ Free during early access.
 | Backend | Supabase (auth, database, edge functions) |
 | Hosting | Cloudflare Workers |
 | Build | Vite 7, esbuild, electron-builder, Bun |
-
-<br/>
-
-## Architecture
-
-<p align="center">
-  <img src="./aura_architecture_diagram.svg" alt="Aura Architecture Diagram" width="680" />
-</p>
 
 <br/>
 
