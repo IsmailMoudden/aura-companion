@@ -87,22 +87,9 @@ Free during early access.
 
 ## Architecture
 
-```
-Electron Overlay
-  Screen capture, voice input, TTS, wake word ("Hey Aura")
-       |
-       | HTTPS
-       v
-Supabase Edge Function /chat
-  Auth, rate limits, screenshot injection, model routing
-       |
-       +---> Moonshot AI (Kimi K2.6)
-       +---> OpenRouter (GPT-4o, Claude, Gemini, Llama)
-
-Web App (Cloudflare Workers)
-  TanStack Start SSR, same Supabase DB
-  Shared auth and conversation history
-```
+<p align="center">
+  <img src="./aura_architecture_diagram.svg" alt="Aura Architecture Diagram" width="680" />
+</p>
 
 <br/>
 
