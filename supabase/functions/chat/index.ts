@@ -141,8 +141,48 @@ Deno.serve(async (req: Request) => {
       });
     }
 
+    // ─── Load user profile for context injection ──────────────────────────────
+    const { data: profileRow } = await adminSupabase
+      .from('user_profile')
+      .select('identity, projects, topics, memory_notes')
+      .eq('id', user.id)
+      .single();
+
+    let profileContext = '';
+    if (profileRow) {
+      const lines: string[] = [];
+      const identity = profileRow.identity as Record<string, unknown> ?? {};
+      const projects = (profileRow.projects as { name: string; stack: string[]; description: string; status: string }[]) ?? [];
+      const topics = (profileRow.topics as { label: string; count: number }[]) ?? [];
+      const notes = (profileRow.memory_notes as { fact: string }[]) ?? [];
+
+      if (identity.name) lines.push(`Name: ${identity.name}`);
+      if (identity.job) lines.push(`Role: ${identity.job}`);
+      if (identity.communication_style) lines.push(`Style: ${identity.communication_style}`);
+      if (Array.isArray(identity.languages) && (identity.languages as string[]).length)
+        lines.push(`Languages: ${(identity.languages as string[]).join(', ')}`);
+
+      const activeProjects = projects.filter((p) => p.status === 'active');
+      if (activeProjects.length) {
+        lines.push(`Active projects: ${activeProjects.map((p) => `${p.name} (${p.stack?.join(', ') ?? ''})`).join(' · ')}`);
+      }
+
+      if (topics.length) {
+        lines.push(`Recurring topics: ${topics.slice(0, 8).map((t) => t.label).join(', ')}`);
+      }
+
+      if (notes.length) {
+        lines.push(`Notes: ${notes.slice(0, 5).map((n) => n.fact).join(' · ')}`);
+      }
+
+      if (lines.length) {
+        profileContext = `\n\n---\nUser context (use this to personalize your responses — do not mention you have this info unless asked):\n${lines.join('\n')}\n---`;
+      }
+    }
+
     // Build message list
-    const chatMessages: ChatMessage[] = [{ role: 'system', content: SYSTEM_PROMPT }];
+    const systemPrompt = SYSTEM_PROMPT + profileContext;
+    const chatMessages: ChatMessage[] = [{ role: 'system', content: systemPrompt }];
 
     for (const m of messages.slice(0, -1)) {
       chatMessages.push({ role: m.role as 'user' | 'assistant', content: m.content });

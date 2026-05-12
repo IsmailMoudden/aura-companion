@@ -1,1 +1,4 @@
 project_id = "bhmwkdhqpdbdpfnwgaye"
+
+[functions.extract-profile]
+verify_jwt = false
