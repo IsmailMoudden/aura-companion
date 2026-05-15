@@ -6,12 +6,12 @@ const OPENROUTER_BASE = 'https://openrouter.ai/api/v1';
 // ─── Model registry ───────────────────────────────────────────────────────────
 type ModelId = 'auto' | 'gpt-4o' | 'claude-sonnet' | 'gemini-flash' | 'llama-3.3-70b';
 
-const MODELS: Record<ModelId, { label: string; apiId: string; apiIdVision?: string; provider: 'kimi' | 'openrouter'; dailyLimit: number }> = {
-  'auto':           { label: 'Auto (Kimi)',      apiId: 'moonshot-v1-8k',                    apiIdVision: 'moonshot-v1-32k-vision-preview', provider: 'kimi',        dailyLimit: 100 },
-  'gpt-4o':         { label: 'GPT-4o',           apiId: 'openai/gpt-4o',                     provider: 'openrouter', dailyLimit: 20  },
-  'claude-sonnet':  { label: 'Claude Sonnet',    apiId: 'anthropic/claude-sonnet-4-5',        provider: 'openrouter', dailyLimit: 25  },
-  'gemini-flash':   { label: 'Gemini Flash',     apiId: 'google/gemini-flash-1.5',           provider: 'openrouter', dailyLimit: 80  },
-  'llama-3.3-70b':  { label: 'Llama 3.3 70B',   apiId: 'meta-llama/llama-3.3-70b-instruct', provider: 'openrouter', dailyLimit: 60  },
+const MODELS: Record<ModelId, { label: string; apiId: string; apiIdVision?: string; provider: 'kimi' | 'openrouter'; totalLimit: number }> = {
+  'auto':           { label: 'Auto (Kimi)',      apiId: 'moonshot-v1-8k',                    apiIdVision: 'moonshot-v1-32k-vision-preview', provider: 'kimi',        totalLimit: 300 },
+  'gpt-4o':         { label: 'GPT-4o',           apiId: 'openai/gpt-4o',                     provider: 'openrouter', totalLimit: 40  },
+  'claude-sonnet':  { label: 'Claude Sonnet',    apiId: 'anthropic/claude-sonnet-4-5',        provider: 'openrouter', totalLimit: 40  },
+  'gemini-flash':   { label: 'Gemini Flash',     apiId: 'google/gemini-2.0-flash-001',       provider: 'openrouter', totalLimit: 200 },
+  'llama-3.3-70b':  { label: 'Llama 3.3 70B',   apiId: 'meta-llama/llama-3.3-70b-instruct', provider: 'openrouter', totalLimit: 150 },
 };
 
 const SYSTEM_PROMPT = `You are Aura, an ambient AI companion that lives on the user's desktop.
@@ -111,29 +111,34 @@ Deno.serve(async (req: Request) => {
     const modelId: ModelId = body.model && MODELS[body.model] ? body.model : 'auto';
     const modelCfg = MODELS[modelId];
 
-    // ─── Rate limiting ────────────────────────────────────────────────────────
-    const today = new Date().toISOString().split('T')[0];
-
-    // Use service role client to bypass RLS for upsert
+    // ─── Rate limiting (cumulative, no reset) ────────────────────────────────
     const adminSupabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     );
 
-    const { data: usageRow } = await adminSupabase
-      .from('model_usage')
-      .select('count')
-      .eq('user_id', user.id)
-      .eq('model', modelId)
-      .eq('date', today)
-      .single();
+    const [{ data: usageRow }, { data: overrideRow }] = await Promise.all([
+      adminSupabase
+        .from('user_total_usage')
+        .select('count')
+        .eq('user_id', user.id)
+        .eq('model', modelId)
+        .single(),
+      adminSupabase
+        .from('user_limit_overrides')
+        .select('total_limit')
+        .eq('user_id', user.id)
+        .eq('model', modelId)
+        .single(),
+    ]);
 
     const currentCount = usageRow?.count ?? 0;
+    const effectiveLimit = overrideRow?.total_limit ?? modelCfg.totalLimit;
 
-    if (currentCount >= modelCfg.dailyLimit) {
+    if (currentCount >= effectiveLimit) {
       return new Response(JSON.stringify({
-        error: 'daily_limit_reached',
-        limit: modelCfg.dailyLimit,
+        error: 'limit_reached',
+        limit: effectiveLimit,
         model: modelId,
       }), {
         status: 429,
@@ -243,14 +248,14 @@ Deno.serve(async (req: Request) => {
       apiReply = data.choices?.[0]?.message?.content ?? "I'm here — try again?";
     }
 
-    // Increment usage counter
-    await adminSupabase.from('model_usage').upsert(
-      { user_id: user.id, model: modelId, date: today, count: currentCount + 1 },
-      { onConflict: 'user_id,model,date' },
+    // Increment cumulative usage counter
+    await adminSupabase.from('user_total_usage').upsert(
+      { user_id: user.id, model: modelId, count: currentCount + 1 },
+      { onConflict: 'user_id,model' },
     );
 
-    const remaining = modelCfg.dailyLimit - (currentCount + 1);
-    return new Response(JSON.stringify({ reply: apiReply, model: modelId, dailyLimit: modelCfg.dailyLimit, remaining }), {
+    const remaining = effectiveLimit - (currentCount + 1);
+    return new Response(JSON.stringify({ reply: apiReply, model: modelId, totalLimit: effectiveLimit, remaining }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 

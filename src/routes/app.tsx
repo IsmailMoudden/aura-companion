@@ -146,7 +146,11 @@ function ChatPage() {
       );
       const fnJson = await fnRes.json() as { reply?: string; error?: string; limit?: number; remaining?: number };
       if (fnRes.status === 429) {
-        toast.error(`I've reached my limit for ${MODELS.find(m => m.id === selectedModel)?.label} today. Try a different model, or come back tomorrow.`);
+        const modelLabel = MODELS.find(m => m.id === selectedModel)?.label ?? selectedModel;
+        toast.error(
+          `You've reached the daily limit for ${modelLabel}. To request more, contact ismail.moudden1@gmail.com or reach out on LinkedIn: linkedin.com/in/ismail-moudden`,
+          { duration: 8000 }
+        );
         setBusy(false);
         return;
       }

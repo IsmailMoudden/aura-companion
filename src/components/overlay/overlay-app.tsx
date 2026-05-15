@@ -275,7 +275,11 @@ export function OverlayApp() {
       const json = await res.json() as { reply?: string; error?: string; limit?: number };
       if (res.status === 429) {
         const modelLabel = MODELS.find((m) => m.id === selectedModel)?.label ?? selectedModel;
-        setMessages((m) => [...m, { id: crypto.randomUUID(), role: 'assistant', content: `I've reached my limit for ${modelLabel} today. Try switching to a different model, or come back tomorrow.` }]);
+        setMessages((m) => [...m, {
+          id: crypto.randomUUID(),
+          role: 'assistant',
+          content: `You've reached the daily limit for ${modelLabel}.\n\nTo request more, reach out to [ismail.moudden1@gmail.com](mailto:ismail.moudden1@gmail.com) or on [LinkedIn](https://www.linkedin.com/in/ismail-moudden).`,
+        }]);
         return;
       }
       if (!res.ok) {
