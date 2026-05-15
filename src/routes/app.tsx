@@ -6,20 +6,12 @@ import { Send, Plus, LogOut, Sparkles, Search, PanelLeftClose, PanelLeftOpen, Ke
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
+import { MODELS, LIMIT_CONTACT, getModelLabel, type ModelId } from "@/lib/models";
 
 export const Route = createFileRoute("/app")({
   head: () => ({ meta: [{ title: "Aura, Conversations" }] }),
   component: ChatPage,
 });
-
-type ModelId = "auto" | "gpt-4o" | "claude-sonnet" | "gemini-flash" | "llama-3.3-70b";
-const MODELS: { id: ModelId; label: string; limit: number }[] = [
-  { id: "auto",          label: "Auto (Kimi)",    limit: 100 },
-  { id: "gemini-flash",  label: "Gemini Flash",   limit: 80  },
-  { id: "llama-3.3-70b", label: "Llama 3.3 70B",  limit: 60  },
-  { id: "claude-sonnet", label: "Claude Sonnet",  limit: 25  },
-  { id: "gpt-4o",        label: "GPT-4o",         limit: 20  },
-];
 
 type Conversation = { id: string; title: string; updated_at: string };
 type Message = { id: string; role: "user" | "assistant" | "system"; content: string; created_at: string };
@@ -146,9 +138,8 @@ function ChatPage() {
       );
       const fnJson = await fnRes.json() as { reply?: string; error?: string; limit?: number; remaining?: number };
       if (fnRes.status === 429) {
-        const modelLabel = MODELS.find(m => m.id === selectedModel)?.label ?? selectedModel;
         toast.error(
-          `You've reached the daily limit for ${modelLabel}. To request more, contact ismail.moudden1@gmail.com or reach out on LinkedIn: linkedin.com/in/ismail-moudden`,
+          `You've reached the limit for ${getModelLabel(selectedModel)}. Contact ${LIMIT_CONTACT.email} or LinkedIn to request more.`,
           { duration: 8000 }
         );
         setBusy(false);

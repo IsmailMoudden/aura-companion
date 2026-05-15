@@ -3,6 +3,7 @@ import { Orb } from '@/components/aura/orb';
 import { X, Camera, ChevronDown, Mic, MicOff, Volume2, VolumeX, Sun, Keyboard } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
+import { MODELS, LIMIT_CONTACT, getModelLabel, type ModelId } from '@/lib/models';
 
 // ─── Web Speech API types ─────────────────────────────────────────────────────
 type SpeechRecognitionCtor = new () => SpeechRecognitionInstance;
@@ -86,14 +87,6 @@ const PANEL_H_CONV_SCREENSHOT = 820; // extra room for screenshot thumbnail in c
 const PANEL_R_IDLE = 32;   // border-radius when compact
 const PANEL_R_CONV = 26;   // border-radius in conversation
 
-type ModelId = 'auto' | 'gpt-4o' | 'claude-sonnet' | 'gemini-flash' | 'llama-3.3-70b';
-const MODELS: { id: ModelId; label: string; limit: number }[] = [
-  { id: 'auto',          label: 'Auto',          limit: 100 },
-  { id: 'gemini-flash',  label: 'Gemini Flash',  limit: 80  },
-  { id: 'llama-3.3-70b', label: 'Llama 3.3',     limit: 60  },
-  { id: 'claude-sonnet', label: 'Claude',         limit: 25  },
-  { id: 'gpt-4o',        label: 'GPT-4o',        limit: 20  },
-];
 
 export function OverlayApp() {
   const [expanded, setExpanded] = useState(false);
@@ -274,11 +267,10 @@ export function OverlayApp() {
 
       const json = await res.json() as { reply?: string; error?: string; limit?: number };
       if (res.status === 429) {
-        const modelLabel = MODELS.find((m) => m.id === selectedModel)?.label ?? selectedModel;
         setMessages((m) => [...m, {
           id: crypto.randomUUID(),
           role: 'assistant',
-          content: `You've reached the daily limit for ${modelLabel}.\n\nTo request more, reach out to [ismail.moudden1@gmail.com](mailto:ismail.moudden1@gmail.com) or on [LinkedIn](https://www.linkedin.com/in/ismail-moudden).`,
+          content: `You've reached the limit for ${getModelLabel(selectedModel)}.\n\nTo request more, reach out to [${LIMIT_CONTACT.email}](mailto:${LIMIT_CONTACT.email}) or on [LinkedIn](${LIMIT_CONTACT.linkedin}).`,
         }]);
         return;
       }

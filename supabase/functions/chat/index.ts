@@ -1,5 +1,10 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
+const adminSupabase = createClient(
+  Deno.env.get('SUPABASE_URL')!,
+  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+);
+
 const KIMI_BASE = 'https://api.moonshot.ai/v1';
 const OPENROUTER_BASE = 'https://openrouter.ai/api/v1';
 
@@ -111,13 +116,8 @@ Deno.serve(async (req: Request) => {
     const modelId: ModelId = body.model && MODELS[body.model] ? body.model : 'auto';
     const modelCfg = MODELS[modelId];
 
-    // ─── Rate limiting (cumulative, no reset) ────────────────────────────────
-    const adminSupabase = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
-    );
-
-    const [{ data: usageRow }, { data: overrideRow }] = await Promise.all([
+    // ─── Rate limiting + profile (parallel) ──────────────────────────────────
+    const [{ data: usageRow }, { data: overrideRow }, { data: profileRow }] = await Promise.all([
       adminSupabase
         .from('user_total_usage')
         .select('count')
@@ -130,6 +130,11 @@ Deno.serve(async (req: Request) => {
         .eq('user_id', user.id)
         .eq('model', modelId)
         .single(),
+      adminSupabase
+        .from('user_profile')
+        .select('identity, projects, topics, memory_notes')
+        .eq('id', user.id)
+        .single(),
     ]);
 
     const currentCount = usageRow?.count ?? 0;
@@ -139,19 +144,13 @@ Deno.serve(async (req: Request) => {
       return new Response(JSON.stringify({
         error: 'limit_reached',
         limit: effectiveLimit,
+        remaining: 0,
         model: modelId,
       }), {
         status: 429,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
-
-    // ─── Load user profile for context injection ──────────────────────────────
-    const { data: profileRow } = await adminSupabase
-      .from('user_profile')
-      .select('identity, projects, topics, memory_notes')
-      .eq('id', user.id)
-      .single();
 
     let profileContext = '';
     if (profileRow) {
@@ -197,12 +196,10 @@ Deno.serve(async (req: Request) => {
     const hasImage = !!screenshot && lastMsg.role === 'user';
 
     if (hasImage) {
-      const base64 = screenshot!.replace(/^data:image\/[a-z]+;base64,/, '');
-      const format = screenshot!.startsWith('data:image/png') ? 'png' : 'jpeg';
       chatMessages.push({
         role: 'user',
         content: [
-          { type: 'image_url', image_url: { url: `data:image/${format};base64,${base64}` } },
+          { type: 'image_url', image_url: { url: screenshot! } },
           { type: 'text', text: lastMsg.content },
         ],
       });
@@ -248,7 +245,6 @@ Deno.serve(async (req: Request) => {
       apiReply = data.choices?.[0]?.message?.content ?? "I'm here — try again?";
     }
 
-    // Increment cumulative usage counter
     await adminSupabase.from('user_total_usage').upsert(
       { user_id: user.id, model: modelId, count: currentCount + 1 },
       { onConflict: 'user_id,model' },
