@@ -80,6 +80,8 @@ const PRESENCE_PHRASES = [
 // Window = panel. These are the Electron window sizes.
 const ORB_W = 88;
 const ORB_H = 88;
+const ORB_WIN_W = 120; // window larger than orb so breathe animation doesn't clip
+const ORB_WIN_H = 120;
 const PANEL_W = 360;
 const PANEL_H_IDLE = 300;
 const PANEL_H_CONV = 720;
@@ -196,7 +198,7 @@ export function OverlayApp() {
       // and the orb appears clipped on re-open.
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
-          if (isElectron) window.aura!.updateDimensions(ORB_W, ORB_H);
+          if (isElectron) window.aura!.updateDimensions(ORB_WIN_W, ORB_WIN_H);
         });
       });
     }, 300);
@@ -522,7 +524,7 @@ export function OverlayApp() {
         <button
           onClick={openPanel}
           className="flex items-center justify-center rounded-full outline-none animate-breathe"
-          style={{ width: ORB_W, height: ORB_H, background: 'transparent', border: 'none', WebkitAppRegion: 'no-drag' } as React.CSSProperties}
+          style={{ width: ORB_WIN_W, height: ORB_WIN_H, background: 'transparent', border: 'none', WebkitAppRegion: 'no-drag' } as React.CSSProperties}
           title="Open Aura (Alt+Space)"
         >
           <Orb size={ORB_W} state={orbState} variant="overlay" noHalo />
@@ -544,7 +546,7 @@ export function OverlayApp() {
           background: [
             `radial-gradient(ellipse 90% 55% at 25% 15%, oklch(0.72 0.14 228 / 0.08), transparent 65%)`,
             `radial-gradient(ellipse 55% 70% at 80% 85%, oklch(0.50 0.11 255 / 0.06), transparent 65%)`,
-            `linear-gradient(158deg, oklch(0.53 0.10 238 / ${panelOpacity}) 0%, oklch(0.41 0.09 254 / ${Math.min(panelOpacity + 0.04, 0.60)}) 100%)`,
+            `linear-gradient(158deg, oklch(0.53 0.10 238 / ${panelOpacity}) 0%, oklch(0.41 0.09 254 / ${Math.min(panelOpacity + 0.04, 0.96)}) 100%)`,
           ].join(', '),
           backdropFilter: 'blur(32px) saturate(140%)',
           WebkitBackdropFilter: 'blur(32px) saturate(140%)',
@@ -677,7 +679,7 @@ export function OverlayApp() {
               <input
                 type="range"
                 min={0.12}
-                max={0.55}
+                max={0.92}
                 step={0.01}
                 value={panelOpacity}
                 onChange={(e) => setPanelOpacity(parseFloat(e.target.value))}
