@@ -8,7 +8,7 @@ import { DesktopMock } from "@/components/landing/desktop-mock";
 import { GlassPanel } from "@/components/aura/glass-panel";
 import { Reveal } from "@/components/aura/reveal";
 import { DownloadModal } from "@/components/landing/download-modal";
-import { ArrowRight, Download, Eye, Sparkles, Brain, Wind, MessagesSquare, Layers } from "lucide-react";
+import { ArrowRight, Download, Eye, Sparkles, Brain, Wind, MessagesSquare, Layers, Users, BookOpen, Zap, Mail } from "lucide-react";
 const featureSeesVideo = "/videos/feature-sees.mp4";
 const featureRemembersVideo = "/videos/feature-memory.mov";
 const featureQuietVideo = "/videos/feature-quiet.mov";
@@ -146,6 +146,56 @@ function Landing() {
             </Reveal>
           </div>
         </GlassPanel>
+      </Section>
+
+      {/* ENTERPRISE */}
+      <Section
+        eyebrow="For teams & companies"
+        title={<>One mind.<br /><em className="italic text-muted-foreground/80">Shared across your team.</em></>}
+        description="Aura for Business gives your company a collective intelligence — one entity that already knows everything, without the endless emails and information silos."
+      >
+        <div className="mx-auto max-w-5xl space-y-10">
+          <FeatureGrid
+            items={[
+              {
+                icon: <BookOpen className="h-5 w-5" />,
+                title: "Collective memory",
+                description: "Every meeting, document, and decision feeds a shared knowledge base. Onboard in days, not months.",
+              },
+              {
+                icon: <Users className="h-5 w-5" />,
+                title: "Per-collaborator context",
+                description: "Each team member gets their own thread of awareness. Shared where it matters, private where it should be.",
+              },
+              {
+                icon: <Zap className="h-5 w-5" />,
+                title: "No more recapping",
+                description: "Stop re-explaining context. Aura already knows the project, the history, the people. Just ask.",
+              },
+            ]}
+          />
+          <Reveal variant="soft">
+            <GlassPanel strong className="mx-auto max-w-3xl p-10 text-center space-y-6">
+              <p className="text-display text-2xl">
+                Ready to bring Aura into your company?
+              </p>
+              <p className="text-[15px] font-light text-muted-foreground leading-relaxed max-w-md mx-auto">
+                Get in touch — we'll set up a pilot tailored to your team's workflow and knowledge structure.
+              </p>
+              <div className="flex flex-wrap items-center justify-center gap-4 pt-2">
+                <PillButton size="lg" href="mailto:siraedge.tech@gmail.com">
+                  <Mail className="h-4 w-4" /> Contact us
+                </PillButton>
+                <PillButton size="lg" variant="ghost" href="https://siratech.ch">
+                  siratech.ch <ArrowRight className="h-4 w-4" />
+                </PillButton>
+              </div>
+              <p className="text-xs text-muted-foreground/50 pt-1">
+                siraedge.tech@gmail.com · siratech.ch
+              </p>
+            </GlassPanel>
+          </Reveal>
+        </div>
       </Section>
 
       {/* CTA */}

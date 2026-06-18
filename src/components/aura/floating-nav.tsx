@@ -38,6 +38,7 @@ export function FloatingNav() {
           {[
             { to: "/", label: "Product" },
             { to: "/overlay", label: "Overlay" },
+            { to: "/teams", label: "Teams" },
             { to: "/app", label: "Chat" },
             { to: "/settings", label: "Settings" },
           ].map((l) => (
