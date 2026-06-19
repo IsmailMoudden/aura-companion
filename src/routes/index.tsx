@@ -152,7 +152,7 @@ function Landing() {
       <Section
         eyebrow="For teams & companies"
         title={<>One mind.<br /><em className="italic text-muted-foreground/80">Shared across your team.</em></>}
-        description="Aura for Business gives your company a collective intelligence — one entity that already knows everything, without the endless emails and information silos."
+        description="Aura for Business gives your company a collective intelligence. One entity that already knows everything, without the endless emails and information silos."
       >
         <div className="mx-auto max-w-5xl space-y-10">
           <FeatureGrid
@@ -180,7 +180,7 @@ function Landing() {
                 Ready to bring Aura into your company?
               </p>
               <p className="text-[15px] font-light text-muted-foreground leading-relaxed max-w-md mx-auto">
-                Get in touch — we'll set up a pilot tailored to your team's workflow and knowledge structure.
+                Get in touch and we'll set up a pilot tailored to your team's workflow and knowledge structure.
               </p>
               <div className="flex flex-wrap items-center justify-center gap-4 pt-2">
                 <PillButton size="lg" href="mailto:siraedge.tech@gmail.com">

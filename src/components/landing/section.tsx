@@ -36,7 +36,7 @@ export function Section({
             variant="soft"
             delay={0.18}
             className={cn(
-              "mt-6 text-lg font-light text-muted-foreground",
+              "mt-6 text-xl font-light leading-relaxed text-foreground/70",
               align === "center" && "mx-auto max-w-2xl",
             )}
           >

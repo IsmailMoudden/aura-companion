@@ -102,6 +102,7 @@ export function OverlayApp() {
   const [screenshot, setScreenshot] = useState<{ path: string; preview: string } | null>(null);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [user, setUser] = useState<{ id: string; email: string } | null>(null);
+  const [sessionLoading, setSessionLoading] = useState(true);
   const [phraseIndex] = useState(() => Math.floor(Math.random() * PRESENCE_PHRASES.length));
   const [hoveringPanel, setHoveringPanel] = useState(false);
   const [panelOpacity, setPanelOpacity] = useState(0.30);
@@ -125,16 +126,25 @@ export function OverlayApp() {
 
   useEffect(() => {
     const init = async () => {
-      // Try to restore persisted session from electron-store first
+      // Restore persisted session from electron-store before showing any UI
       if (isElectron) {
         const saved = await window.aura!.loadSession();
         if (saved) {
-          await supabase.auth.setSession({ access_token: saved.access_token, refresh_token: saved.refresh_token });
+          const { error } = await supabase.auth.setSession({ access_token: saved.access_token, refresh_token: saved.refresh_token });
+          if (error) {
+            // Refresh token expired — clear stored session so login screen shows
+            await window.aura!.clearSession();
+          }
+          // setSession triggers onAuthStateChange which sets user
+          setSessionLoading(false);
+          return;
         }
       }
+      // No saved session — check in-memory (web app path)
       const { data } = await supabase.auth.getSession();
       if (data.session?.user)
         setUser({ id: data.session.user.id, email: data.session.user.email ?? '' });
+      setSessionLoading(false);
     };
     init();
 
@@ -466,6 +476,26 @@ export function OverlayApp() {
     const webUrl = import.meta.env.VITE_WEB_URL ?? 'https://aura.aura-companion.workers.dev';
     window.aura!.openExternal(`${webUrl}/auth?overlay=true`);
   }, []);
+
+  // ─── Session restoring — show nothing until we know auth state ───────────────
+  if (sessionLoading && isElectron) {
+    return (
+      <div
+        className="relative flex h-full w-full items-center justify-center"
+        style={{
+          borderRadius: PANEL_R_IDLE,
+          background: 'linear-gradient(158deg, oklch(0.53 0.10 238 / 0.28) 0%, oklch(0.41 0.09 254 / 0.32) 100%)',
+          backdropFilter: 'blur(32px) saturate(140%)',
+          WebkitBackdropFilter: 'blur(32px) saturate(140%)',
+          border: '1px solid oklch(1 0 0 / 0.10)',
+        } as React.CSSProperties}
+      >
+        <div className="animate-breathe">
+          <Orb size={40} state="thinking" variant="overlay" noHalo />
+        </div>
+      </div>
+    );
+  }
 
   // ─── Not authenticated — show login prompt ───────────────────────────────────
   if (!user && isElectron) {

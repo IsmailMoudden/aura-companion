@@ -23,7 +23,7 @@ export const Route = createFileRoute("/teams")({
       {
         name: "description",
         content:
-          "Give your company a collective mind. Aura for Teams centralises knowledge across every collaborator — no more lost context, no more endless recaps.",
+          "Give your company a collective mind. Aura for Teams centralises knowledge across every collaborator. No more lost context, no more endless recaps.",
       },
     ],
   }),
@@ -55,10 +55,10 @@ function Teams() {
           </em>
         </h1>
         <p
-          className="mt-8 max-w-xl text-lg font-light leading-relaxed text-muted-foreground animate-fade-up"
+          className="mt-8 max-w-xl text-xl font-light leading-relaxed text-foreground/70 animate-fade-up"
           style={{ animationDelay: "0.25s" }}
         >
-          Aura gives your company a collective intelligence — an entity that already
+          Aura gives your company a collective intelligence. An entity that already
           knows everything, without the emails, the recaps, or the lost context.
         </p>
         <div
@@ -73,7 +73,7 @@ function Teams() {
           </PillButton>
         </div>
         <p
-          className="mt-8 text-xs text-muted-foreground/50 animate-fade-up"
+          className="mt-8 text-sm text-foreground/40 animate-fade-up"
           style={{ animationDelay: "0.55s" }}
         >
           Custom pilots · Enterprise pricing · siratech.ch
@@ -92,7 +92,7 @@ function Teams() {
               {[
                 {
                   before: "Can you catch me up on the Q3 decision?",
-                  after: "Already in context. The Q3 pivot was driven by margin pressure in the EU segment — want the full thread?",
+                  after: "Already in context. The Q3 pivot was driven by margin pressure in the EU segment. Want the full thread?",
                 },
                 {
                   before: "Who was handling the Renault account before Marc left?",
@@ -118,7 +118,7 @@ function Teams() {
       <Section
         eyebrow="How it works"
         title="Collective memory. Individual awareness."
-        description="Aura maintains two layers simultaneously — what the team knows, and what each collaborator needs to know right now."
+        description="Aura maintains two layers at once: what the team knows, and what each person needs right now."
       >
         <FeatureGrid
           items={[
@@ -126,7 +126,7 @@ function Teams() {
               icon: <BookOpen className="h-5 w-5" />,
               title: "Shared knowledge base",
               description:
-                "Every meeting, document, and decision feeds a living company brain. Ask anything, get the full picture — instantly.",
+                "Every meeting, document, and decision feeds a living company brain. Ask anything and get the full picture instantly.",
             },
             {
               icon: <Users className="h-5 w-5" />,
@@ -138,7 +138,7 @@ function Teams() {
               icon: <GitBranch className="h-5 w-5" />,
               title: "Continuous threads",
               description:
-                "Projects, clients, decisions — Aura keeps every thread alive across people and time. Nothing is ever lost.",
+                "Projects, clients, decisions. Aura keeps every thread alive across people and time. Nothing is ever lost.",
             },
             {
               icon: <Zap className="h-5 w-5" />,
@@ -156,7 +156,7 @@ function Teams() {
               icon: <ShieldCheck className="h-5 w-5" />,
               title: "Privacy-first",
               description:
-                "Granular access controls. Your data stays yours — no training on company knowledge without consent.",
+                "Granular access controls. Your data stays yours. No training on company knowledge without consent.",
             },
           ]}
         />
@@ -195,7 +195,7 @@ function Teams() {
                 siratech.ch <ArrowRight className="h-4 w-4" />
               </PillButton>
             </div>
-            <p className="text-xs text-muted-foreground/50">
+            <p className="text-sm text-foreground/40">
               Custom pilots · Enterprise pricing · Dedicated onboarding
             </p>
           </div>
