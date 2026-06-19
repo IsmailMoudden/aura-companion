@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { Orb } from '@/components/aura/orb';
-import { X, Camera, ChevronDown, Mic, MicOff, Volume2, VolumeX, Sun, Keyboard } from 'lucide-react';
+import { X, Camera, ChevronDown, Mic, MicOff, Volume2, VolumeX, Sun, Keyboard, LayoutDashboard } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 import { MODELS, LIMIT_CONTACT, getModelLabel, type ModelId } from '@/lib/models';
@@ -721,6 +721,12 @@ export function OverlayApp() {
           className="absolute right-3 top-3 z-20 flex items-center gap-0.5"
           style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
         >
+          {/* Dashboard shortcut */}
+          {isElectron && (
+            <ControlBtn onClick={() => window.aura!.openDashboard()} title="Open Dashboard">
+              <LayoutDashboard className="h-3 w-3" />
+            </ControlBtn>
+          )}
           {/* Opacity slider — expands on Sun click */}
           {showOpacitySlider && (
             <div className="flex items-center gap-2 mr-1" style={{ width: 80 }}>

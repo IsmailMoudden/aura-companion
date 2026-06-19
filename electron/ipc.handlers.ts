@@ -19,6 +19,7 @@ export interface IpcDeps {
   moveUp: () => void;
   moveDown: () => void;
   screenshotHelper: ScreenshotHelper;
+  openDashboard: () => Promise<void>;
 }
 
 export function initializeIpcHandlers(deps: IpcDeps): void {
@@ -71,6 +72,9 @@ export function initializeIpcHandlers(deps: IpcDeps): void {
   });
   ipcMain.handle('session:load', () => store.get('session') ?? null);
   ipcMain.handle('session:clear', () => store.delete('session'));
+
+  // Open dashboard window
+  ipcMain.handle('app:open-dashboard', () => deps.openDashboard());
 
   // Quit app
   ipcMain.handle('app:quit', () => app.quit());

@@ -1,4 +1,4 @@
-import { app, BrowserWindow, screen, shell, Tray, Menu, nativeImage } from 'electron';
+import { app, BrowserWindow, screen, shell, Tray, Menu, nativeImage, ipcMain } from 'electron';
 import path from 'path';
 import * as dotenv from 'dotenv';
 import { AuraWindowConfig } from './window-config/AuraWindowConfig';
@@ -11,6 +11,7 @@ dotenv.config({ path: path.join(process.cwd(), '.env') });
 
 const state = {
   mainWindow: null as BrowserWindow | null,
+  dashboardWindow: null as BrowserWindow | null,
   tray: null as Tray | null,
   isVisible: true,
   isInvisible: false,
@@ -149,6 +150,49 @@ function moveDown() {
   state.mainWindow.setPosition(Math.round(state.currentX), Math.round(state.currentY));
 }
 
+// ─── Dashboard window ─────────────────────────────────────────────────────────
+const WEB_APP_URL = process.env.VITE_WEB_URL ?? 'https://aura-companion.workers.dev';
+
+async function openDashboard() {
+  // If already open, just focus it
+  if (state.dashboardWindow && !state.dashboardWindow.isDestroyed()) {
+    if (state.dashboardWindow.isMinimized()) state.dashboardWindow.restore();
+    state.dashboardWindow.focus();
+    return;
+  }
+
+  const { width, height } = screen.getPrimaryDisplay().workAreaSize;
+
+  state.dashboardWindow = new BrowserWindow({
+    width: Math.min(1200, Math.round(width * 0.82)),
+    height: Math.min(820, Math.round(height * 0.88)),
+    minWidth: 760,
+    minHeight: 560,
+    center: true,
+    title: 'Aura',
+    titleBarStyle: 'hiddenInset',
+    trafficLightPosition: { x: 16, y: 16 },
+    backgroundColor: '#0d1117',
+    webPreferences: {
+      nodeIntegration: false,
+      contextIsolation: true,
+      preload: path.join(__dirname, 'preload.js'),
+    },
+  });
+
+  // Load the web app — /app route with dashboard
+  await state.dashboardWindow.loadURL(`${WEB_APP_URL}/app`);
+
+  // Show dock icon while dashboard is open (macOS)
+  if (process.platform === 'darwin') app.dock.show();
+
+  state.dashboardWindow.on('closed', () => {
+    state.dashboardWindow = null;
+    // Hide dock again when dashboard closes
+    if (process.platform === 'darwin') app.dock.hide();
+  });
+}
+
 // ─── Create window ────────────────────────────────────────────────────────────
 async function createWindow() {
   const display = screen.getPrimaryDisplay();
@@ -201,6 +245,7 @@ async function createWindow() {
   state.tray.setToolTip('Aura');
   const trayMenu = Menu.buildFromTemplate([
     { label: 'Show Aura', click: () => { showWindow(); state.mainWindow?.focus(); } },
+    { label: 'Open Dashboard', click: () => openDashboard() },
     { type: 'separator' },
     { label: 'Quit Aura', accelerator: 'CmdOrCtrl+Q', click: () => app.quit() },
   ]);
@@ -262,6 +307,7 @@ async function init() {
     moveUp,
     moveDown,
     screenshotHelper: state.screenshotHelper,
+    openDashboard,
   });
 
   await createWindow();

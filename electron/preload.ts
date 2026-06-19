@@ -44,6 +44,9 @@ const auraAPI = {
   loadSession: () => ipcRenderer.invoke('session:load') as Promise<{ access_token: string; refresh_token: string } | null>,
   clearSession: () => ipcRenderer.invoke('session:clear'),
 
+  // Open dashboard window
+  openDashboard: () => ipcRenderer.invoke('app:open-dashboard'),
+
   // Open URL in system browser
   openExternal: (url: string) => ipcRenderer.invoke('shell:open-external', url),
 
