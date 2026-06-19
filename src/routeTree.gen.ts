@@ -9,12 +9,18 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as TeamsRouteImport } from './routes/teams'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as OverlayRouteImport } from './routes/overlay'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as IndexRouteImport } from './routes/index'
 
+const TeamsRoute = TeamsRouteImport.update({
+  id: '/teams',
+  path: '/teams',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -47,6 +53,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/overlay': typeof OverlayRoute
   '/settings': typeof SettingsRoute
+  '/teams': typeof TeamsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -54,6 +61,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/overlay': typeof OverlayRoute
   '/settings': typeof SettingsRoute
+  '/teams': typeof TeamsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -62,13 +70,14 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/overlay': typeof OverlayRoute
   '/settings': typeof SettingsRoute
+  '/teams': typeof TeamsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/app' | '/auth' | '/overlay' | '/settings'
+  fullPaths: '/' | '/app' | '/auth' | '/overlay' | '/settings' | '/teams'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/app' | '/auth' | '/overlay' | '/settings'
-  id: '__root__' | '/' | '/app' | '/auth' | '/overlay' | '/settings'
+  to: '/' | '/app' | '/auth' | '/overlay' | '/settings' | '/teams'
+  id: '__root__' | '/' | '/app' | '/auth' | '/overlay' | '/settings' | '/teams'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -77,10 +86,18 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   OverlayRoute: typeof OverlayRoute
   SettingsRoute: typeof SettingsRoute
+  TeamsRoute: typeof TeamsRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/teams': {
+      id: '/teams'
+      path: '/teams'
+      fullPath: '/teams'
+      preLoaderRoute: typeof TeamsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/settings': {
       id: '/settings'
       path: '/settings'
@@ -125,6 +142,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   OverlayRoute: OverlayRoute,
   SettingsRoute: SettingsRoute,
+  TeamsRoute: TeamsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
