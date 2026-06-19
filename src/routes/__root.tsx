@@ -12,6 +12,7 @@ import appCss from "../styles.css?url";
 import { AmbientBackground } from "@/components/aura/ambient-background";
 import { FloatingNav } from "@/components/aura/floating-nav";
 import { Toaster } from "@/components/ui/sonner";
+import { useRouterState } from "@tanstack/react-router";
 
 function NotFoundComponent() {
   return (
@@ -123,11 +124,13 @@ function RootShell({ children }: { children: React.ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const isAppShell = pathname.startsWith("/app") || pathname.startsWith("/auth");
 
   return (
     <QueryClientProvider client={queryClient}>
       <AmbientBackground />
-      <FloatingNav />
+      {!isAppShell && <FloatingNav />}
       <Outlet />
       <Toaster />
     </QueryClientProvider>
