@@ -31,7 +31,8 @@ const SpeechRecognitionAPI: SpeechRecognitionCtor | null = typeof window !== 'un
   ? (window.SpeechRecognition ?? window.webkitSpeechRecognition ?? null)
   : null;
 
-const WAKE_WORD = 'hey aura';
+const WAKE_WORDS = ['hey aura', 'aura', 'hé aura', 'eh aura', 'hey ora', 'hey ara'];
+const WAKE_WORD = 'hey aura'; // kept for display
 
 // ─── TTS ──────────────────────────────────────────────────────────────────────
 function speak(text: string) {
@@ -361,26 +362,34 @@ export function OverlayApp() {
     const recog = new SpeechRecognitionAPI();
     recog.continuous = true;
     recog.interimResults = true;
+    // Listen in both languages simultaneously via en-US (webkit picks up fr too)
     recog.lang = 'en-US';
     wakeRecogRef.current = recog;
 
     recog.onresult = (e: SpeechRecognitionResultEvent) => {
-      const parts: string[] = [];
-      for (let i = 0; i < e.results.length; i++) parts.push(e.results[i][0].transcript.toLowerCase());
-      const transcript = parts.join(' ');
-      if (transcript.includes(WAKE_WORD) || transcript.includes('aura')) {
+      // Only look at the LATEST result segment, not the full accumulated history
+      // This prevents the transcript from growing infinitely and burying the wake word
+      const lastIdx = e.results.length - 1;
+      const latest = e.results[lastIdx][0].transcript.toLowerCase().trim();
+
+      const triggered = WAKE_WORDS.some((w) => latest.includes(w));
+      if (triggered) {
+        wakeRecogRef.current = null; // prevent onend restart
         recog.stop();
         setWakeDetected(true);
         setOrbState('listening');
         setTimeout(() => {
           setWakeDetected(false);
           setVoiceMode('command');
-        }, 800);
+        }, 600);
       }
     };
     recog.onend = () => {
+      // Auto-restart unless we intentionally stopped (ref cleared on trigger)
       if (wakeRecogRef.current === recog) {
-        try { recog.start(); } catch { /**/ }
+        setTimeout(() => {
+          try { recog.start(); } catch { /**/ }
+        }, 200);
       }
     };
     recog.onerror = () => {
@@ -388,7 +397,7 @@ export function OverlayApp() {
         if (wakeRecogRef.current === recog) {
           try { recog.start(); } catch { /**/ }
         }
-      }, 1000);
+      }, 1500);
     };
     try { recog.start(); } catch { /**/ }
   }, []);
@@ -396,51 +405,84 @@ export function OverlayApp() {
   const startCommandListener = useCallback(() => {
     if (!SpeechRecognitionAPI) return;
     const recog = new SpeechRecognitionAPI();
-    recog.continuous = false;
+    // continuous = true so it doesn't cut off mid-sentence on first silence
+    recog.continuous = true;
     recog.interimResults = true;
-    recog.lang = 'en-US';
+    recog.lang = 'en-US'; // webkit handles fr naturally with en-US on macOS
     cmdRecogRef.current = recog;
     setOrbState('listening');
     setIsListeningCmd(true);
     setInput('');
 
-    recog.onresult = (e: SpeechRecognitionResultEvent) => {
-      // Show interim transcript live in input
-      let interim = '';
-      for (let i = 0; i < e.results.length; i++) {
-        interim += e.results[i][0].transcript;
-      }
-      setInput(interim);
+    let finalText = '';
+    let silenceTimer: ReturnType<typeof setTimeout> | null = null;
 
-      // Final result — send it
-      const last = e.results[e.results.length - 1];
-      if ((last as unknown as { isFinal: boolean }).isFinal) {
-        const text = interim.trim();
-        if (text) {
-          setIsListeningCmd(false);
-          setInput(text);
-          setTimeout(() => {
-            void runAIRef.current(text, undefined, false);
-            setInput('');
-          }, 300);
+    const submit = (text: string) => {
+      if (!text.trim()) return;
+      if (silenceTimer) clearTimeout(silenceTimer);
+      cmdRecogRef.current = null;
+      recog.onend = null;
+      recog.stop();
+      setIsListeningCmd(false);
+      setOrbState('thinking');
+      setInput('');
+      void runAIRef.current(text.trim(), undefined, false);
+    };
+
+    recog.onresult = (e: SpeechRecognitionResultEvent) => {
+      // Reset silence timer every time we get new speech
+      if (silenceTimer) clearTimeout(silenceTimer);
+
+      let interim = '';
+      let newFinal = '';
+      for (let i = 0; i < e.results.length; i++) {
+        const r = e.results[i];
+        const t = r[0].transcript;
+        if ((r as unknown as { isFinal: boolean }).isFinal) {
+          newFinal += t;
+        } else {
+          interim += t;
         }
       }
+
+      if (newFinal) finalText = newFinal;
+      const displayed = (finalText + interim).trim();
+      setInput(displayed);
+
+      // Auto-submit after 1.6s of silence if we have final text
+      if (finalText.trim()) {
+        silenceTimer = setTimeout(() => submit(finalText), 1600);
+      } else if (displayed) {
+        // Still interim — give more time
+        silenceTimer = setTimeout(() => submit(displayed), 2200);
+      }
     };
+
     recog.onend = () => {
-      setOrbState('idle');
-      setIsListeningCmd(false);
-      cmdRecogRef.current = null;
-      setVoiceMode('wake');
+      // Ended without explicit submit — send whatever we have
+      if (silenceTimer) clearTimeout(silenceTimer);
+      const text = finalText || input;
+      if (text.trim()) {
+        submit(text);
+      } else {
+        setOrbState('idle');
+        setIsListeningCmd(false);
+        cmdRecogRef.current = null;
+        setVoiceMode('wake');
+      }
     };
+
     recog.onerror = () => {
+      if (silenceTimer) clearTimeout(silenceTimer);
       setOrbState('idle');
       setIsListeningCmd(false);
       setInput('');
       cmdRecogRef.current = null;
       setVoiceMode('wake');
     };
+
     try { recog.start(); } catch { /**/ }
-  }, []);
+  }, [input]);
 
   // Voice state machine
   useEffect(() => {
