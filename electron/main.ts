@@ -151,7 +151,10 @@ function moveDown() {
 }
 
 // ─── Dashboard window ─────────────────────────────────────────────────────────
-const WEB_APP_URL = process.env.VITE_WEB_URL ?? 'https://aura-companion.workers.dev';
+const WEB_APP_URL = process.env.VITE_WEB_URL ?? 'https://aura.aura-companion.workers.dev';
+
+// Match the web app background — oklch(0.62 0.08 235) ≈ #3a5a7a
+const DASHBOARD_BG = '#1a2535';
 
 async function openDashboard() {
   // If already open, just focus it
@@ -164,15 +167,16 @@ async function openDashboard() {
   const { width, height } = screen.getPrimaryDisplay().workAreaSize;
 
   state.dashboardWindow = new BrowserWindow({
-    width: Math.min(1200, Math.round(width * 0.82)),
-    height: Math.min(820, Math.round(height * 0.88)),
-    minWidth: 760,
-    minHeight: 560,
+    width: Math.min(1280, Math.round(width * 0.85)),
+    height: Math.min(860, Math.round(height * 0.90)),
+    minWidth: 800,
+    minHeight: 600,
     center: true,
     title: 'Aura',
     titleBarStyle: 'hiddenInset',
     trafficLightPosition: { x: 16, y: 16 },
-    backgroundColor: '#0d1117',
+    backgroundColor: DASHBOARD_BG,
+    show: false, // show after load to avoid blank flash
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -180,7 +184,13 @@ async function openDashboard() {
     },
   });
 
-  // Load the web app — /app route with dashboard
+  // Show only when page is ready — avoids blank white/black flash
+  state.dashboardWindow.once('ready-to-show', () => {
+    state.dashboardWindow?.show();
+    state.dashboardWindow?.focus();
+  });
+
+  // Load the web app
   await state.dashboardWindow.loadURL(`${WEB_APP_URL}/app`);
 
   // Show dock icon while dashboard is open (macOS)
@@ -188,7 +198,6 @@ async function openDashboard() {
 
   state.dashboardWindow.on('closed', () => {
     state.dashboardWindow = null;
-    // Hide dock again when dashboard closes
     if (process.platform === 'darwin') app.dock.hide();
   });
 }
@@ -312,16 +321,24 @@ async function init() {
 
   await createWindow();
   state.shortcutsHelper.registerAll();
+
+  // Open dashboard on first launch
+  await openDashboard();
 }
 
 app.on('window-all-closed', () => {
-  // Always quit — tray handles reopen, we don't want zombie processes
-  app.quit();
+  // Only quit if the overlay itself is gone — closing dashboard alone keeps the app alive
+  if (!state.mainWindow || state.mainWindow.isDestroyed()) {
+    app.quit();
+  }
 });
 
 app.on('activate', () => {
-  if (BrowserWindow.getAllWindows().length === 0) {
-    createWindow().catch(console.error);
+  // macOS dock click — reopen dashboard if closed
+  if (state.dashboardWindow === null || state.dashboardWindow.isDestroyed()) {
+    openDashboard().catch(console.error);
+  } else {
+    state.dashboardWindow.focus();
   }
 });
 

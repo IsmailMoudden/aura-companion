@@ -137,6 +137,28 @@ The profile is **never shown to you directly** — it lives entirely in the mode
 
 <br/>
 
+## Web app URL
+
+The Electron dashboard window loads the web app at the URL defined by `VITE_WEB_URL`.
+
+**Current URL:** `https://aura.aura-companion.workers.dev`
+
+If the web app is redeployed to a new domain, update this in two places:
+
+1. `.env` and `.env.production`:
+   ```
+   VITE_WEB_URL=https://your-new-domain.com
+   ```
+2. GitHub Actions secret `VITE_WEB_URL` (Settings → Secrets → Actions)
+
+Then tag a new release to rebuild the Electron app with the updated URL:
+```bash
+git tag v0.x.x
+git push origin v0.x.x
+```
+
+<br/>
+
 ## Auth flow
 
 The overlay has no login form. When signed out, clicking the orb opens the web app at `?overlay=true`. After sign-in, the web app redirects to `aura://auth?access_token=...`. Electron intercepts the deep link and stores the session via `electron-store`.
