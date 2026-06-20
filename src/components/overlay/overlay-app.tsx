@@ -122,6 +122,7 @@ export function OverlayApp() {
   const wakeRecogRef = useRef<SpeechRecognitionInstance | null>(null);
   const cmdRecogRef = useRef<SpeechRecognitionInstance | null>(null);
   const voiceModeRef = useRef<'off' | 'wake' | 'command'>('off');
+  const dictSubmitRef = useRef<(() => void) | null>(null); // callable to force-submit current dictation
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -328,6 +329,11 @@ export function OverlayApp() {
 
   const sendMessage = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
+    // If dictation is active, force-submit what's been spoken
+    if (isListeningCmd && dictSubmitRef.current) {
+      dictSubmitRef.current();
+      return;
+    }
     if (!input.trim()) return;
     const text = input.trim();
     setInput('');
@@ -420,6 +426,7 @@ export function OverlayApp() {
     const submit = (text: string) => {
       if (!text.trim()) return;
       if (silenceTimer) clearTimeout(silenceTimer);
+      dictSubmitRef.current = null;
       cmdRecogRef.current = null;
       recog.onend = null;
       recog.stop();
@@ -428,6 +435,9 @@ export function OverlayApp() {
       setInput('');
       void runAIRef.current(text.trim(), undefined, false);
     };
+
+    // Expose force-submit so send button / Enter can trigger it
+    dictSubmitRef.current = () => submit(finalText || input);
 
     recog.onresult = (e: SpeechRecognitionResultEvent) => {
       // Reset silence timer every time we get new speech
@@ -954,22 +964,27 @@ export function OverlayApp() {
                 onChange={(e) => !isListeningCmd && setInput(e.target.value)}
                 onFocus={() => setInputFocused(true)}
                 onBlur={() => setInputFocused(false)}
+                placeholder={isListeningCmd ? '' : 'Ask softly… (Shift+Enter to speak)'}
+                className="flex-1 bg-transparent text-[13px] font-light italic text-foreground placeholder:text-foreground/38 focus:outline-none"
                 onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey && isListeningCmd && dictSubmitRef.current) {
+                    e.preventDefault();
+                    dictSubmitRef.current();
+                    return;
+                  }
                   if (e.key === 'Enter' && e.shiftKey && SpeechRecognitionAPI) {
                     e.preventDefault();
                     setVoiceMode('command');
                   }
                 }}
-                placeholder={isListeningCmd ? '' : 'Ask softly… (Shift+Enter to speak)'}
-                className="flex-1 bg-transparent text-[13px] font-light italic text-foreground placeholder:text-foreground/38 focus:outline-none"
               />
               {/* Orb send dot */}
               <button
                 type="submit"
-                disabled={busy || !input.trim()}
+                disabled={busy || (!input.trim() && !isListeningCmd)}
                 className={cn(
                   'h-[22px] w-[22px] shrink-0 rounded-full transition-all duration-300',
-                  input.trim() && !busy ? 'opacity-100 scale-100' : 'opacity-0 scale-50 pointer-events-none',
+                  (input.trim() || isListeningCmd) && !busy ? 'opacity-100 scale-100' : 'opacity-0 scale-50 pointer-events-none',
                 )}
                 style={{
                   background: 'radial-gradient(circle at 38% 32%, oklch(0.96 0.06 218), oklch(0.72 0.18 242))',
