@@ -799,15 +799,15 @@ export function OverlayApp() {
           <div
             className="relative z-10 flex flex-1 flex-col items-center justify-center"
             style={{ padding: '0 32px', gap: 0 }}
-            onClick={() => inputRef.current?.focus()}
+            onClick={() => !isListeningCmd && inputRef.current?.focus()}
           >
             {/* Orb glow halo */}
             <div
               className="absolute rounded-full blur-[56px] animate-glow-pulse"
               style={{
-                width: wakeDetected ? 220 : 160,
-                height: wakeDetected ? 220 : 160,
-                background: `radial-gradient(circle, oklch(0.82 0.16 235 / ${wakeDetected ? '0.70' : '0.48'}), transparent 70%)`,
+                width: isListeningCmd ? 240 : wakeDetected ? 220 : 160,
+                height: isListeningCmd ? 240 : wakeDetected ? 220 : 160,
+                background: `radial-gradient(circle, oklch(0.82 0.16 235 / ${isListeningCmd ? '0.55' : wakeDetected ? '0.70' : '0.48'}), transparent 70%)`,
                 top: '50%', left: '50%', transform: 'translate(-50%, -72%)',
                 transition: 'width 0.4s ease, height 0.4s ease, background 0.4s ease',
               }}
@@ -815,20 +815,65 @@ export function OverlayApp() {
             <div className="animate-float relative z-10" style={{ marginBottom: 0 }}>
               <Orb size={64} state={orbState} variant="overlay" noHalo />
             </div>
-            <p
-              className="relative z-10 text-display font-light transition-all duration-300"
-              style={{
-                fontSize: 17,
-                letterSpacing: '-0.01em',
-                lineHeight: 1.3,
-                marginTop: 28,
-                color: wakeDetected ? 'oklch(0.95 0.10 230)' : undefined,
-                opacity: wakeDetected ? 1 : 0.82,
-              }}
-            >
-              {wakeDetected ? 'Hey Aura…' : voiceMode === 'wake' ? 'Listening…' : busy ? 'Thinking…' : PRESENCE_PHRASES[phraseIndex]}
-            </p>
 
+            {/* Live dictation display */}
+            {isListeningCmd ? (
+              <div
+                className="relative z-10 w-full text-center animate-fade-in"
+                style={{ marginTop: 24 }}
+              >
+                {input ? (
+                  <p
+                    className="text-display font-light leading-snug"
+                    style={{
+                      fontSize: 20,
+                      letterSpacing: '-0.02em',
+                      color: 'oklch(0.96 0.06 230)',
+                      transition: 'opacity 0.15s ease',
+                    }}
+                  >
+                    {input}
+                    <span
+                      className="inline-block animate-pulse"
+                      style={{ width: 2, height: '1em', background: 'oklch(0.82 0.16 235)', marginLeft: 3, verticalAlign: 'middle', borderRadius: 1 }}
+                    />
+                  </p>
+                ) : (
+                  <div className="flex items-center justify-center gap-1.5" style={{ marginTop: 4 }}>
+                    {[0, 1, 2, 3].map((i) => (
+                      <span
+                        key={i}
+                        className="rounded-full animate-wave"
+                        style={{
+                          width: 3,
+                          height: 14,
+                          background: 'oklch(0.82 0.16 235 / 0.7)',
+                          animationDelay: `${i * 0.12}s`,
+                          display: 'inline-block',
+                        }}
+                      />
+                    ))}
+                  </div>
+                )}
+                <p style={{ fontSize: 10, marginTop: 10, color: 'oklch(0.82 0.16 235 / 0.45)', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
+                  listening · silence to send
+                </p>
+              </div>
+            ) : (
+              <p
+                className="relative z-10 text-display font-light transition-all duration-300"
+                style={{
+                  fontSize: 17,
+                  letterSpacing: '-0.01em',
+                  lineHeight: 1.3,
+                  marginTop: 28,
+                  color: wakeDetected ? 'oklch(0.95 0.10 230)' : undefined,
+                  opacity: wakeDetected ? 1 : 0.82,
+                }}
+              >
+                {wakeDetected ? 'Hey Aura…' : voiceMode === 'wake' ? 'Listening…' : busy ? 'Thinking…' : PRESENCE_PHRASES[phraseIndex]}
+              </p>
+            )}
           </div>
         )}
 
@@ -863,6 +908,30 @@ export function OverlayApp() {
 
         {/* ── INPUT ZONE ── */}
         <div className="relative z-10 flex-shrink-0" style={{ padding: '8px 20px 20px' }}>
+          {/* Live dictation overlay in conversation mode */}
+          {isListeningCmd && hasConversation && (
+            <div
+              className="mb-2 rounded-2xl px-4 py-3 animate-fade-in"
+              style={{ background: 'oklch(0.82 0.16 235 / 0.10)', border: '1px solid oklch(0.82 0.16 235 / 0.25)' }}
+            >
+              {input ? (
+                <p className="text-[15px] font-light" style={{ color: 'oklch(0.96 0.06 230)', letterSpacing: '-0.01em' }}>
+                  {input}
+                  <span
+                    className="inline-block animate-pulse"
+                    style={{ width: 2, height: '0.85em', background: 'oklch(0.82 0.16 235)', marginLeft: 3, verticalAlign: 'middle', borderRadius: 1 }}
+                  />
+                </p>
+              ) : (
+                <div className="flex items-center gap-1.5">
+                  {[0, 1, 2, 3].map((i) => (
+                    <span key={i} className="rounded-full animate-wave" style={{ width: 3, height: 12, background: 'oklch(0.82 0.16 235 / 0.65)', animationDelay: `${i * 0.12}s`, display: 'inline-block' }} />
+                  ))}
+                  <span style={{ fontSize: 11, marginLeft: 6, color: 'oklch(0.82 0.16 235 / 0.5)', letterSpacing: '0.08em' }}>listening…</span>
+                </div>
+              )}
+            </div>
+          )}
           <form onSubmit={sendMessage}>
             <div
               className="flex items-center gap-3 rounded-full transition-all duration-400"
@@ -881,8 +950,8 @@ export function OverlayApp() {
             >
               <input
                 ref={inputRef}
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
+                value={isListeningCmd ? '' : input}
+                onChange={(e) => !isListeningCmd && setInput(e.target.value)}
                 onFocus={() => setInputFocused(true)}
                 onBlur={() => setInputFocused(false)}
                 onKeyDown={(e) => {
@@ -891,7 +960,7 @@ export function OverlayApp() {
                     setVoiceMode('command');
                   }
                 }}
-                placeholder={isListeningCmd ? 'Listening…' : 'Ask softly… (Shift+Enter to speak)'}
+                placeholder={isListeningCmd ? '' : 'Ask softly… (Shift+Enter to speak)'}
                 className="flex-1 bg-transparent text-[13px] font-light italic text-foreground placeholder:text-foreground/38 focus:outline-none"
               />
               {/* Orb send dot */}
