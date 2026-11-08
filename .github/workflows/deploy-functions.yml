@@ -5,6 +5,8 @@ on:
     branches: [main]
     paths:
       - 'supabase/functions/**'
+      - 'scripts/ensure-auth-redirects.mjs'
+      - '.github/workflows/deploy-functions.yml'
   workflow_dispatch:
 
 jobs:
@@ -16,6 +18,17 @@ jobs:
       - uses: supabase/setup-cli@v1
         with:
           version: latest
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Verify production OAuth redirects
+        run: node scripts/ensure-auth-redirects.mjs
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          VITE_WEB_URL: https://aura.aura-companion.workers.dev
 
       - name: Deploy chat function
         run: supabase functions deploy chat --project-ref ${{ secrets.SUPABASE_PROJECT_REF }}

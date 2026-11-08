@@ -21,16 +21,18 @@ export class ScreenshotHelper {
     const tmpPath = path.join(app.getPath('temp'), `${uuidv4()}.png`);
 
     // Find which display the overlay window is on
-    const displayId = win ? (() => {
+    const displayNumber = win ? (() => {
       const bounds = win.getBounds();
       const center = { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 };
       const display = screen.getDisplayNearestPoint(center);
-      return display.id;
+      // screencapture -D takes a 1-based display number, not Electron's CGDisplayID.
+      const primary = screen.getPrimaryDisplay();
+      const displays = [primary, ...screen.getAllDisplays().filter((item) => item.id !== primary.id)];
+      return displays.findIndex((item) => item.id === display.id) + 1;
     })() : null;
 
-    if (displayId !== null) {
-      // -D <id> captures a specific display
-      await execFileAsync('screencapture', ['-x', '-D', String(displayId), tmpPath]);
+    if (displayNumber !== null && displayNumber > 0) {
+      await execFileAsync('screencapture', ['-x', '-D', String(displayNumber), tmpPath]);
     } else {
       await execFileAsync('screencapture', ['-x', tmpPath]);
     }

@@ -4,7 +4,7 @@ import { ScreenshotHelper } from './screenshot.helper';
 import type { BrowserWindow } from 'electron';
 import Store from 'electron-store';
 
-const store = new Store<{ session: { access_token: string; refresh_token: string } | null }>({
+export const sessionStore = new Store<{ session: { access_token: string; refresh_token: string } | null }>({
   defaults: { session: null },
 });
 
@@ -68,10 +68,10 @@ export function initializeIpcHandlers(deps: IpcDeps): void {
 
   // Persist session tokens so overlay stays logged in across relaunches
   ipcMain.handle('session:save', (_e, tokens: { access_token: string; refresh_token: string }) => {
-    store.set('session', tokens);
+    sessionStore.set('session', tokens);
   });
-  ipcMain.handle('session:load', () => store.get('session') ?? null);
-  ipcMain.handle('session:clear', () => store.delete('session'));
+  ipcMain.handle('session:load', () => sessionStore.get('session') ?? null);
+  ipcMain.handle('session:clear', () => sessionStore.delete('session'));
 
   // Open dashboard window
   ipcMain.handle('app:open-dashboard', () => deps.openDashboard());

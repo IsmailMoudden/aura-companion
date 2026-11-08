@@ -4,7 +4,7 @@ import * as dotenv from 'dotenv';
 import { AuraWindowConfig } from './window-config/AuraWindowConfig';
 import { ScreenshotHelper } from './screenshot.helper';
 import { ShortcutsHelper } from './shortcuts';
-import { initializeIpcHandlers } from './ipc.handlers';
+import { initializeIpcHandlers, sessionStore } from './ipc.handlers';
 
 dotenv.config({ path: path.join(process.cwd(), '.env') });
 
@@ -151,7 +151,7 @@ function moveDown() {
 }
 
 // ─── Dashboard window ─────────────────────────────────────────────────────────
-const WEB_APP_URL = process.env.VITE_WEB_URL ?? 'https://aura.aura-companion.workers.dev';
+const WEB_APP_URL = (process.env.VITE_WEB_URL || 'https://aura.aura-companion.workers.dev').replace(/\/$/, '');
 
 // Match the web app background — oklch(0.62 0.08 235) ≈ #3a5a7a
 const DASHBOARD_BG = '#1a2535';
@@ -319,6 +319,8 @@ async function init() {
     openDashboard,
   });
 
+  const initialAuthUrl = process.argv.find((arg) => arg.startsWith(`${PROTOCOL}://`));
+  if (initialAuthUrl) handleDeepLink(initialAuthUrl);
   await createWindow();
   state.shortcutsHelper.registerAll();
 
@@ -351,16 +353,18 @@ if (!app.isDefaultProtocolClient(PROTOCOL)) {
 }
 
 function handleDeepLink(url: string) {
-  if (!url.startsWith(`${PROTOCOL}://auth`)) return;
-  const params = new URL(url.replace(`${PROTOCOL}://`, 'https://placeholder/')).searchParams;
-  const accessToken = params.get('access_token');
-  const refreshToken = params.get('refresh_token');
+  let parsed: URL;
+  try { parsed = new URL(url); } catch { return; }
+  if (parsed.protocol !== `${PROTOCOL}:` || parsed.hostname !== 'auth') return;
+  const accessToken = parsed.searchParams.get('access_token');
+  const refreshToken = parsed.searchParams.get('refresh_token');
   if (!accessToken || !refreshToken) return;
-  const win = state.mainWindow;
-  if (win && !win.isDestroyed()) {
-    win.webContents.send('auth:deep-link', { accessToken, refreshToken });
-    win.show();
+  // Persist before delivering: cold-start callbacks may arrive before React subscribes.
+  sessionStore.set('session', { access_token: accessToken, refresh_token: refreshToken });
+  for (const win of [state.mainWindow, state.dashboardWindow]) {
+    if (win && !win.isDestroyed()) win.webContents.send('auth:deep-link', { accessToken, refreshToken });
   }
+  state.mainWindow?.show();
 }
 
 // macOS: deep link via open-url event

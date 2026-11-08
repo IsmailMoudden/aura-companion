@@ -1,7 +1,7 @@
 {
   "name": "aura-companion",
-  "version": "0.4.0",
-  "description": "Aura — your ambient AI companion",
+  "version": "0.4.3",
+  "description": "Aura \u2014 your ambient AI companion",
   "private": true,
   "sideEffects": false,
   "type": "module",
@@ -96,10 +96,14 @@
       "identity": null
     },
     "win": {
-      "target": [{
-        "target": "nsis",
-        "arch": ["x64"]
-      }],
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
       "icon": "assets/icons/win/icon.ico"
     },
     "nsis": {
@@ -114,7 +118,15 @@
     "directories": {
       "output": "release"
     },
-    "afterSign": null
+    "afterSign": null,
+    "protocols": [
+      {
+        "name": "Aura authentication",
+        "schemes": [
+          "aura"
+        ]
+      }
+    ]
   },
   "devDependencies": {
     "electron": "^39.0.0",

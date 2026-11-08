@@ -12,12 +12,20 @@ export function useAuth() {
       setSession(s);
       setUser(s?.user ?? null);
     });
-    supabase.auth.getSession().then(({ data }) => {
+    const restore = async () => {
+      const saved = await window.aura?.loadSession();
+      if (saved) await supabase.auth.setSession(saved);
+      return supabase.auth.getSession();
+    };
+    const unsubscribeDeepLink = window.aura?.onAuthDeepLink(async ({ accessToken, refreshToken }) => {
+      await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
+    });
+    restore().then(({ data }) => {
       setSession(data.session);
       setUser(data.session?.user ?? null);
       setLoading(false);
-    });
-    return () => sub.subscription.unsubscribe();
+    }).catch(() => setLoading(false));
+    return () => { sub.subscription.unsubscribe(); unsubscribeDeepLink?.(); };
   }, []);
 
   return { session, user, loading };

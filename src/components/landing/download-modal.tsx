@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type React from "react";
 import { GlassPanel } from "@/components/aura/glass-panel";
 import { Download, X, Apple, Monitor, ChevronRight } from "lucide-react";
@@ -64,6 +64,21 @@ interface DownloadModalProps {
 
 export function DownloadModal({ open, onClose }: DownloadModalProps) {
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [release, setRelease] = useState<{ version: string; urls: Record<string, string> } | null>(null);
+  useEffect(() => {
+    if (!open) return;
+    const controller = new AbortController();
+    fetch('https://api.github.com/repos/IsmailMoudden/aura-companion/releases/latest', { signal: controller.signal })
+      .then(async (response) => {
+        if (!response.ok) throw new Error('Release unavailable');
+        const data = await response.json() as { tag_name: string; draft: boolean; prerelease: boolean; assets: { name: string; browser_download_url: string }[] };
+        const names = ['Aura-arm64.dmg', 'Aura-x64.dmg', 'Aura-x64.exe'];
+        if (data.draft || data.prerelease || !names.every((name) => data.assets.some((asset) => asset.name === name))) return;
+        const urls = Object.fromEntries(data.assets.filter((asset) => names.includes(asset.name) && asset.browser_download_url.startsWith('https://github.com/IsmailMoudden/aura-companion/releases/download/')).map((asset) => [asset.name, asset.browser_download_url]));
+        if (names.every((name) => urls[name])) setRelease({ version: data.tag_name, urls });
+      }).catch(() => { /* Stable latest/download links remain available offline or when rate limited. */ });
+    return () => controller.abort();
+  }, [open]);
 
   if (!open) return null;
 
@@ -121,7 +136,7 @@ export function DownloadModal({ open, onClose }: DownloadModalProps) {
                   Guide
                 </button>
                 <a
-                  href={p.url}
+                  href={release?.urls[p.url.split('/').pop()!] ?? p.url}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex h-8 w-8 items-center justify-center rounded-full bg-white/[0.08] hover:bg-white/[0.16] transition-colors"
@@ -155,7 +170,7 @@ export function DownloadModal({ open, onClose }: DownloadModalProps) {
         </div>
 
         <p className="mt-6 text-center text-xs text-muted-foreground/60">
-          macOS · Windows · Web · v0.1.4
+          macOS · Windows · Web · {release?.version ?? 'Latest GitHub release'}
         </p>
       </GlassPanel>
 

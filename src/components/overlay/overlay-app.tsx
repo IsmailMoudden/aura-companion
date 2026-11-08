@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { Orb } from '@/components/aura/orb';
-import { X, Camera, ChevronDown, Mic, MicOff, Volume2, VolumeX, Sun, Keyboard, LayoutDashboard } from 'lucide-react';
+import { X, Camera, ChevronDown, Mic, MicOff, Volume2, VolumeX, Sun, Keyboard, LayoutDashboard, Sparkles } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 import { MODELS, LIMIT_CONTACT, getModelLabel, type ModelId } from '@/lib/models';
@@ -93,6 +93,11 @@ const PANEL_R_CONV = 26;   // border-radius in conversation
 
 
 export function OverlayApp() {
+  const [reactiveEnabled, setReactiveEnabled] = useState(false);
+  const [reactiveSuggestion, setReactiveSuggestion] = useState('');
+  const [reactiveError, setReactiveError] = useState('');
+  const reactiveInFlight = useRef(false);
+  const lastSuggestionAt = useRef(0);
   const [expanded, setExpanded] = useState(false);
   const [visible, setVisible] = useState(false); // controls CSS opacity/scale for enter animation
   const [orbState, setOrbState] = useState<OrbState>('idle');
@@ -325,7 +330,7 @@ export function OverlayApp() {
       setBusy(false);
       setOrbState('idle');
     }
-  }, [busy, messages, conversationId, user, clearScreenshot, growToConversation]);
+  }, [busy, messages, conversationId, user, clearScreenshot, growToConversation, selectedModel]);
 
   const sendMessage = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
@@ -362,6 +367,54 @@ export function OverlayApp() {
   const openPanelRef = useRef(openPanel);
   useEffect(() => { runAIRef.current = runAI; }, [runAI]);
   useEffect(() => { openPanelRef.current = openPanel; }, [openPanel]);
+
+  // Background observations stay separate from the conversation until accepted.
+  useEffect(() => {
+    if (!reactiveEnabled || !isElectron || !user) return;
+    let cancelled = false;
+    const controller = new AbortController();
+    const observe = async () => {
+      if (reactiveInFlight.current || busy || expanded || voiceMode !== 'off' || Date.now() - lastSuggestionAt.current < 120_000) return;
+      reactiveInFlight.current = true;
+      let capturePath: string | undefined;
+      try {
+        const capture = await window.aura!.captureOnly();
+        capturePath = capture.path;
+        if (cancelled) return;
+        if (!capture.success || !capture.preview) throw new Error('Capture écran indisponible. Vérifie les autorisations macOS.');
+        const { data: { session } } = await supabase.auth.getSession();
+        if (cancelled) return;
+        const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`, {
+          method: 'POST',
+          signal: controller.signal,
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token ?? ''}` },
+          body: JSON.stringify({ mode: 'reactive', model: 'auto', screenshot: capture.preview, messages: [{ role: 'user', content: 'Observe la tâche visible. Propose une aide concrète seulement si elle est utile maintenant.' }] }),
+        });
+        const result = await response.json() as { reply?: string; error?: string };
+        if (!response.ok) throw new Error(result.error ?? 'Analyse indisponible');
+        if (cancelled) return;
+        setReactiveError('');
+        const suggestion = result.reply?.trim();
+        if (suggestion && suggestion !== 'NO_HELP') {
+          setReactiveSuggestion(suggestion);
+          lastSuggestionAt.current = Date.now();
+          openPanelRef.current();
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setReactiveEnabled(false);
+          setReactiveError(error instanceof Error ? error.message : 'Mode réactif indisponible');
+          openPanelRef.current();
+        }
+      } finally {
+        if (capturePath) await window.aura!.clearScreenshot(capturePath);
+        reactiveInFlight.current = false;
+      }
+    };
+    const timer = setInterval(() => { void observe(); }, 15_000);
+    void observe();
+    return () => { cancelled = true; controller.abort(); clearInterval(timer); };
+  }, [reactiveEnabled, user, busy, expanded, voiceMode]);
 
   const startWakeListener = useCallback(() => {
     if (!SpeechRecognitionAPI) return;
@@ -773,6 +826,11 @@ export function OverlayApp() {
           className="absolute right-3 top-3 z-20 flex items-center gap-0.5"
           style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
         >
+          {isElectron && user && (
+            <ControlBtn onClick={() => { setReactiveEnabled((value) => !value); setReactiveError(''); setReactiveSuggestion(''); }} title={reactiveEnabled ? 'Désactiver le mode réactif' : 'Mode réactif : analyser l’écran toutes les 15 s et proposer de l’aide'} active={reactiveEnabled}>
+              <Sparkles className="h-3 w-3" />
+            </ControlBtn>
+          )}
           {/* Dashboard shortcut */}
           {isElectron && (
             <ControlBtn onClick={() => window.aura!.openDashboard()} title="Open Dashboard">
@@ -916,6 +974,17 @@ export function OverlayApp() {
           </div>
         )}
 
+        {(reactiveSuggestion || reactiveError) && (
+          <div className="relative z-10 mx-5 mb-2 rounded-xl bg-white/10 p-3 text-xs" role="status">
+            <p>{reactiveError || reactiveSuggestion}</p>
+            {reactiveSuggestion && <button className="mt-2 underline" disabled={busy} onClick={() => { const suggestion = reactiveSuggestion; setReactiveSuggestion(''); void (async () => {
+              const capture = await window.aura!.captureOnly();
+              try { await runAI(`Aide-moi avec cette proposition : ${suggestion}`, capture.preview); }
+              finally { if (capture.path) await window.aura!.clearScreenshot(capture.path); }
+            })(); }}>Aide-moi</button>}
+            <button className="ml-3 mt-2 underline" onClick={() => { setReactiveSuggestion(''); setReactiveError(''); }}>Fermer</button>
+          </div>
+        )}
         {/* ── INPUT ZONE ── */}
         <div className="relative z-10 flex-shrink-0" style={{ padding: '8px 20px 20px' }}>
           {/* Live dictation overlay in conversation mode */}

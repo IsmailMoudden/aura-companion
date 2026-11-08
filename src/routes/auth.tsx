@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { GlassPanel } from "@/components/aura/glass-panel";
 import { Orb } from "@/components/aura/orb";
@@ -17,13 +17,21 @@ function AuthPage() {
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
+  const [authComplete, setAuthComplete] = useState(false);
+  const [authError, setAuthError] = useState('');
+  const redirected = useRef(false);
 
   // If ?overlay=true, we came from the Electron app — redirect back via deep link after login
   const isOverlayFlow = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('overlay') === 'true';
 
   useEffect(() => {
     // On OAuth callback, Supabase puts tokens in the URL hash — extract them client-side
-    supabase.auth.getSession().then(({ data }) => {
+    const params = new URLSearchParams(window.location.search);
+    const hash = new URLSearchParams(window.location.hash.slice(1));
+    const errorDescription = params.get('error_description') ?? hash.get('error_description');
+    if (errorDescription) { setAuthError(errorDescription); setBusy(false); return; }
+    supabase.auth.getSession().then(({ data, error }) => {
+      if (error) { setAuthError(error.message); return; }
       if (data.session) {
         if (isOverlayFlow) {
           redirectToOverlay(data.session.access_token, data.session.refresh_token);
@@ -32,7 +40,7 @@ function AuthPage() {
         }
         return;
       }
-    });
+    }).catch(() => setAuthError('Connexion indisponible. Réessaie depuis cette page.'));
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session) {
@@ -47,6 +55,9 @@ function AuthPage() {
   }, [navigate, isOverlayFlow]);
 
   function redirectToOverlay(accessToken: string, refreshToken: string) {
+    if (redirected.current) return;
+    redirected.current = true;
+    setAuthComplete(true);
     window.location.href = `aura://auth?access_token=${encodeURIComponent(accessToken)}&refresh_token=${encodeURIComponent(refreshToken)}`;
   }
 
@@ -89,7 +100,23 @@ function AuthPage() {
 
   const handleGoogle = async () => {
     setBusy(true);
-    const redirectTo = window.location.origin + (isOverlayFlow ? "/auth?overlay=true" : "/auth");
+    setAuthError('');
+    // Google OAuth runs in the system browser; embedded Electron browsers are rejected by Google.
+    if (window.aura) {
+      const webUrl = import.meta.env.VITE_WEB_URL || 'https://aura.aura-companion.workers.dev';
+      await window.aura.openExternal(`${webUrl.replace(/\/$/, '')}/auth?overlay=true`);
+      setBusy(false);
+      return;
+    }
+    const authPath = isOverlayFlow ? '/auth?overlay=true' : '/auth';
+    const configuredOrigin = new URL(import.meta.env.VITE_WEB_URL || 'https://aura.aura-companion.workers.dev').origin;
+    const isLocal = ['localhost', '127.0.0.1', '[::1]'].includes(window.location.hostname);
+    if (!isLocal && window.location.origin !== configuredOrigin) {
+      // Start PKCE on the callback origin so its verifier survives the round trip.
+      window.location.assign(configuredOrigin + authPath);
+      return;
+    }
+    const redirectTo = window.location.origin + authPath;
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
@@ -117,6 +144,11 @@ function AuthPage() {
           {mode === "signup" ? "Begin softly." : "Step back in."}
         </h1>
 
+        {authError && <p role="alert" className="mb-4 text-sm text-red-300">{authError}</p>}
+        {authComplete && <div role="status" className="mb-4 text-sm">
+          <p>Connexion réussie. Tu peux revenir dans Aura.</p>
+          <button className="mt-2 underline" onClick={() => { redirected.current = false; void supabase.auth.getSession().then(({ data }) => { if (data.session) redirectToOverlay(data.session.access_token, data.session.refresh_token); }); }}>Ouvrir Aura</button>
+        </div>}
         <button
           onClick={handleGoogle}
           disabled={busy}
