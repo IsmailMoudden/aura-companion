@@ -2,11 +2,13 @@ import { readFile } from 'node:fs/promises';
 const token = process.env.SUPABASE_ACCESS_TOKEN;
 const ref = process.env.SUPABASE_PROJECT_REF;
 if (!token || !ref || !/^[a-z0-9]+$/.test(ref)) throw new Error('Missing Supabase deployment credentials');
+const configuredHost = new URL(process.env.VITE_SUPABASE_URL || 'https://mkzdienngrisxrvkvgrv.supabase.co').hostname;
+if (configuredHost.endsWith('.supabase.co') && ref !== configuredHost.split('.')[0]) throw new Error('Project reference differs from the configured Supabase URL');
 const migration = await readFile(new URL('../supabase/migrations/20261109000000_atomic_ai_quota.sql', import.meta.url), 'utf8');
 const response = await fetch(`https://api.supabase.com/v1/projects/${ref}/database/query`, {
   method: 'POST', signal: AbortSignal.timeout(30_000),
   headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-  body: JSON.stringify({ query: `begin;\n${migration}\ncommit;` }),
+  body: JSON.stringify({ query: `begin;\n${migration}\ncommit;`, read_only: false }),
 });
 if (!response.ok) {
   const error = await response.json().catch(() => ({}));
