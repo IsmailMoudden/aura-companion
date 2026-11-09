@@ -85,7 +85,7 @@ const ORB_H = 88;
 const ORB_WIN_W = 120; // window larger than orb so breathe animation doesn't clip
 const ORB_WIN_H = 120;
 const PANEL_W = 360;
-const PANEL_H_IDLE = 300;
+const PANEL_H_IDLE = 340;
 const PANEL_H_CONV = 720;
 const PANEL_H_CONV_SCREENSHOT = 820; // extra room for screenshot thumbnail in conversation
 const PANEL_R_IDLE = 32;   // border-radius when compact
@@ -231,10 +231,13 @@ export function OverlayApp() {
   useEffect(() => {
     if (!isElectron || !expanded) return;
     const hasConv = messages.length > 0;
-    if (!hasConv) return; // idle panel handles its own size
-    const h = screenshot ? PANEL_H_CONV_SCREENSHOT : PANEL_H_CONV;
+    if (!hasConv) {
+      window.aura!.updateDimensions(PANEL_W, PANEL_H_IDLE + (showOpacitySlider ? 44 : 0));
+      return;
+    }
+    const h = (screenshot ? PANEL_H_CONV_SCREENSHOT : PANEL_H_CONV) + (showOpacitySlider ? 44 : 0);
     window.aura!.updateDimensions(PANEL_W, h);
-  }, [screenshot, expanded, messages.length]);
+  }, [screenshot, expanded, messages.length, showOpacitySlider]);
 
   const captureScreenshot = useCallback(async () => {
     if (!isElectron) return;
@@ -726,9 +729,11 @@ export function OverlayApp() {
         {/* Drag strip */}
         <div className="absolute inset-x-0 top-0 z-10 h-9" style={{ WebkitAppRegion: 'drag' } as React.CSSProperties} />
 
-        {/* Model picker — centered in top bar */}
+        <div data-testid="overlay-toolbar" className="relative z-20 flex shrink-0 flex-col gap-2 px-3 pb-2 pt-3" style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}>
+        <div className="flex min-h-7 items-center justify-between gap-2">
+        {/* Model picker */}
         <div
-          className="absolute left-1/2 top-2 z-20 -translate-x-1/2"
+          className="relative min-w-0"
           style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
         >
           <button
@@ -741,7 +746,7 @@ export function OverlayApp() {
           {modelPickerOpen && (
             <>
               <div className="fixed inset-0 z-10" onClick={() => setModelPickerOpen(false)} />
-              <div className="absolute left-1/2 top-full z-20 mt-1 w-52 -translate-x-1/2 overflow-hidden rounded-2xl border border-white/[0.08] shadow-xl animate-fade-in" style={{ background: 'oklch(0.15 0.04 250 / 0.98)', backdropFilter: 'blur(32px)' }}>
+              <div className="absolute left-0 top-full z-20 mt-1 w-52 overflow-hidden rounded-2xl border border-white/[0.08] shadow-xl animate-fade-in" style={{ background: 'oklch(0.15 0.04 250 / 0.98)', backdropFilter: 'blur(32px)' }}>
                 {/* Models */}
                 <div className="px-3 pt-3 pb-1">
                   <p className="text-[9px] uppercase tracking-[0.15em] text-foreground/25 px-1 mb-1">Model</p>
@@ -793,7 +798,7 @@ export function OverlayApp() {
         {/* Voice controls — always visible left side */}
         {SpeechRecognitionAPI && (
           <div
-            className="absolute left-3 top-3 z-20 flex items-center gap-0.5"
+            className="flex shrink-0 items-center gap-1"
             style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
           >
             {/* Wake word toggle */}
@@ -821,9 +826,10 @@ export function OverlayApp() {
           </div>
         )}
 
-        {/* Controls — always visible right side */}
+        </div>
+        {/* Secondary actions occupy their own row in both panel sizes. */}
         <div
-          className="absolute right-3 top-3 z-20 flex items-center gap-0.5"
+          className="flex min-h-7 items-center gap-1"
           style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
         >
           {isElectron && user && (
@@ -837,21 +843,7 @@ export function OverlayApp() {
               <LayoutDashboard className="h-3 w-3" />
             </ControlBtn>
           )}
-          {/* Opacity slider — expands on Sun click */}
-          {showOpacitySlider && (
-            <div className="flex items-center gap-2 mr-1" style={{ width: 80 }}>
-              <input
-                type="range"
-                min={0.12}
-                max={0.92}
-                step={0.01}
-                value={panelOpacity}
-                onChange={(e) => setPanelOpacity(parseFloat(e.target.value))}
-                className="w-full"
-                style={{ accentColor: 'oklch(0.82 0.16 235)' }}
-              />
-            </div>
-          )}
+          <div className="flex-1" />
           <ControlBtn onClick={() => setShowOpacitySlider((v) => !v)} title="Opacity" active={showOpacitySlider}>
             <Sun className="h-3 w-3" />
           </ControlBtn>
@@ -860,6 +852,15 @@ export function OverlayApp() {
           )}
           <ControlBtn onClick={captureScreenshot} title="Capture"><Camera className="h-3 w-3" /></ControlBtn>
           <ControlBtn onClick={closePanel} title="Minimise"><ChevronDown className="h-3 w-3" /></ControlBtn>
+        </div>
+
+        {showOpacitySlider && (
+          <label className="flex items-center gap-3 rounded-xl bg-white/[0.06] px-3 py-2 text-[11px] text-foreground/60" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
+            Opacity
+            <input aria-label="Panel opacity" type="range" min={0.12} max={0.92} step={0.01} value={panelOpacity}
+              onChange={(e) => setPanelOpacity(parseFloat(e.target.value))} className="min-w-0 flex-1" style={{ accentColor: 'oklch(0.82 0.16 235)' }} />
+          </label>
+        )}
         </div>
 
         {/* ── PRESENCE ZONE ── */}
@@ -950,7 +951,7 @@ export function OverlayApp() {
           <div className="relative z-10 flex-1 overflow-hidden" style={{ minHeight: 0 }}>
             <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-14" style={{ background: 'linear-gradient(to bottom, oklch(0.49 0.10 242 / 0.70), transparent)' }} />
             <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-12" style={{ background: 'linear-gradient(to top, oklch(0.41 0.09 254 / 0.70), transparent)' }} />
-            <div ref={scrollRef} className="h-full overflow-y-auto" style={{ padding: '52px 28px 12px' }}>
+            <div ref={scrollRef} className="h-full overflow-y-auto" style={{ padding: '12px 28px 12px' }}>
               <div className="flex flex-col gap-7">
                 {messages.map((m) =>
                   m.role === 'user'

@@ -42,7 +42,7 @@ function timeAgo(dateStr: string): string {
 
 function AppPage() {
   const navigate = useNavigate();
-  const { user, loading } = useAuth();
+  const { user, loading, error: authError } = useAuth();
 
   // ── View state ──────────────────────────────────────────────────────────────
   const [view, setView] = useState<View>("dashboard");
@@ -70,8 +70,8 @@ function AppPage() {
 
   // ── Auth guard ──────────────────────────────────────────────────────────────
   useEffect(() => {
-    if (!loading && !user) navigate({ to: "/auth" });
-  }, [user, loading, navigate]);
+    if (!loading && !user && !authError) navigate({ to: "/auth" });
+  }, [user, loading, authError, navigate]);
 
   // ── Load conversations ──────────────────────────────────────────────────────
   useEffect(() => {
@@ -228,10 +228,24 @@ function AppPage() {
     }
   }, [user, navigate]);
 
+  if (authError && !user) {
+    return <main className="flex min-h-screen flex-col items-center justify-center gap-4 px-6 text-center">
+      <h1 className="text-display text-2xl">Ton espace n’a pas pu se charger</h1>
+      <p className="text-sm text-muted-foreground" role="alert">{authError}</p>
+      <div className="flex gap-4">
+        <button onClick={() => window.location.reload()} className="underline">Réessayer</button>
+        <button onClick={() => navigate({ to: '/auth' })} className="underline">Se reconnecter</button>
+      </div>
+    </main>;
+  }
+
   if (loading || !user) {
     return (
       <main className="flex min-h-screen items-center justify-center">
-        <Orb size={120} />
+        <div className="flex flex-col items-center gap-5" role="status">
+          <Orb size={120} />
+          <p className="text-sm text-muted-foreground">Chargement de ton espace…</p>
+        </div>
       </main>
     );
   }

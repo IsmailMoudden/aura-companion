@@ -1,5 +1,6 @@
 import { app, BrowserWindow, screen, shell, Tray, Menu, nativeImage, ipcMain } from 'electron';
 import path from 'path';
+import { dashboardPage } from './dashboard-page';
 import * as dotenv from 'dotenv';
 import { AuraWindowConfig } from './window-config/AuraWindowConfig';
 import { ScreenshotHelper } from './screenshot.helper';
@@ -184,22 +185,53 @@ async function openDashboard() {
     },
   });
 
-  // Show only when page is ready — avoids blank white/black flash
-  state.dashboardWindow.once('ready-to-show', () => {
-    state.dashboardWindow?.show();
-    state.dashboardWindow?.focus();
+  const win = state.dashboardWindow;
+  let loadTimer: ReturnType<typeof setTimeout> | undefined;
+  let contentTimer: ReturnType<typeof setTimeout> | undefined;
+  const clearTimers = () => { clearTimeout(loadTimer); clearTimeout(contentTimer); };
+  const showStatus = async (failed: boolean) => {
+    clearTimers();
+    if (win.isDestroyed()) return;
+    await win.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(dashboardPage(failed))}`).catch(() => {});
+  };
+  const loadDashboard = async () => {
+    clearTimers();
+    await showStatus(false);
+    if (win.isDestroyed()) return;
+    loadTimer = setTimeout(() => { void showStatus(true); }, 20_000);
+    try {
+      await win.loadURL(`${WEB_APP_URL}/app`);
+      clearTimeout(loadTimer);
+      // A successful HTTP response can still leave an empty page if its scripts fail.
+      contentTimer = setTimeout(async () => {
+        if (win.isDestroyed() || !win.webContents.getURL().startsWith(WEB_APP_URL)) return;
+        const hasContent = await win.webContents.executeJavaScript("Boolean(document.body?.innerText.trim()) && !/^(upstream connect error|remote connection failure)/i.test(document.body.innerText.trim())").catch(() => false);
+        if (!hasContent) void showStatus(true);
+      }, 15_000);
+    } catch {
+      if (!win.isDestroyed() && !win.webContents.getURL().startsWith('data:')) void showStatus(true);
+    }
+  };
+
+  win.webContents.on('will-navigate', (event, url) => {
+    if (url === 'aura-dashboard:retry') { event.preventDefault(); void loadDashboard(); }
+    if (url === 'aura-dashboard:browser') { event.preventDefault(); void shell.openExternal(`${WEB_APP_URL}/app`); }
   });
-
-  // Load the web app
-  await state.dashboardWindow.loadURL(`${WEB_APP_URL}/app`);
-
-  // Show dock icon while dashboard is open (macOS)
+  win.webContents.on('did-fail-load', (_event, code, _description, url, mainFrame) => {
+    if (mainFrame && code !== -3 && !url.startsWith('data:')) void showStatus(true);
+  });
+  win.webContents.on('did-navigate', (_event, _url, statusCode) => {
+    if (statusCode >= 400) void showStatus(true);
+  });
+  win.webContents.on('render-process-gone', () => { void showStatus(true); });
+  win.once('ready-to-show', () => { if (!win.isDestroyed()) { win.show(); win.focus(); } });
   if (process.platform === 'darwin') app.dock.show();
-
-  state.dashboardWindow.on('closed', () => {
+  win.on('closed', () => {
+    clearTimers();
     state.dashboardWindow = null;
     if (process.platform === 'darwin') app.dock.hide();
   });
+  await loadDashboard();
 }
 
 // ─── Create window ────────────────────────────────────────────────────────────
