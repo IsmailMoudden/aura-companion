@@ -8,5 +8,9 @@ const response = await fetch(`https://api.supabase.com/v1/projects/${ref}/databa
   headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
   body: JSON.stringify({ query: `begin;\n${migration}\ncommit;` }),
 });
-if (!response.ok) throw new Error(`Quota migration failed: HTTP ${response.status}`);
+if (!response.ok) {
+  const error = await response.json().catch(() => ({}));
+  const reason = typeof error.message === 'string' ? error.message.slice(0, 1500).replace(/sbp_[A-Za-z0-9_-]+/g, '[redacted]') : '';
+  throw new Error(`Quota migration failed: HTTP ${response.status}${reason ? ` — ${reason}` : ''}`);
+}
 console.log('Atomic quota migration applied.');
