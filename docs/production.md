@@ -3,7 +3,7 @@
 ## Required account access
 
 - Renew GitHub secret `SUPABASE_ACCESS_TOKEN` with a Supabase access token permitted to manage the configured project. The token must include Database and Edge Functions with Read-write access. A read-scoped token executes as supabase_read_only_user and cannot apply schema changes. Project Settings and Auth Config also need Read-write access if OAuth settings require repair. Token scopes never override a read-only project membership. Until the deployment workflow succeeds, server-side hardening is not active. Never put the token in source or a chat message.
-- The deployment workflow verifies OAuth redirects, applies the idempotent atomic quota migration in a transaction, then deploys `chat` and the authenticated `extract-profile`. A migration failure prevents deployment of code that needs it.
+- The deployment workflow verifies OAuth redirects, deploys the independent authenticated `extract-profile`, applies the idempotent atomic quota migration in a transaction, then deploys `chat`. Supabase CLI is pinned and deployment confirmation is explicit (`--yes`). A migration failure prevents deployment of code that needs it.
 - The existing production website deploys from `main` independently of GitHub Actions. Verify the live site after pushing.
 
 ## Signed distribution
