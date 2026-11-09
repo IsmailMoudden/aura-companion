@@ -1,9 +1,11 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "module": "CommonJS",
-    "moduleResolution": "Node",
-    "lib": ["ES2022"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "lib": [
+      "ES2022"
+    ],
     "outDir": "dist-electron",
     "rootDir": ".",
     "strict": true,
@@ -14,6 +16,14 @@
     "declaration": false,
     "noEmit": false
   },
-  "include": ["electron/**/*.ts", "shared/**/*.ts"],
-  "exclude": ["node_modules", "dist-electron", "dist-overlay", "src"]
+  "include": [
+    "electron/**/*.ts",
+    "shared/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist-electron",
+    "dist-overlay",
+    "src"
+  ]
 }

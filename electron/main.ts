@@ -1,11 +1,14 @@
 import { app, BrowserWindow, screen, shell, Tray, Menu, nativeImage, ipcMain } from 'electron';
 import path from 'path';
+import { AuthAttempt } from './auth-attempt';
+import { validTokens } from './session-vault';
+import { trustedDocument, allowedExternalUrl } from './security';
 import { dashboardPage } from './dashboard-page';
 import * as dotenv from 'dotenv';
 import { AuraWindowConfig } from './window-config/AuraWindowConfig';
 import { ScreenshotHelper } from './screenshot.helper';
 import { ShortcutsHelper } from './shortcuts';
-import { initializeIpcHandlers, sessionStore } from './ipc.handlers';
+import { initializeIpcHandlers, sessionVault } from './ipc.handlers';
 
 dotenv.config({ path: path.join(process.cwd(), '.env') });
 
@@ -152,6 +155,13 @@ function moveDown() {
 }
 
 // ─── Dashboard window ─────────────────────────────────────────────────────────
+const authAttempt = new AuthAttempt();
+async function startSignIn() {
+  const url = new URL('/auth', WEB_APP_URL);
+  url.searchParams.set('overlay', 'true');
+  url.searchParams.set('desktop_state', authAttempt.begin());
+  await shell.openExternal(url.href);
+}
 const WEB_APP_URL = (process.env.VITE_WEB_URL || 'https://aura.aura-companion.workers.dev').replace(/\/$/, '');
 
 // Match the web app background — oklch(0.62 0.08 235) ≈ #3a5a7a
@@ -186,6 +196,7 @@ async function openDashboard() {
   });
 
   const win = state.dashboardWindow;
+  secureWindow(win);
   let loadTimer: ReturnType<typeof setTimeout> | undefined;
   let contentTimer: ReturnType<typeof setTimeout> | undefined;
   const clearTimers = () => { clearTimeout(loadTimer); clearTimeout(contentTimer); };
@@ -225,13 +236,38 @@ async function openDashboard() {
   });
   win.webContents.on('render-process-gone', () => { void showStatus(true); });
   win.once('ready-to-show', () => { if (!win.isDestroyed()) { win.show(); win.focus(); } });
-  if (process.platform === 'darwin') app.dock.show();
+  if (process.platform === 'darwin') app.dock?.show();
   win.on('closed', () => {
     clearTimers();
     state.dashboardWindow = null;
-    if (process.platform === 'darwin') app.dock.hide();
+    if (process.platform === 'darwin') app.dock?.hide();
   });
   await loadDashboard();
+}
+
+function secureWindow(win: BrowserWindow) {
+  const overlayFile = path.join(__dirname, '../dist-overlay/overlay.html');
+  win.webContents.setWindowOpenHandler(({ url }) => {
+    try { void shell.openExternal(allowedExternalUrl(url, WEB_APP_URL)); } catch { /* Block unapproved destinations. */ }
+    return { action: 'deny' };
+  });
+  win.webContents.on('will-navigate', (event, url) => {
+    if (trustedDocument(url, WEB_APP_URL, overlayFile)) return;
+    event.preventDefault();
+    try {
+      const target = new URL(url);
+      if (target.protocol === 'https:' && target.pathname === '/auth/v1/authorize' && target.origin === new URL(process.env.VITE_SUPABASE_URL || 'https://mkzdienngrisxrvkvgrv.supabase.co').origin) {
+        void startSignIn();
+      }
+    } catch { /* Invalid navigation is blocked. */ }
+  });
+  win.webContents.on('will-redirect', (event, url) => {
+    if (!trustedDocument(url, WEB_APP_URL, overlayFile)) event.preventDefault();
+  });
+  win.webContents.session.setPermissionRequestHandler((_contents, permission, callback, details) => {
+    const trusted = trustedDocument(details.requestingUrl, WEB_APP_URL, overlayFile);
+    callback(trusted === 'overlay' && ['media', 'display-capture'].includes(permission));
+  });
 }
 
 // ─── Create window ────────────────────────────────────────────────────────────
@@ -257,6 +293,8 @@ async function createWindow() {
     },
   });
 
+  secureWindow(state.mainWindow);
+
   // Load the built overlay
   await state.mainWindow.loadFile(path.join(__dirname, '../dist-overlay/overlay.html'));
 
@@ -276,7 +314,7 @@ async function createWindow() {
   });
 
   // Hide from Dock (macOS) — overlay lives as a tray-only app
-  if (process.platform === 'darwin') app.dock.hide();
+  if (process.platform === 'darwin') app.dock?.hide();
 
   // Tray icon with Quit option
   const trayIcon = nativeImage.createFromPath(
@@ -339,6 +377,8 @@ async function init() {
 
   initializeIpcHandlers({
     getMainWindow,
+    getDashboardWindow: () => state.dashboardWindow,
+    webUrl: WEB_APP_URL,
     hideWindow,
     showWindow,
     toggleWindow,
@@ -349,6 +389,7 @@ async function init() {
     moveDown,
     screenshotHelper: state.screenshotHelper,
     openDashboard,
+    startSignIn,
   });
 
   const initialAuthUrl = process.argv.find((arg) => arg.startsWith(`${PROTOCOL}://`));
@@ -390,11 +431,11 @@ function handleDeepLink(url: string) {
   if (parsed.protocol !== `${PROTOCOL}:` || parsed.hostname !== 'auth') return;
   const accessToken = parsed.searchParams.get('access_token');
   const refreshToken = parsed.searchParams.get('refresh_token');
-  if (!accessToken || !refreshToken) return;
+  if (!validTokens({ access_token: accessToken, refresh_token: refreshToken }) || !authAttempt.consume(parsed.searchParams.get('desktop_state'))) return;
   // Persist before delivering: cold-start callbacks may arrive before React subscribes.
-  sessionStore.set('session', { access_token: accessToken, refresh_token: refreshToken });
+  sessionVault.save({ access_token: accessToken!, refresh_token: refreshToken! });
   for (const win of [state.mainWindow, state.dashboardWindow]) {
-    if (win && !win.isDestroyed()) win.webContents.send('auth:deep-link', { accessToken, refreshToken });
+    if (win && !win.isDestroyed() && trustedDocument(win.webContents.getURL(), WEB_APP_URL, path.join(__dirname, '../dist-overlay/overlay.html'))) win.webContents.send('auth:deep-link', { accessToken, refreshToken });
   }
   state.mainWindow?.show();
 }

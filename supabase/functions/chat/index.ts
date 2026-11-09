@@ -1,8 +1,14 @@
+import { readRequestBody } from './request-body.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
+const timedFetch: typeof fetch = (input, options) => fetch(input, {
+  ...options,
+  signal: AbortSignal.any([...(options?.signal ? [options.signal] : []), AbortSignal.timeout(10_000)]),
+});
 const adminSupabase = createClient(
   Deno.env.get('SUPABASE_URL')!,
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+  { global: { fetch: timedFetch } },
 );
 
 const KIMI_BASE = 'https://api.moonshot.ai/v1';
@@ -90,11 +96,15 @@ Deno.serve(async (req: Request) => {
     'Access-Control-Allow-Headers': 'authorization, content-type',
   };
 
+  const requestId = crypto.randomUUID();
+  let reserved = false;
+  let succeeded = false;
   try {
+    if (req.method !== 'POST') return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405, headers: { ...corsHeaders, Allow: 'POST, OPTIONS', 'Content-Type': 'application/json' } });
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_ANON_KEY')!,
-      { global: { headers: { Authorization: req.headers.get('Authorization') ?? '' } } },
+      { global: { fetch: timedFetch, headers: { Authorization: req.headers.get('Authorization') ?? '' } } },
     );
 
     const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -105,7 +115,16 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    const body = await req.json() as {
+    let rawBody: string;
+    try { rawBody = await readRequestBody(req); }
+    catch (error) {
+      if (!(error instanceof RangeError)) throw error;
+      return new Response(JSON.stringify({ error: 'Request too large' }), { status: 413, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+    let parsedBody: unknown;
+    try { parsedBody = JSON.parse(rawBody); } catch { return new Response(JSON.stringify({ error: 'Invalid JSON' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }); }
+    if (!parsedBody || typeof parsedBody !== 'object') return new Response(JSON.stringify({ error: 'Invalid request' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    const body = parsedBody as {
       messages: { role: string; content: string }[];
       screenshot?: string;
       conversationId?: string;
@@ -114,50 +133,30 @@ Deno.serve(async (req: Request) => {
     };
 
     const { messages, screenshot } = body;
-    if (!Array.isArray(messages) || messages.length === 0 || messages.some((m) => !['user', 'assistant'].includes(m.role) || typeof m.content !== 'string')) {
+    if (!Array.isArray(messages) || messages.length === 0 || messages.length > 80 || messages.some((m) => !m || !['user', 'assistant'].includes(m.role) || typeof m.content !== 'string' || m.content.length > 32000) || messages.reduce((sum, m) => sum + m.content.length, 0) > 128000 || messages[messages.length - 1]?.role !== 'user') {
       return new Response(JSON.stringify({ error: 'Invalid messages' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
+    if ((screenshot !== undefined && (typeof screenshot !== 'string' || screenshot.length > 8_000_000 || !/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/]+=*$/.test(screenshot))) || (body.mode !== undefined && body.mode !== 'reactive')) return new Response(JSON.stringify({ error: 'Invalid screenshot or mode' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     if (body.mode === 'reactive' && !screenshot) {
       return new Response(JSON.stringify({ error: 'Screenshot required' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
-    const modelId: ModelId = body.model && MODELS[body.model] ? body.model : 'auto';
+    const modelId: ModelId = body.model && Object.hasOwn(MODELS, body.model) ? body.model : 'auto';
     const modelCfg = MODELS[modelId];
 
-    // ─── Rate limiting + profile (parallel) ──────────────────────────────────
-    const [{ data: usageRow }, { data: overrideRow }, { data: profileRow }] = await Promise.all([
-      adminSupabase
-        .from('user_total_usage')
-        .select('count')
-        .eq('user_id', user.id)
-        .eq('model', modelId)
-        .single(),
-      adminSupabase
-        .from('user_limit_overrides')
-        .select('total_limit')
-        .eq('user_id', user.id)
-        .eq('model', modelId)
-        .single(),
-      adminSupabase
-        .from('user_profile')
-        .select('identity, projects, topics, memory_notes')
-        .eq('id', user.id)
-        .single(),
-    ]);
-
-    const currentCount = usageRow?.count ?? 0;
-    const effectiveLimit = overrideRow?.total_limit ?? modelCfg.totalLimit;
-
-    if (currentCount >= effectiveLimit) {
-      return new Response(JSON.stringify({
-        error: 'limit_reached',
-        limit: effectiveLimit,
-        remaining: 0,
-        model: modelId,
-      }), {
-        status: 429,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+    const { data: reservation, error: quotaError } = await adminSupabase.rpc('reserve_ai_usage', {
+      p_user_id: user.id, p_model: modelId, p_default_limit: modelCfg.totalLimit, p_request_id: requestId,
+    });
+    const quota = reservation?.[0];
+    if (quotaError || !quota) {
+      console.error(JSON.stringify({ event: 'quota_unavailable', requestId }));
+      return new Response(JSON.stringify({ error: 'Quota service unavailable', requestId }), { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
+    if (!quota.allowed) return new Response(JSON.stringify({ error: 'limit_reached', limit: quota.total_limit, remaining: 0, model: modelId }), { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    reserved = true;
+    const effectiveLimit = quota.total_limit as number;
+    const remaining = Math.max(0, effectiveLimit - (quota.used_count as number));
+    const { data: profileRow } = await adminSupabase.from('user_profile')
+      .select('identity, projects, topics, memory_notes').eq('id', user.id).single();
 
     let profileContext = '';
     if (profileRow) {
@@ -223,52 +222,61 @@ Deno.serve(async (req: Request) => {
       const selectedModel = hasImage && modelCfg.apiIdVision ? modelCfg.apiIdVision : modelCfg.apiId;
       const res = await fetch(`${KIMI_BASE}/chat/completions`, {
         method: 'POST',
+        signal: AbortSignal.timeout(45_000),
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${Deno.env.get('KIMI_API_KEY')}` },
-        body: JSON.stringify({ model: selectedModel, messages: chatMessages }),
+        body: JSON.stringify({ model: selectedModel, messages: chatMessages, max_tokens: 2048 }),
       });
       if (!res.ok) {
-        const err = await res.text();
-        console.error('Kimi error:', res.status, err);
-        return new Response(JSON.stringify({ error: 'AI unavailable', detail: err }), { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        console.error(JSON.stringify({ event: 'provider_error', provider: 'kimi', status: res.status, requestId }));
+        return new Response(JSON.stringify({ error: 'AI unavailable', requestId }), { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
       const data = await res.json() as ApiResponse;
-      apiReply = data.choices?.[0]?.message?.content ?? "I'm here — try again?";
+      apiReply = data.choices?.[0]?.message?.content ?? '';
 
     } else {
       const res = await fetch(`${OPENROUTER_BASE}/chat/completions`, {
         method: 'POST',
+        signal: AbortSignal.timeout(45_000),
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${Deno.env.get('OPENROUTER_API_KEY')}`,
           'HTTP-Referer': 'https://aura-companion.app',
           'X-Title': 'Aura',
         },
-        body: JSON.stringify({ model: hasImage && modelCfg.apiIdVision ? modelCfg.apiIdVision : modelCfg.apiId, messages: chatMessages }),
+        body: JSON.stringify({ model: hasImage && modelCfg.apiIdVision ? modelCfg.apiIdVision : modelCfg.apiId, messages: chatMessages, max_tokens: 2048 }),
       });
       if (!res.ok) {
-        const err = await res.text();
-        console.error('OpenRouter error:', res.status, err);
-        return new Response(JSON.stringify({ error: 'AI unavailable', detail: err }), { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        console.error(JSON.stringify({ event: 'provider_error', provider: 'openrouter', status: res.status, requestId }));
+        return new Response(JSON.stringify({ error: 'AI unavailable', requestId }), { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
       const data = await res.json() as ApiResponse;
-      apiReply = data.choices?.[0]?.message?.content ?? "I'm here — try again?";
+      apiReply = data.choices?.[0]?.message?.content ?? '';
     }
 
-    await adminSupabase.from('user_total_usage').upsert(
-      { user_id: user.id, model: modelId, count: currentCount + 1 },
-      { onConflict: 'user_id,model' },
-    );
-
-    const remaining = effectiveLimit - (currentCount + 1);
+    if (typeof apiReply !== 'string' || !apiReply.trim()) throw new Error('Empty provider response');
+    const { error: finishError } = await adminSupabase.rpc('finish_ai_usage', { p_request_id: requestId, p_success: true });
+    if (finishError) {
+      // Retain the reservation when completion is uncertain; never silently bypass a quota.
+      reserved = false;
+      throw new Error('Cannot finalize usage');
+    }
+    succeeded = true;
     return new Response(JSON.stringify({ reply: apiReply, model: modelId, totalLimit: effectiveLimit, remaining }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
   } catch (err) {
-    console.error('chat function error:', err);
-    return new Response(JSON.stringify({ error: 'Internal error' }), {
+    console.error(JSON.stringify({ event: 'chat_failed', requestId, category: err instanceof Error ? err.name : 'UnknownError' }));
+    return new Response(JSON.stringify({ error: 'AI request failed', requestId }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
+  } finally {
+    if (reserved && !succeeded) {
+      try {
+        const { error } = await adminSupabase.rpc('finish_ai_usage', { p_request_id: requestId, p_success: false });
+        if (error) throw error;
+      } catch { console.error(JSON.stringify({ event: 'quota_refund_failed', requestId })); }
+    }
   }
 });

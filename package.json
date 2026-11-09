@@ -1,6 +1,6 @@
 {
   "name": "aura-companion",
-  "version": "0.4.5",
+  "version": "0.4.6",
   "description": "Aura \u2014 your ambient AI companion",
   "private": true,
   "sideEffects": false,
@@ -18,7 +18,9 @@
     "electron:build": "bunx vite build --config vite.overlay.config.ts && bun run electron:bundle && bun run electron:cjs && bunx electron-builder",
     "electron:pack": "bunx vite build --config vite.overlay.config.ts && bun run electron:bundle && bun run electron:cjs && bunx electron-builder --dir",
     "electron:build:win": "bunx vite build --config vite.overlay.config.ts && bun run electron:bundle && bun run electron:cjs && bunx electron-builder --win",
-    "start": "wrangler dev --local --port $PORT --host 0.0.0.0 --config dist/server/wrangler.json"
+    "start": "wrangler dev --local --port $PORT --host 0.0.0.0 --config dist/server/wrangler.json",
+    "test": "bun test tests scripts/ensure-auth-redirects.test.mjs",
+    "check": "bun run test && tsc --noEmit && tsc -p tsconfig.electron.json --noEmit"
   },
   "dependencies": {
     "@cloudflare/vite-plugin": "^1.25.5",

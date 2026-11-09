@@ -1,6 +1,7 @@
+import { authorizedCron } from '../_shared/cron-auth.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-const KIMI_BASE = 'https://api.moonshot.ai/v1';
+const OPENROUTER_BASE = 'https://openrouter.ai/api/v1';
 const INACTIVE_MINUTES = 30;
 
 const EXTRACTION_PROMPT = `You are a memory extraction assistant for an AI companion called Aura.
@@ -114,16 +115,17 @@ function mergeProfiles(existing: ExistingProfile, extracted: ProfileData, now: s
 }
 
 Deno.serve(async (req: Request) => {
-  // Allow cron invocations (no auth header from pg_cron)
-  // Service role key is passed as bearer by Supabase cron scheduler
+  if (req.method !== 'POST') return new Response('Method not allowed', { status: 405, headers: { Allow: 'POST' } });
+  if (!await authorizedCron(req, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))) return new Response('Unauthorized', { status: 401 });
+  // The cron scheduler supplies the service-role bearer; verify before any privileged reads.
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL')!,
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     { auth: { persistSession: false } }
   );
 
-  const kimiKey = Deno.env.get('KIMI_API_KEY');
-  if (!kimiKey) return new Response('Missing KIMI_API_KEY', { status: 500 });
+  const providerKey = Deno.env.get('OPENROUTER_API_KEY');
+  if (!providerKey) return new Response('Extraction unavailable', { status: 500 });
 
   const cutoff = new Date(Date.now() - INACTIVE_MINUTES * 60 * 1000).toISOString();
 
@@ -135,7 +137,7 @@ Deno.serve(async (req: Request) => {
     .is('profile_extracted_at', null)
     .limit(10); // process max 10 per cron tick
 
-  if (convErr) return new Response(convErr.message, { status: 500 });
+  if (convErr) return new Response('Extraction unavailable', { status: 503 });
   if (!convos || convos.length === 0) return new Response('No conversations to process', { status: 200 });
 
   const now = new Date().toISOString();
@@ -157,16 +159,17 @@ Deno.serve(async (req: Request) => {
       }
 
       // Format conversation for extraction
-      const transcript = messages
+      const transcript = messages.slice(-80)
         .map((m: { role: string; content: string }) => `${m.role === 'user' ? 'User' : 'Aura'}: ${m.content}`)
-        .join('\n\n');
+        .join('\n\n').slice(-128000);
 
-      // Call Kimi to extract profile data
-      const res = await fetch(`${KIMI_BASE}/chat/completions`, {
+      // Extract with a maintained provider model.
+      const res = await fetch(`${OPENROUTER_BASE}/chat/completions`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${kimiKey}` },
+        signal: AbortSignal.timeout(45_000),
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${providerKey}` },
         body: JSON.stringify({
-          model: 'moonshot-v1-8k',
+          model: 'google/gemini-2.5-flash',
           messages: [
             { role: 'system', content: EXTRACTION_PROMPT },
             { role: 'user', content: `Conversation title: "${convo.title}"\n\n${transcript}` },
@@ -177,7 +180,7 @@ Deno.serve(async (req: Request) => {
       });
 
       if (!res.ok) {
-        console.error(`Kimi error for convo ${convo.id}:`, res.status);
+        console.error(JSON.stringify({ event: 'extraction_provider_error', status: res.status }));
         continue;
       }
 
@@ -221,7 +224,7 @@ Deno.serve(async (req: Request) => {
 
       processed++;
     } catch (err) {
-      console.error(`Error processing convo ${convo.id}:`, err);
+      console.error(JSON.stringify({ event: 'extraction_failed', category: err instanceof Error ? err.name : 'UnknownError' }));
     }
   }
 

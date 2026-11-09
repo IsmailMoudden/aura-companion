@@ -94,6 +94,9 @@ const PANEL_R_CONV = 26;   // border-radius in conversation
 
 export function OverlayApp() {
   const [reactiveEnabled, setReactiveEnabled] = useState(false);
+  const [reactiveCount, setReactiveCount] = useState(0);
+  const reactiveBudget = useRef(0);
+  const lastScreenHash = useRef('');
   const [reactiveSuggestion, setReactiveSuggestion] = useState('');
   const [reactiveError, setReactiveError] = useState('');
   const reactiveInFlight = useRef(false);
@@ -161,7 +164,7 @@ export function OverlayApp() {
       if (isElectron) {
         if (session?.access_token && session?.refresh_token) {
           window.aura!.saveSession({ access_token: session.access_token, refresh_token: session.refresh_token });
-        } else {
+        } else if (_e === 'SIGNED_OUT') {
           window.aura!.clearSession();
         }
       }
@@ -172,10 +175,11 @@ export function OverlayApp() {
   // Listen for deep-link auth callback from Electron main
   useEffect(() => {
     if (!isElectron) return;
+    const unsubscribeSignedOut = window.aura!.onAuthSignedOut?.(() => { void supabase.auth.signOut({ scope: 'local' }); });
     const unsub = window.aura!.onAuthDeepLink(async ({ accessToken, refreshToken }) => {
       await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
     });
-    return unsub;
+    return () => { unsub(); unsubscribeSignedOut?.(); };
   }, []);
 
   useEffect(() => {
@@ -301,6 +305,7 @@ export function OverlayApp() {
       const { data: { session } } = await supabase.auth.getSession();
       const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`, {
         method: 'POST',
+        signal: AbortSignal.timeout(50_000),
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token ?? ''}` },
         body: JSON.stringify(body),
       });
@@ -377,6 +382,7 @@ export function OverlayApp() {
     let cancelled = false;
     const controller = new AbortController();
     const observe = async () => {
+      if (reactiveBudget.current >= 20) { setReactiveEnabled(false); setReactiveError('Budget de 20 analyses atteint. Réactive le mode pour une nouvelle session.'); openPanelRef.current(); return; }
       if (reactiveInFlight.current || busy || expanded || voiceMode !== 'off' || Date.now() - lastSuggestionAt.current < 120_000) return;
       reactiveInFlight.current = true;
       let capturePath: string | undefined;
@@ -385,11 +391,17 @@ export function OverlayApp() {
         capturePath = capture.path;
         if (cancelled) return;
         if (!capture.success || !capture.preview) throw new Error('Capture écran indisponible. Vérifie les autorisations macOS.');
+        const hashBytes = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(capture.preview));
+        const screenHash = Array.from(new Uint8Array(hashBytes), (byte) => byte.toString(16).padStart(2, '0')).join('');
+        if (cancelled || screenHash === lastScreenHash.current) return;
         const { data: { session } } = await supabase.auth.getSession();
         if (cancelled) return;
+        lastScreenHash.current = screenHash;
+        reactiveBudget.current += 1;
+        setReactiveCount(reactiveBudget.current);
         const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`, {
           method: 'POST',
-          signal: controller.signal,
+          signal: AbortSignal.any([controller.signal, AbortSignal.timeout(50_000)]),
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token ?? ''}` },
           body: JSON.stringify({ mode: 'reactive', model: 'auto', screenshot: capture.preview, messages: [{ role: 'user', content: 'Observe la tâche visible. Propose une aide concrète seulement si elle est utile maintenant.' }] }),
         });
@@ -580,6 +592,7 @@ export function OverlayApp() {
 
   const connectToWeb = useCallback(() => {
     if (!isElectron) return;
+    if (window.aura!.startSignIn) { void window.aura!.startSignIn(); return; }
     // VITE_SUPABASE_URL gives us the Supabase URL — derive the web app URL from env
     const webUrl = import.meta.env.VITE_WEB_URL ?? 'https://aura.aura-companion.workers.dev';
     window.aura!.openExternal(`${webUrl}/auth?overlay=true`);
@@ -685,6 +698,7 @@ export function OverlayApp() {
         >
           <Orb size={ORB_W} state={orbState} variant="overlay" noHalo />
         </button>
+        {reactiveEnabled && <button onClick={() => setReactiveEnabled(false)} title="Mettre en pause les analyses écran" aria-label="Mettre en pause les analyses écran" className="absolute bottom-0 rounded-full bg-slate-900 px-2 py-1 text-[9px] text-cyan-200" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>Écran · {reactiveCount}/20 · Pause</button>}
       </div>
     );
   }
@@ -833,7 +847,7 @@ export function OverlayApp() {
           style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
         >
           {isElectron && user && (
-            <ControlBtn onClick={() => { setReactiveEnabled((value) => !value); setReactiveError(''); setReactiveSuggestion(''); }} title={reactiveEnabled ? 'Désactiver le mode réactif' : 'Mode réactif : analyser l’écran toutes les 15 s et proposer de l’aide'} active={reactiveEnabled}>
+            <ControlBtn onClick={() => { if (!reactiveEnabled) { reactiveBudget.current = 0; setReactiveCount(0); lastScreenHash.current = ''; } setReactiveEnabled((value) => !value); setReactiveError(''); setReactiveSuggestion(''); }} title={reactiveEnabled ? 'Désactiver le mode réactif' : 'Mode réactif : envoyer des captures à l’IA toutes les 15 s, maximum 20 analyses'} active={reactiveEnabled}>
               <Sparkles className="h-3 w-3" />
             </ControlBtn>
           )}
@@ -854,6 +868,7 @@ export function OverlayApp() {
           <ControlBtn onClick={closePanel} title="Minimise"><ChevronDown className="h-3 w-3" /></ControlBtn>
         </div>
 
+        {reactiveEnabled && <p role="status" className="px-1 text-[10px] text-cyan-100">Analyse écran activée · {reactiveCount}/20 · bouton ✨ pour arrêter</p>}
         {showOpacitySlider && (
           <label className="flex items-center gap-3 rounded-xl bg-white/[0.06] px-3 py-2 text-[11px] text-foreground/60" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
             Opacity

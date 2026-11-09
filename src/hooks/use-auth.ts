@@ -27,15 +27,17 @@ export function useAuth() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => {
+    const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
       setSession(s);
       setUser(s?.user ?? null);
-      if (s) { setError(null); setLoading(false); }
+      if (s) { setError(null); setLoading(false); void window.aura?.saveSession({ access_token: s.access_token, refresh_token: s.refresh_token }); }
+      if (event === 'SIGNED_OUT') void window.aura?.clearSession();
     });
     let active = true;
     const timeout = setTimeout(() => {
       if (active) { setError('La connexion prend trop de temps. Vérifie ton réseau puis réessaie.'); setLoading(false); }
     }, 12_000);
+    const unsubscribeSignedOut = window.aura?.onAuthSignedOut?.(() => { void supabase.auth.signOut({ scope: 'local' }); });
     const unsubscribeDeepLink = window.aura?.onAuthDeepLink(async ({ accessToken, refreshToken }) => {
       await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
     });
@@ -48,7 +50,7 @@ export function useAuth() {
     }).catch(() => {
       if (active) { setError('Impossible de restaurer la session. Reconnecte-toi pour continuer.'); setLoading(false); }
     }).finally(() => clearTimeout(timeout));
-    return () => { active = false; clearTimeout(timeout); sub.subscription.unsubscribe(); unsubscribeDeepLink?.(); };
+    return () => { active = false; clearTimeout(timeout); sub.subscription.unsubscribe(); unsubscribeDeepLink?.(); unsubscribeSignedOut?.(); };
   }, []);
 
   return { session, user, loading, error };

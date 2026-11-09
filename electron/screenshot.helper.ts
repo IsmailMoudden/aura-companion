@@ -1,4 +1,5 @@
 import path from 'node:path';
+import { screenshotPath } from './security';
 import fs from 'node:fs';
 import { app, screen, BrowserWindow } from 'electron';
 import { v4 as uuidv4 } from 'uuid';
@@ -73,7 +74,7 @@ export class ScreenshotHelper {
     let buffer = await this.capture(win);
     if (process.platform === 'darwin') buffer = await this.resizeForApi(buffer);
     const screenshotPath = path.join(this.screenshotDir, `${uuidv4()}.png`);
-    await fs.promises.writeFile(screenshotPath, buffer);
+    await fs.promises.writeFile(screenshotPath, buffer, { mode: 0o600 });
     return screenshotPath;
   }
 
@@ -115,11 +116,15 @@ export class ScreenshotHelper {
   }
 
   public async getImagePreview(filepath: string): Promise<string> {
+    filepath = screenshotPath(filepath, this.screenshotDir);
+    const stat = await fs.promises.lstat(filepath);
+    if (!stat.isFile() || stat.isSymbolicLink()) throw new Error('Invalid screenshot file');
     const data = await fs.promises.readFile(filepath);
     return `data:image/png;base64,${data.toString('base64')}`;
   }
 
   public async deleteScreenshot(filepath: string): Promise<void> {
+    filepath = screenshotPath(filepath, this.screenshotDir);
     try {
       await fs.promises.unlink(filepath);
     } catch {

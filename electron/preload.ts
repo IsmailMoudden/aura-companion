@@ -39,6 +39,12 @@ const auraAPI = {
     return () => ipcRenderer.removeListener('auth:deep-link', sub);
   },
 
+  onAuthSignedOut: (cb: () => void) => {
+    const sub = () => cb();
+    ipcRenderer.on('auth:signed-out', sub);
+    return () => ipcRenderer.removeListener('auth:signed-out', sub);
+  },
+
   // Persist session across relaunches
   saveSession: (tokens: { access_token: string; refresh_token: string }) => ipcRenderer.invoke('session:save', tokens),
   loadSession: () => ipcRenderer.invoke('session:load') as Promise<{ access_token: string; refresh_token: string } | null>,
@@ -46,6 +52,8 @@ const auraAPI = {
 
   // Open dashboard window
   openDashboard: () => ipcRenderer.invoke('app:open-dashboard'),
+
+  startSignIn: () => ipcRenderer.invoke('auth:sign-in'),
 
   // Open URL in system browser
   openExternal: (url: string) => ipcRenderer.invoke('shell:open-external', url),

@@ -27,6 +27,8 @@ function AuthPage() {
   useEffect(() => {
     // On OAuth callback, Supabase puts tokens in the URL hash — extract them client-side
     const params = new URLSearchParams(window.location.search);
+    const desktopState = params.get('desktop_state');
+    if (isOverlayFlow && desktopState && /^[a-f0-9]{64}$/.test(desktopState)) sessionStorage.setItem('aura-desktop-state', desktopState);
     const hash = new URLSearchParams(window.location.hash.slice(1));
     const errorDescription = params.get('error_description') ?? hash.get('error_description');
     if (errorDescription) { setAuthError(errorDescription); setBusy(false); return; }
@@ -58,7 +60,9 @@ function AuthPage() {
     if (redirected.current) return;
     redirected.current = true;
     setAuthComplete(true);
-    window.location.href = `aura://auth?access_token=${encodeURIComponent(accessToken)}&refresh_token=${encodeURIComponent(refreshToken)}`;
+    const desktopState = sessionStorage.getItem('aura-desktop-state');
+    const stateParam = desktopState && /^[a-f0-9]{64}$/.test(desktopState) ? `&desktop_state=${desktopState}` : '';
+    window.location.href = `aura://auth?access_token=${encodeURIComponent(accessToken)}&refresh_token=${encodeURIComponent(refreshToken)}${stateParam}`;
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -103,6 +107,7 @@ function AuthPage() {
     setAuthError('');
     // Google OAuth runs in the system browser; embedded Electron browsers are rejected by Google.
     if (window.aura) {
+      if (window.aura.startSignIn) { await window.aura.startSignIn(); setBusy(false); return; }
       const webUrl = import.meta.env.VITE_WEB_URL || 'https://aura.aura-companion.workers.dev';
       await window.aura.openExternal(`${webUrl.replace(/\/$/, '')}/auth?overlay=true`);
       setBusy(false);

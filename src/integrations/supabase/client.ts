@@ -20,11 +20,17 @@ function createSupabaseClient() {
     throw new Error(`Missing Supabase env vars: ${missing.join(', ')}`);
   }
 
+  const desktop = typeof window !== 'undefined' && !!window.aura;
+  if (desktop) {
+    // Desktop persistence belongs exclusively to the encrypted main-process vault.
+    const project = new URL(SUPABASE_URL).hostname.split('.')[0];
+    try { localStorage.removeItem(`sb-${project}-auth-token`); } catch { /* Storage may be unavailable. */ }
+  }
   return createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
     auth: {
-      storage: typeof window !== 'undefined' ? localStorage : undefined,
-      persistSession: true,
-      autoRefreshToken: true,
+      storage: !desktop && typeof window !== 'undefined' ? localStorage : undefined,
+      persistSession: !desktop,
+      autoRefreshToken: !desktop || window.location.protocol === 'file:',
       flowType: 'pkce',
     }
   });
