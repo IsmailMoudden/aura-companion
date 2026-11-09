@@ -18,7 +18,7 @@ export interface AuraAPI {
   loadSession: () => Promise<{ access_token: string; refresh_token: string } | null>;
   clearSession: () => Promise<void>;
   openDashboard: () => Promise<void>;
-  startSignIn: () => Promise<void>;
+  startSignIn?: () => Promise<void>;
   openExternal: (url: string) => Promise<void>;
   platform: string;
 }
