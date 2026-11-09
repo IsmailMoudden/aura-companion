@@ -8,8 +8,9 @@ export function redirectPatch(config, siteUrl) {
     : (config.uri_allow_list ?? '').split(',').map((url) => url.trim()).filter(Boolean);
   const required = [`${origin}/auth`, `${origin}/auth?overlay=true`];
   const patch = {};
-  if (config.site_url !== origin) patch.site_url = origin;
-  if (required.some((url) => !allowed.includes(url))) patch.uri_allow_list = [...new Set([...allowed, ...required])].join(',');
+  if ((config.site_url ?? '').replace(/\/$/, '') !== origin) patch.site_url = origin;
+  const covered = (url) => allowed.includes(url) || allowed.some((pattern) => [`${origin}/**`, `${origin}/*`, `${origin}/auth**`].includes(pattern));
+  if (required.some((url) => !covered(url))) patch.uri_allow_list = [...new Set([...allowed, ...required])].join(',');
   return patch;
 }
 
@@ -26,8 +27,13 @@ async function main() {
   console.log(`Verifying OAuth return URLs for ${new URL(siteUrl).origin}`);
   const patch = redirectPatch(config, siteUrl);
   if (Object.keys(patch).length) {
+    console.log(`Auth fields requiring repair: ${Object.keys(patch).join(', ')}`);
     const result = await fetch(endpoint, { method: 'PATCH', headers, body: JSON.stringify(patch) });
-    if (!result.ok) throw new Error(`Cannot update auth redirects: HTTP ${result.status}`);
+    if (!result.ok) {
+      const error = await result.json().catch(() => ({}));
+      const reason = typeof error.message === 'string' ? error.message.slice(0, 400).replace(/sbp_[A-Za-z0-9_-]+/g, '[redacted]') : '';
+      throw new Error(`Cannot update auth redirects: HTTP ${result.status}${reason ? ` — ${reason}` : ''}`);
+    }
     console.log('OAuth return URLs repaired; existing allowed URLs preserved.');
   } else {
     console.log('OAuth return URLs already correct.');
