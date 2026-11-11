@@ -27,7 +27,13 @@ Deno.serve(async (request: Request) => {
       || (category !== 'identity' && action !== 'add' && !/^\d{1,4}$/.test(key))
       || (action !== 'delete' && !validMemoryValue(category as Category, key, value))) return respond({ error: 'Invalid memory value' }, 400);
     const { data, error } = await admin.rpc('edit_user_memory', { p_user_id: user.id, p_category: category, p_key: key, p_expected: expected ?? null, p_value: action === 'delete' ? null : value, p_action: action });
-    if (error) return respond({ error: error.code === '40001' ? 'This memory changed. Reload it before editing again.' : 'Memory could not be saved.' }, error.code === '40001' ? 409 : 503);
+    if (error) {
+      // Application conflicts must not use retryable SQL serialization errors.
+      if (error.message === 'Memory changed') return respond({ error: 'This memory changed. Reload it before editing again.' }, 409);
+      if (error.message === 'Memory limit reached') return respond({ error: 'You can keep up to 50 remembered facts. Delete a fact before adding another.' }, 400);
+      console.error(JSON.stringify({ event: 'memory_write_failed', code: error.code, action, category }));
+      return respond({ error: 'Memory could not be saved.' }, 503);
+    }
     return respond({ profile: data });
   } catch { return respond({ error: 'Memory is temporarily unavailable.' }, 503); }
 });

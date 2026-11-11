@@ -28,7 +28,7 @@ begin
   elsif p_category = 'identity' then
     if p_key not in ('name','job','timezone','languages','communication_style') then raise exception 'Invalid memory field'; end if;
     previous := row_data.identity->p_key;
-    if previous is distinct from p_expected then raise exception 'Memory changed' using errcode = '40001'; end if;
+    if previous is distinct from p_expected then raise exception 'Memory changed' using errcode = 'P0001'; end if;
     items := case when p_action = 'delete' then row_data.identity - p_key else jsonb_set(row_data.identity,array[p_key],p_value) end;
     rule_key := p_key;
   else
@@ -36,7 +36,7 @@ begin
     idx := p_key::int;
     items := to_jsonb(row_data)->p_category;
     previous := items->idx;
-    if previous is null or previous is distinct from p_expected then raise exception 'Memory changed' using errcode = '40001'; end if;
+    if previous is null or previous is distinct from p_expected then raise exception 'Memory changed' using errcode = 'P0001'; end if;
     rule_key := encode(sha256(convert_to(lower(case p_category when 'projects' then previous->>'name' when 'topics' then previous->>'label' else previous->>'fact' end),'UTF8')),'hex');
     items := case when p_action = 'delete' then items - idx else jsonb_set(items,array[p_key],p_value) end;
   end if;
