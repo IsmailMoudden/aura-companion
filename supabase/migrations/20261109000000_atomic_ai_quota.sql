@@ -1,3 +1,26 @@
+-- Bootstrap prerequisites too: some existing projects predate the cumulative-usage migrations.
+create table if not exists public.user_total_usage (
+  user_id uuid not null references auth.users(id) on delete cascade,
+  model text not null,
+  count int not null default 0,
+  updated_at timestamptz not null default now(),
+  primary key (user_id, model)
+);
+create table if not exists public.user_limit_overrides (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  model text not null,
+  total_limit int not null,
+  note text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (user_id, model)
+);
+alter table public.user_total_usage enable row level security;
+alter table public.user_limit_overrides enable row level security;
+revoke all on public.user_total_usage, public.user_limit_overrides from public, anon, authenticated;
+grant all on public.user_total_usage, public.user_limit_overrides to service_role;
+
 -- Reservations count against the limit before any provider call, including concurrent requests.
 create table if not exists public.ai_usage_reservations (
   id uuid primary key,
@@ -45,3 +68,6 @@ revoke all on function public.reserve_ai_usage(uuid, text, int, uuid) from publi
 revoke all on function public.finish_ai_usage(uuid, boolean) from public, anon, authenticated;
 grant execute on function public.reserve_ai_usage(uuid, text, int, uuid) to service_role;
 grant execute on function public.finish_ai_usage(uuid, boolean) to service_role;
+
+-- Refresh the REST schema cache after adding the quota RPCs.
+notify pgrst, 'reload schema';

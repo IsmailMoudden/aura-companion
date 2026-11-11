@@ -14,8 +14,6 @@ sql("""
 create schema auth;
 create role anon; create role authenticated; create role service_role;
 create table auth.users(id uuid primary key);
-create table public.user_total_usage(user_id uuid references auth.users(id), model text, count int default 0, primary key(user_id,model));
-create table public.user_limit_overrides(user_id uuid, model text, total_limit int, unique(user_id,model));
 """)
 migration = pathlib.Path(__file__).resolve().parents[1] / 'supabase/migrations/20261109000000_atomic_ai_quota.sql'
 sql(migration.read_text())
@@ -44,7 +42,7 @@ try:
 except subprocess.CalledProcessError:
     pass
 assert sql(f"select count from public.user_total_usage where user_id='{user}' and model='auto'") == '6'
-sql(f"insert into public.user_limit_overrides values ('{user}','other',2)")
+sql(f"insert into public.user_limit_overrides(user_id,model,total_limit) values ('{user}','other',2)")
 for _ in range(2):
     assert sql(f"select allowed from public.reserve_ai_usage('{user}','other',99,'{uuid.uuid4()}')") == 't'
 assert sql(f"select allowed from public.reserve_ai_usage('{user}','other',99,'{uuid.uuid4()}')") == 'f'
