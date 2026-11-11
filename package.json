@@ -1,6 +1,6 @@
 {
   "name": "aura-companion",
-  "version": "0.4.7",
+  "version": "0.4.8",
   "description": "Aura \u2014 your ambient AI companion",
   "private": true,
   "sideEffects": false,

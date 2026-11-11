@@ -1,4 +1,4 @@
-import { ipcMain, app, shell, safeStorage } from 'electron';
+import { ipcMain, app, shell, safeStorage, clipboard } from 'electron';
 import { IPC_EVENTS } from '../shared/constants';
 import { ScreenshotHelper } from './screenshot.helper';
 import type { BrowserWindow } from 'electron';
@@ -36,7 +36,7 @@ export function initializeIpcHandlers(deps: IpcDeps): void {
   const overlayFile = path.join(__dirname, '../dist-overlay/overlay.html');
   const overlayChannels = new Set<string>([
     ...Object.values(IPC_EVENTS.OVERLAY), ...Object.values(IPC_EVENTS.WINDOW),
-    ...Object.values(IPC_EVENTS.SCREENSHOT), 'screenshot:capture-only', 'app:quit',
+    ...Object.values(IPC_EVENTS.SCREENSHOT), 'screenshot:capture-only', 'clipboard:write', 'app:quit',
   ]);
   const handle: typeof ipcMain.handle = (channel, listener) => ipcMain.handle(channel, (event, ...args) => {
     const win = [deps.getMainWindow(), deps.getDashboardWindow()].find((item) => item && !item.isDestroyed() && item.webContents.id === event.sender.id);
@@ -51,6 +51,11 @@ export function initializeIpcHandlers(deps: IpcDeps): void {
   handle(IPC_EVENTS.WINDOW.UPDATE_DIMENSIONS, (_e, size: unknown) => {
     const { width, height } = validDimensions(size);
     deps.setWindowSize(width, height);
+  });
+
+  handle('clipboard:write', (_event, text: unknown) => {
+    if (typeof text !== 'string' || text.length > 128_000) throw new Error('Invalid clipboard text');
+    clipboard.writeText(text);
   });
 
   handle(IPC_EVENTS.WINDOW.MOVE_LEFT, () => deps.moveLeft());

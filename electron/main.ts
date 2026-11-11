@@ -4,6 +4,7 @@ import { AuthAttempt } from './auth-attempt';
 import { validTokens } from './session-vault';
 import { trustedDocument, allowedExternalUrl } from './security';
 import { dashboardPage } from './dashboard-page';
+import { resizeOnDisplay, nudgeAcrossDisplays } from './window-geometry';
 import * as dotenv from 'dotenv';
 import { AuraWindowConfig } from './window-config/AuraWindowConfig';
 import { ScreenshotHelper } from './screenshot.helper';
@@ -21,8 +22,6 @@ const state = {
   isInvisible: false,
   currentX: 0,
   currentY: 50,
-  screenWidth: 0,
-  screenHeight: 0,
   step: 60,
   screenshotHelper: null as ScreenshotHelper | null,
   shortcutsHelper: null as ShortcutsHelper | null,
@@ -106,17 +105,12 @@ function toggleWindow() {
 function setWindowSize(width: number, height: number) {
   const win = state.mainWindow;
   if (!win || win.isDestroyed()) return;
-  const w = Math.round(width);
-  const h = Math.round(height);
-  // Anchor to bottom-right corner so expanding goes up/left, never off-screen
-  const prevBounds = win.getBounds();
-  const anchorX = prevBounds.x + prevBounds.width;
-  const anchorY = prevBounds.y + prevBounds.height;
-  const x = Math.max(0, anchorX - w);
-  const y = Math.max(30, anchorY - h); // 30px = macOS menu bar height
-  win.setBounds({ x, y, width: w, height: h });
-  state.currentX = x;
-  state.currentY = y;
+  const previous = win.getBounds();
+  const area = screen.getDisplayMatching(previous).workArea;
+  const bounds = resizeOnDisplay(previous, width, height, area);
+  win.setBounds(bounds);
+  state.currentX = bounds.x;
+  state.currentY = bounds.y;
 }
 
 function toggleInvisible() {
@@ -126,33 +120,18 @@ function toggleInvisible() {
   win.setContentProtection(state.isInvisible);
 }
 
-function moveLeft() {
-  if (!state.mainWindow) return;
-  const bounds = state.mainWindow.getBounds();
-  state.currentX = Math.max(-(bounds.width / 2), state.currentX - state.step);
-  state.mainWindow.setPosition(Math.round(state.currentX), Math.round(state.currentY));
+function moveWindow(dx: number, dy: number) {
+  const win = state.mainWindow;
+  if (!win || win.isDestroyed()) return;
+  const next = nudgeAcrossDisplays(win.getBounds(), dx, dy, screen.getAllDisplays().map(display => display.workArea));
+  win.setPosition(Math.round(next.x), Math.round(next.y));
+  state.currentX = next.x;
+  state.currentY = next.y;
 }
-
-function moveRight() {
-  if (!state.mainWindow) return;
-  const bounds = state.mainWindow.getBounds();
-  state.currentX = Math.min(state.screenWidth - bounds.width / 2, state.currentX + state.step);
-  state.mainWindow.setPosition(Math.round(state.currentX), Math.round(state.currentY));
-}
-
-function moveUp() {
-  if (!state.mainWindow) return;
-  const bounds = state.mainWindow.getBounds();
-  state.currentY = Math.max(-(bounds.height * 2 / 3), state.currentY - state.step);
-  state.mainWindow.setPosition(Math.round(state.currentX), Math.round(state.currentY));
-}
-
-function moveDown() {
-  if (!state.mainWindow) return;
-  const bounds = state.mainWindow.getBounds();
-  state.currentY = Math.min(state.screenHeight + bounds.height * 2 / 3, state.currentY + state.step);
-  state.mainWindow.setPosition(Math.round(state.currentX), Math.round(state.currentY));
-}
+const moveLeft = () => moveWindow(-state.step, 0);
+const moveRight = () => moveWindow(state.step, 0);
+const moveUp = () => moveWindow(0, -state.step);
+const moveDown = () => moveWindow(0, state.step);
 
 // ─── Dashboard window ─────────────────────────────────────────────────────────
 const authAttempt = new AuthAttempt();
@@ -175,14 +154,16 @@ async function openDashboard() {
     return;
   }
 
-  const { width, height } = screen.getPrimaryDisplay().workAreaSize;
+  const area = (state.mainWindow ? screen.getDisplayMatching(state.mainWindow.getBounds()) : screen.getDisplayNearestPoint(screen.getCursorScreenPoint())).workArea;
+  const width = Math.min(1280, Math.round(area.width * 0.85));
+  const height = Math.min(860, Math.round(area.height * 0.90));
 
   state.dashboardWindow = new BrowserWindow({
-    width: Math.min(1280, Math.round(width * 0.85)),
-    height: Math.min(860, Math.round(height * 0.90)),
-    minWidth: 800,
-    minHeight: 600,
-    center: true,
+    width, height,
+    minWidth: Math.min(800, width),
+    minHeight: Math.min(600, height),
+    x: area.x + Math.round((area.width - width) / 2),
+    y: area.y + Math.round((area.height - height) / 2),
     title: 'Aura',
     titleBarStyle: 'hiddenInset',
     trafficLightPosition: { x: 16, y: 16 },
@@ -272,13 +253,9 @@ function secureWindow(win: BrowserWindow) {
 
 // ─── Create window ────────────────────────────────────────────────────────────
 async function createWindow() {
-  const display = screen.getPrimaryDisplay();
-  state.screenWidth = display.workAreaSize.width;
-  state.screenHeight = display.workAreaSize.height;
-
-  // Center of screen — safe default, easy to see
-  state.currentX = Math.round(state.screenWidth / 2) - 40;
-  state.currentY = Math.round(state.screenHeight / 2) - 40;
+  const area = screen.getDisplayNearestPoint(screen.getCursorScreenPoint()).workArea;
+  state.currentX = area.x + Math.round((area.width - AuraWindowConfig.baseSettings.width!) / 2);
+  state.currentY = area.y + Math.round((area.height - AuraWindowConfig.baseSettings.height!) / 2);
 
   state.mainWindow = new BrowserWindow({
     ...AuraWindowConfig.baseSettings,
@@ -294,6 +271,19 @@ async function createWindow() {
   });
 
   secureWindow(state.mainWindow);
+  state.mainWindow.webContents.on('context-menu', (_event, params) => {
+    if (params.selectionText) Menu.buildFromTemplate([{ role: 'copy' }]).popup({ window: state.mainWindow! });
+  });
+  const recoverDisplay = () => {
+    const win = state.mainWindow;
+    if (win && !win.isDestroyed()) { const bounds = win.getBounds(); setWindowSize(bounds.width, bounds.height); }
+  };
+  screen.on('display-removed', recoverDisplay);
+  screen.on('display-metrics-changed', recoverDisplay);
+  state.mainWindow.on('closed', () => {
+    screen.removeListener('display-removed', recoverDisplay);
+    screen.removeListener('display-metrics-changed', recoverDisplay);
+  });
 
   // Load the built overlay
   await state.mainWindow.loadFile(path.join(__dirname, '../dist-overlay/overlay.html'));
@@ -364,7 +354,7 @@ async function init() {
     takeScreenshot: async () => {
       const win = state.mainWindow;
       if (!win) return;
-      const filepath = await state.screenshotHelper!.takeScreenshot(hideWindow, showWindow);
+      const filepath = await state.screenshotHelper!.takeScreenshot(hideWindow, showWindow, win);
       const preview = await state.screenshotHelper!.getImagePreview(filepath);
       win.webContents.send('screenshot:taken', { path: filepath, preview });
     },

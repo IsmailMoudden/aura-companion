@@ -58,6 +58,8 @@ const auraAPI = {
   // Open URL in system browser
   openExternal: (url: string) => ipcRenderer.invoke('shell:open-external', url),
 
+  copyText: (text: string) => ipcRenderer.invoke('clipboard:write', text),
+
   platform: process.platform,
 } as const;
 

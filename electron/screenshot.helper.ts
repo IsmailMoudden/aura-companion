@@ -1,7 +1,7 @@
 import path from 'node:path';
 import { screenshotPath } from './security';
 import fs from 'node:fs';
-import { app, screen, BrowserWindow } from 'electron';
+import { app, screen, BrowserWindow, desktopCapturer } from 'electron';
 import { v4 as uuidv4 } from 'uuid';
 import { execFile } from 'child_process';
 import { promisify } from 'util';
@@ -47,7 +47,7 @@ export class ScreenshotHelper {
     if (process.platform === 'darwin') {
       return this.captureScreenshotMac(win);
     } else if (process.platform === 'win32') {
-      return this.captureScreenshotWindows();
+      return this.captureScreenshotWindows(win);
     }
     throw new Error(`Platform ${process.platform} not yet supported`);
   }
@@ -108,23 +108,14 @@ export class ScreenshotHelper {
     return screenshotPath;
   }
 
-  private async captureScreenshotWindows(): Promise<Buffer> {
-    const tmpPath = path.join(app.getPath('temp'), `${uuidv4()}.png`);
-    const script = `
-      Add-Type -AssemblyName System.Windows.Forms
-      Add-Type -AssemblyName System.Drawing
-      $screen = [System.Windows.Forms.Screen]::PrimaryScreen
-      $bitmap = New-Object System.Drawing.Bitmap $screen.Bounds.Width, $screen.Bounds.Height
-      $graphics = [System.Drawing.Graphics]::FromImage($bitmap)
-      $graphics.CopyFromScreen($screen.Bounds.X, $screen.Bounds.Y, 0, 0, $bitmap.Size)
-      $bitmap.Save('${tmpPath.replace(/\\/g, '\\\\')}')
-      $graphics.Dispose()
-      $bitmap.Dispose()
-    `;
-    await execFileAsync('powershell', ['-command', script]);
-    const buffer = await fs.promises.readFile(tmpPath);
-    await fs.promises.unlink(tmpPath);
-    return buffer;
+  private async captureScreenshotWindows(win?: BrowserWindow | null): Promise<Buffer> {
+    const display = win ? screen.getDisplayMatching(win.getBounds()) : screen.getDisplayNearestPoint(screen.getCursorScreenPoint());
+    const width = Math.min(1280, Math.round(display.size.width * display.scaleFactor));
+    const height = Math.round(width * display.size.height / display.size.width);
+    const sources = await desktopCapturer.getSources({ types: ['screen'], thumbnailSize: { width, height } });
+    const source = sources.find(item => item.display_id === String(display.id));
+    if (!source || source.thumbnail.isEmpty()) throw new Error('The selected display could not be captured.');
+    return source.thumbnail.toPNG();
   }
 
   public async getImagePreview(filepath: string): Promise<string> {

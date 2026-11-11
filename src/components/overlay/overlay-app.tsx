@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { Orb } from '@/components/aura/orb';
-import { X, Camera, ChevronDown, Mic, MicOff, Volume2, VolumeX, Sun, Keyboard, LayoutDashboard, ScanEye } from 'lucide-react';
+import { X, Camera, ChevronDown, Mic, MicOff, Volume2, VolumeX, Sun, Keyboard, LayoutDashboard, ScanEye, Copy, Check } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 import { aiRequestError, aiConnectionError } from '@/lib/ai-errors';
@@ -1126,7 +1126,7 @@ function UserBubble({ message }: { message: Message }) {
           <img src={message.screenshot} alt="" className="mb-2 w-full rounded-2xl object-cover opacity-55" />
         )}
         <div
-          className="text-[13px] font-light leading-relaxed text-foreground/88"
+          className="select-text text-[13px] font-light leading-relaxed text-foreground/88"
           style={{ padding: '9px 16px', borderRadius: '20px 20px 6px 20px', background: 'oklch(1 0 0 / 0.10)', border: '1px solid oklch(1 0 0 / 0.07)' }}
         >
           {message.content}
@@ -1238,12 +1238,26 @@ function inlineMarkdown(text: string): React.ReactNode {
 }
 
 function AssistantBubble({ message }: { message: Message }) {
+  const [copied, setCopied] = useState(false);
+  const [copyFailed, setCopyFailed] = useState(false);
+  useEffect(() => {
+    if (!copied) return;
+    const timer = setTimeout(() => setCopied(false), 2000);
+    return () => clearTimeout(timer);
+  }, [copied]);
   return (
-    <div
-      className="font-light text-foreground/90"
-      style={{ fontSize: 14, lineHeight: 1.55, letterSpacing: '-0.01em' }}
-    >
-      {renderMarkdown(message.content)}
+    <div className="font-light text-foreground/90" style={{ fontSize: 14, lineHeight: 1.55, letterSpacing: '-0.01em' }}>
+      <div className="select-text cursor-text" data-testid="assistant-message" style={{ userSelect: 'text', WebkitUserSelect: 'text' }}>
+        {renderMarkdown(message.content)}
+      </div>
+      {message.content && <button type="button" aria-label="Copy response" className="mt-2 inline-flex select-none items-center gap-1.5 rounded-lg px-2 py-1 text-[11px] text-foreground/65 transition-colors hover:bg-white/10 hover:text-foreground" onClick={async () => {
+        try { if (window.aura?.copyText) await window.aura.copyText(message.content); else await navigator.clipboard.writeText(message.content); setCopied(true); setCopyFailed(false); }
+        catch { setCopyFailed(true); }
+      }}>
+        {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+        <span role="status">{copied ? 'Copied' : 'Copy'}</span>
+      </button>}
+      {copyFailed && <p role="status" className="mt-1 text-[11px]">Select the response text and press {typeof navigator !== 'undefined' && /Mac/.test(navigator.platform) ? '⌘C' : 'Ctrl+C'} to copy.</p>}
     </div>
   );
 }
