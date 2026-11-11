@@ -28,3 +28,37 @@ if (!response.ok) {
   throw new Error(`Quota migration failed: HTTP ${response.status}${reason ? ` — ${reason}` : ''}`);
 }
 console.log('Atomic quota migration applied.');
+
+// Exercise the real schema (including production triggers) without charging a user.
+const health = await fetch(endpoint, {
+  method: 'POST', signal: AbortSignal.timeout(30_000), headers,
+  body: JSON.stringify({ read_only: false, query: `begin;
+    do $$ declare test_user uuid; begin
+      select id into test_user from auth.users order by created_at limit 1;
+      if test_user is not null then
+        perform * from public.reserve_ai_usage(test_user, 'auto', 300, gen_random_uuid());
+      end if;
+    end $$;
+    rollback;` }),
+});
+if (!health.ok) {
+  const error = await health.json().catch(() => ({}));
+  throw new Error(`Quota runtime check failed: HTTP ${health.status} — ${String(error.message ?? '').slice(0, 1200).replace(/sbp_[A-Za-z0-9_-]+/g, '[redacted]')}`);
+}
+// Confirm PostgREST sees the RPC after migration. Invalid quota fails before any writes.
+const keysResponse = await fetch(`https://api.supabase.com/v1/projects/${ref}/api-keys`, { headers, signal: AbortSignal.timeout(15_000) });
+if (!keysResponse.ok) throw new Error(`Cannot verify quota API: HTTP ${keysResponse.status}`);
+const keys = await keysResponse.json();
+const serviceKey = keys.find((key) => key.name === 'service_role')?.api_key;
+if (!serviceKey) throw new Error('Quota API verification requires the project service role key');
+if (process.env.GITHUB_ACTIONS) console.log(`::add-mask::${serviceKey}`);
+const rpc = await fetch(`https://${configuredHost}/rest/v1/rpc/reserve_ai_usage`, {
+  method: 'POST', signal: AbortSignal.timeout(15_000),
+  headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}`, 'Content-Type': 'application/json' },
+  body: JSON.stringify({ p_user_id: '00000000-0000-4000-8000-000000000000', p_model: 'auto', p_default_limit: 0, p_request_id: crypto.randomUUID() }),
+});
+const rpcResult = await rpc.json();
+if (rpcResult.code !== 'P0001' || rpcResult.message !== 'Invalid quota') {
+  throw new Error(`Quota API check failed: HTTP ${rpc.status} — ${rpcResult.code ?? 'unknown'}: ${String(rpcResult.message ?? '').slice(0, 500)}`);
+}
+console.log('Production quota SQL and REST checks passed; no usage charged.');
