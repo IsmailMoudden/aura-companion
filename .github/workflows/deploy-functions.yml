@@ -7,6 +7,7 @@ on:
       - 'supabase/functions/**'
       - 'supabase/migrations/20261109000000_atomic_ai_quota.sql'
       - 'scripts/deploy-ai-quota.mjs'
+      - 'scripts/smoke-chat.mjs'
       - 'scripts/ensure-auth-redirects.mjs'
       - '.github/workflows/deploy-functions.yml'
   workflow_dispatch:
@@ -47,6 +48,12 @@ jobs:
 
       - name: Deploy chat function
         run: supabase functions deploy chat --remote="$SUPABASE_PROJECT_REF" --yes
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+
+      - name: Verify authenticated production chat
+        run: node scripts/smoke-chat.mjs
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
