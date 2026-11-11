@@ -70,8 +70,20 @@ export class ScreenshotHelper {
   }
 
   // Capture without hiding the overlay — for auto-capture on message send
-  public async captureOnly(win?: BrowserWindow | null): Promise<string> {
-    let buffer = await this.capture(win);
+  public async captureOnly(win?: BrowserWindow | null, excludeOverlay = false): Promise<string> {
+    // Keep the overlay out of proactive captures, including its animations and notifications.
+    // Opacity avoids stealing focus from the app the user is working in.
+    const previousOpacity = win && !win.isDestroyed() ? win.getOpacity() : 1;
+    let buffer: Buffer;
+    try {
+      if (excludeOverlay && win && !win.isDestroyed()) {
+        win.setOpacity(0);
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      }
+      buffer = await this.capture(win);
+    } finally {
+      if (excludeOverlay && win && !win.isDestroyed()) win.setOpacity(previousOpacity);
+    }
     if (process.platform === 'darwin') buffer = await this.resizeForApi(buffer);
     const screenshotPath = path.join(this.screenshotDir, `${uuidv4()}.png`);
     await fs.promises.writeFile(screenshotPath, buffer, { mode: 0o600 });

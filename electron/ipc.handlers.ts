@@ -71,11 +71,11 @@ export function initializeIpcHandlers(deps: IpcDeps): void {
     }
   });
 
-  handle('screenshot:capture-only', async () => {
+  handle('screenshot:capture-only', async (_e, options?: { excludeOverlay?: boolean }) => {
     const win = deps.getMainWindow();
     if (!win) return { success: false };
     try {
-      const filepath = await deps.screenshotHelper.captureOnly(win);
+      const filepath = await deps.screenshotHelper.captureOnly(win, options?.excludeOverlay === true);
       const preview = await deps.screenshotHelper.getImagePreview(filepath);
       return { success: true, path: filepath, preview };
     } catch (err) {

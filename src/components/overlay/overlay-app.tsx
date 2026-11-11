@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { Orb } from '@/components/aura/orb';
-import { X, Camera, ChevronDown, Mic, MicOff, Volume2, VolumeX, Sun, Keyboard, LayoutDashboard, Sparkles } from 'lucide-react';
+import { X, Camera, ChevronDown, Mic, MicOff, Volume2, VolumeX, Sun, Keyboard, LayoutDashboard, ScanEye } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
+import { aiRequestError, aiConnectionError } from '@/lib/ai-errors';
 import { MODELS, LIMIT_CONTACT, getModelLabel, type ModelId } from '@/lib/models';
 import { DEMO_MODE, matchDemoResponse, streamDemoResponse } from './demo-responses';
 
@@ -95,6 +96,7 @@ const PANEL_R_CONV = 26;   // border-radius in conversation
 export function OverlayApp() {
   const [reactiveEnabled, setReactiveEnabled] = useState(false);
   const [reactiveCount, setReactiveCount] = useState(0);
+  const [reactiveStatus, setReactiveStatus] = useState('Watching for screen changes');
   const reactiveBudget = useRef(0);
   const lastScreenHash = useRef('');
   const [reactiveSuggestion, setReactiveSuggestion] = useState('');
@@ -133,6 +135,8 @@ export function OverlayApp() {
   const dictSubmitRef = useRef<(() => void) | null>(null); // callable to force-submit current dictation
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const observationContext = useRef({ busy, voiceMode, inputFocused });
+  observationContext.current = { busy, voiceMode, inputFocused };
 
   useEffect(() => {
     const init = async () => {
@@ -236,12 +240,13 @@ export function OverlayApp() {
     if (!isElectron || !expanded) return;
     const hasConv = messages.length > 0;
     if (!hasConv) {
-      window.aura!.updateDimensions(PANEL_W, PANEL_H_IDLE + (showOpacitySlider ? 44 : 0));
+      const noticeHeight = reactiveSuggestion || reactiveError ? 190 : 0;
+      window.aura!.updateDimensions(PANEL_W, PANEL_H_IDLE + (showOpacitySlider ? 44 : 0) + (reactiveEnabled ? 65 : 0) + noticeHeight);
       return;
     }
     const h = (screenshot ? PANEL_H_CONV_SCREENSHOT : PANEL_H_CONV) + (showOpacitySlider ? 44 : 0);
     window.aura!.updateDimensions(PANEL_W, h);
-  }, [screenshot, expanded, messages.length, showOpacitySlider]);
+  }, [screenshot, expanded, messages.length, showOpacitySlider, reactiveEnabled, reactiveSuggestion, reactiveError]);
 
   const captureScreenshot = useCallback(async () => {
     if (!isElectron) return;
@@ -321,9 +326,10 @@ export function OverlayApp() {
       }
       if (!res.ok) {
         console.error('chat error:', res.status, json);
-        throw new Error(json.error ?? `HTTP ${res.status}`);
+        throw new Error(aiRequestError(res.status, json.error));
       }
-      const reply = json.reply ?? "Something went quiet.";
+      if (!json.reply?.trim()) throw new Error('The AI returned an empty response. Please try again.');
+      const reply = json.reply;
       setMessages((m) => [...m, { id: crypto.randomUUID(), role: 'assistant', content: reply }]);
       if (ttsEnabledRef.current) speak(reply);
 
@@ -333,7 +339,7 @@ export function OverlayApp() {
       if (attachedScreenshot) clearScreenshot();
     } catch (err) {
       console.error('runAI failed:', err);
-      setMessages((m) => [...m, { id: crypto.randomUUID(), role: 'assistant', content: 'Something went quiet. Try again?' }]);
+      setMessages((m) => [...m, { id: crypto.randomUUID(), role: 'assistant', content: aiConnectionError(err) }]);
     } finally {
       setBusy(false);
       setOrbState('idle');
@@ -382,18 +388,23 @@ export function OverlayApp() {
     let cancelled = false;
     const controller = new AbortController();
     const observe = async () => {
-      if (reactiveBudget.current >= 20) { setReactiveEnabled(false); setReactiveError('Budget de 20 analyses atteint. Réactive le mode pour une nouvelle session.'); openPanelRef.current(); return; }
-      if (reactiveInFlight.current || busy || expanded || voiceMode !== 'off' || Date.now() - lastSuggestionAt.current < 120_000) return;
+      if (reactiveBudget.current >= 20) { setReactiveEnabled(false); setReactiveError('This session has reached 20 screen analyses. Turn Screen assist on again to start a new session.'); openPanelRef.current(); return; }
+      if (reactiveInFlight.current) return;
+      const context = observationContext.current;
+      if (context.busy || context.voiceMode !== 'off' || context.inputFocused) { setReactiveStatus('Waiting while you use Aura'); return; }
+      if (Date.now() - lastSuggestionAt.current < 120_000) { setReactiveStatus('Watching · next suggestion in up to 2 minutes'); return; }
+      setReactiveStatus('Analyzing your screen…');
       reactiveInFlight.current = true;
       let capturePath: string | undefined;
       try {
-        const capture = await window.aura!.captureOnly();
+        const capture = await window.aura!.captureOnly({ excludeOverlay: true });
         capturePath = capture.path;
         if (cancelled) return;
-        if (!capture.success || !capture.preview) throw new Error('Capture écran indisponible. Vérifie les autorisations macOS.');
+        if (!capture.success || !capture.preview) throw new Error('Screen capture is unavailable. Enable Screen Recording for Aura in System Settings, then restart Aura.');
         const hashBytes = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(capture.preview));
         const screenHash = Array.from(new Uint8Array(hashBytes), (byte) => byte.toString(16).padStart(2, '0')).join('');
-        if (cancelled || screenHash === lastScreenHash.current) return;
+        if (cancelled) return;
+        if (screenHash === lastScreenHash.current) { setReactiveStatus('Screen unchanged · watching every 15 seconds'); return; }
         const { data: { session } } = await supabase.auth.getSession();
         if (cancelled) return;
         lastScreenHash.current = screenHash;
@@ -403,12 +414,13 @@ export function OverlayApp() {
           method: 'POST',
           signal: AbortSignal.any([controller.signal, AbortSignal.timeout(50_000)]),
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token ?? ''}` },
-          body: JSON.stringify({ mode: 'reactive', model: 'auto', screenshot: capture.preview, messages: [{ role: 'user', content: 'Observe la tâche visible. Propose une aide concrète seulement si elle est utile maintenant.' }] }),
+          body: JSON.stringify({ mode: 'reactive', model: 'auto', screenshot: capture.preview, messages: [{ role: 'user', content: 'Observe the visible task. Suggest one concrete action you can help with only if it would be useful right now. Respond in English.' }] }),
         });
         const result = await response.json() as { reply?: string; error?: string };
-        if (!response.ok) throw new Error(result.error ?? 'Analyse indisponible');
+        if (!response.ok) throw new Error(aiRequestError(response.status, result.error));
         if (cancelled) return;
         setReactiveError('');
+        setReactiveStatus('Watching for screen changes · every 15 seconds');
         const suggestion = result.reply?.trim();
         if (suggestion && suggestion !== 'NO_HELP') {
           setReactiveSuggestion(suggestion);
@@ -418,7 +430,7 @@ export function OverlayApp() {
       } catch (error) {
         if (!cancelled) {
           setReactiveEnabled(false);
-          setReactiveError(error instanceof Error ? error.message : 'Mode réactif indisponible');
+          setReactiveError(aiConnectionError(error));
           openPanelRef.current();
         }
       } finally {
@@ -429,7 +441,7 @@ export function OverlayApp() {
     const timer = setInterval(() => { void observe(); }, 15_000);
     void observe();
     return () => { cancelled = true; controller.abort(); clearInterval(timer); };
-  }, [reactiveEnabled, user, busy, expanded, voiceMode]);
+  }, [reactiveEnabled, user]);
 
   const startWakeListener = useCallback(() => {
     if (!SpeechRecognitionAPI) return;
@@ -698,7 +710,7 @@ export function OverlayApp() {
         >
           <Orb size={ORB_W} state={orbState} variant="overlay" noHalo />
         </button>
-        {reactiveEnabled && <button onClick={() => setReactiveEnabled(false)} title="Mettre en pause les analyses écran" aria-label="Mettre en pause les analyses écran" className="absolute bottom-0 rounded-full bg-slate-900 px-2 py-1 text-[9px] text-cyan-200" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>Écran · {reactiveCount}/20 · Pause</button>}
+        {reactiveEnabled && <button onClick={() => setReactiveEnabled(false)} title="Pause Screen assist" aria-label="Pause Screen assist" className="absolute bottom-0 rounded-full bg-slate-900 px-2 py-1 text-[9px] text-cyan-200" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>Screen · {reactiveCount}/20 · Pause</button>}
       </div>
     );
   }
@@ -847,8 +859,8 @@ export function OverlayApp() {
           style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
         >
           {isElectron && user && (
-            <ControlBtn onClick={() => { if (!reactiveEnabled) { reactiveBudget.current = 0; setReactiveCount(0); lastScreenHash.current = ''; } setReactiveEnabled((value) => !value); setReactiveError(''); setReactiveSuggestion(''); }} title={reactiveEnabled ? 'Désactiver le mode réactif' : 'Mode réactif : envoyer des captures à l’IA toutes les 15 s, maximum 20 analyses'} active={reactiveEnabled}>
-              <Sparkles className="h-3 w-3" />
+            <ControlBtn onClick={() => { if (!reactiveEnabled) { reactiveBudget.current = 0; setReactiveCount(0); lastScreenHash.current = ''; lastSuggestionAt.current = 0; setReactiveStatus('Analyzing your screen…'); } setReactiveEnabled((value) => !value); setReactiveError(''); setReactiveSuggestion(''); }} title={reactiveEnabled ? 'Pause Screen assist' : 'Start Screen assist: analyze now, then check screen changes every 15 seconds (up to 20 analyses)'} active={reactiveEnabled}>
+              <ScanEye className="h-3 w-3" />
             </ControlBtn>
           )}
           {/* Dashboard shortcut */}
@@ -868,7 +880,11 @@ export function OverlayApp() {
           <ControlBtn onClick={closePanel} title="Minimise"><ChevronDown className="h-3 w-3" /></ControlBtn>
         </div>
 
-        {reactiveEnabled && <p role="status" className="px-1 text-[10px] text-cyan-100">Analyse écran activée · {reactiveCount}/20 · bouton ✨ pour arrêter</p>}
+        {reactiveEnabled && <div className="rounded-xl bg-slate-950/70 px-3 py-2 text-[11px] leading-relaxed text-cyan-50" role="status">
+          <p className="font-medium">Screen assist on · {reactiveCount}/20</p>
+          <p>{reactiveStatus}</p>
+          <p className="text-cyan-100/75">Screenshots are sent to AI. Click the screen icon to pause.</p>
+        </div>}
         {showOpacitySlider && (
           <label className="flex items-center gap-3 rounded-xl bg-white/[0.06] px-3 py-2 text-[11px] text-foreground/60" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
             Opacity
@@ -881,7 +897,7 @@ export function OverlayApp() {
         {/* ── PRESENCE ZONE ── */}
         {!hasConversation && (
           <div
-            className="relative z-10 flex flex-1 flex-col items-center justify-center"
+            className="relative z-10 flex min-h-0 flex-1 flex-col items-center justify-center overflow-hidden"
             style={{ padding: '0 32px', gap: 0 }}
             onClick={() => !isListeningCmd && inputRef.current?.focus()}
           >
@@ -991,15 +1007,17 @@ export function OverlayApp() {
         )}
 
         {(reactiveSuggestion || reactiveError) && (
-          <div className="relative z-10 mx-5 mb-2 rounded-xl bg-white/10 p-3 text-xs" role="status">
+          <section aria-label={reactiveError ? 'Screen assist error' : 'Screen assist suggestion'} className="relative z-20 mx-4 mb-3 max-h-48 shrink-0 overflow-y-auto rounded-2xl border border-white/20 bg-slate-950/95 p-4 text-white shadow-lg" style={{ fontSize: 12, lineHeight: 1.6, overflowWrap: 'anywhere' }} role={reactiveError ? 'alert' : 'status'}>
+            <p className="mb-1 font-medium">{reactiveError ? 'Screen assist paused' : 'I can help with this'}</p>
             <p>{reactiveError || reactiveSuggestion}</p>
             {reactiveSuggestion && <button className="mt-2 underline" disabled={busy} onClick={() => { const suggestion = reactiveSuggestion; setReactiveSuggestion(''); void (async () => {
-              const capture = await window.aura!.captureOnly();
-              try { await runAI(`Aide-moi avec cette proposition : ${suggestion}`, capture.preview); }
-              finally { if (capture.path) await window.aura!.clearScreenshot(capture.path); }
-            })(); }}>Aide-moi</button>}
-            <button className="ml-3 mt-2 underline" onClick={() => { setReactiveSuggestion(''); setReactiveError(''); }}>Fermer</button>
-          </div>
+              let capture: Awaited<ReturnType<NonNullable<typeof window.aura>['captureOnly']>> | undefined;
+              try { capture = await window.aura!.captureOnly({ excludeOverlay: true }); if (!capture.success || !capture.preview) throw new Error('Screen capture is unavailable. Check your Screen Recording permission.'); await runAI(`Help me with this suggestion: ${suggestion}`, capture.preview); }
+              catch (error) { setReactiveError(aiConnectionError(error)); }
+              finally { if (capture?.path) await window.aura!.clearScreenshot(capture.path); }
+            })(); }}>Help me</button>}
+            <button className="ml-3 mt-2 underline" onClick={() => { setReactiveSuggestion(''); setReactiveError(''); }}>Dismiss</button>
+          </section>
         )}
         {/* ── INPUT ZONE ── */}
         <div className="relative z-10 flex-shrink-0" style={{ padding: '8px 20px 20px' }}>

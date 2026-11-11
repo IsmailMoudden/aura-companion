@@ -230,11 +230,11 @@ function AppPage() {
 
   if (authError && !user) {
     return <main className="flex min-h-screen flex-col items-center justify-center gap-4 px-6 text-center">
-      <h1 className="text-display text-2xl">Ton espace n’a pas pu se charger</h1>
+      <h1 className="text-display text-2xl">Your workspace could not load</h1>
       <p className="text-sm text-muted-foreground" role="alert">{authError}</p>
       <div className="flex gap-4">
-        <button onClick={() => window.location.reload()} className="underline">Réessayer</button>
-        <button onClick={() => navigate({ to: '/auth' })} className="underline">Se reconnecter</button>
+        <button onClick={() => window.location.reload()} className="underline">Try again</button>
+        <button onClick={() => navigate({ to: '/auth' })} className="underline">Sign in again</button>
       </div>
     </main>;
   }

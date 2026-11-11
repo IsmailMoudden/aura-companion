@@ -21,7 +21,7 @@ const auraAPI = {
   // Screenshot (with hide/show — for manual camera button)
   takeScreenshot: () => ipcRenderer.invoke(IPC_EVENTS.SCREENSHOT.TAKE),
   // Screenshot without hiding overlay — for auto-capture on message send
-  captureOnly: () => ipcRenderer.invoke('screenshot:capture-only'),
+  captureOnly: (options?: { excludeOverlay?: boolean }) => ipcRenderer.invoke('screenshot:capture-only', options),
   clearScreenshot: (filepath: string) =>
     ipcRenderer.invoke(IPC_EVENTS.SCREENSHOT.CLEAR, filepath),
 

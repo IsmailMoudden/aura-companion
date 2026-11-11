@@ -35,7 +35,7 @@ export function useAuth() {
     });
     let active = true;
     const timeout = setTimeout(() => {
-      if (active) { setError('La connexion prend trop de temps. Vérifie ton réseau puis réessaie.'); setLoading(false); }
+      if (active) { setError('Sign-in is taking too long. Check your connection and try again.'); setLoading(false); }
     }, 12_000);
     const unsubscribeSignedOut = window.aura?.onAuthSignedOut?.(() => { void supabase.auth.signOut({ scope: 'local' }); });
     const unsubscribeDeepLink = window.aura?.onAuthDeepLink(async ({ accessToken, refreshToken }) => {

@@ -42,7 +42,7 @@ function AuthPage() {
         }
         return;
       }
-    }).catch(() => setAuthError('Connexion indisponible. Réessaie depuis cette page.'));
+    }).catch(() => setAuthError('Sign-in is unavailable. Please try again from this page.'));
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session) {
@@ -151,7 +151,7 @@ function AuthPage() {
 
         {authError && <p role="alert" className="mb-4 text-sm text-red-300">{authError}</p>}
         {authComplete && <div role="status" className="mb-4 text-sm">
-          <p>Connexion réussie. Tu peux revenir dans Aura.</p>
+          <p>Signed in successfully. You can return to Aura.</p>
           <button className="mt-2 underline" onClick={() => { redirected.current = false; void supabase.auth.getSession().then(({ data }) => { if (data.session) redirectToOverlay(data.session.access_token, data.session.refresh_token); }); }}>Ouvrir Aura</button>
         </div>}
         <button
