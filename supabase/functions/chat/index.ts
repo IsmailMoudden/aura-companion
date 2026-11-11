@@ -183,7 +183,7 @@ Deno.serve(async (req: Request) => {
       }
 
       if (notes.length) {
-        lines.push(`Notes: ${notes.slice(0, 5).map((n) => n.fact).join(' · ')}`);
+        lines.push(`Notes: ${notes.slice(-5).map((n) => n.fact).join(' · ')}`);
       }
 
       if (lines.length) {

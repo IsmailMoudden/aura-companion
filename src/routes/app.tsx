@@ -13,6 +13,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 import { MODELS, LIMIT_CONTACT, getModelLabel, type ModelId } from "@/lib/models";
 import { cn } from "@/lib/utils";
+import { MemoryTree } from "@/components/memory/memory-tree";
 
 export const Route = createFileRoute("/app")({
   head: () => ({ meta: [{ title: "Aura, Your workspace" }] }),
@@ -743,6 +744,7 @@ function AppPage() {
                 {/* MEMORY */}
                 {settingsTab === "memory" && (
                   <div className="space-y-px">
+                    {user && <MemoryTree key={user.id} userId={user.id} />}
                     <SettingsRow title="Conversation history" desc="Your threads are saved and searchable from any device.">
                       <span className="rounded-full bg-white/[0.06] px-4 py-2 text-xs font-light text-muted-foreground">Always on</span>
                     </SettingsRow>

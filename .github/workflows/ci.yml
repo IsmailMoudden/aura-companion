@@ -27,6 +27,10 @@ jobs:
         run: python3 tests/quota-concurrency.py
         env:
           TEST_DATABASE_URL: postgresql://postgres:test-only@localhost:5432/postgres
+      - name: Memory mutation and concurrency regression tests
+        run: python3 tests/memory-database.py
+        env:
+          TEST_DATABASE_URL: postgresql://postgres:test-only@localhost:5432/postgres
       - run: bun run build
       - run: bunx vite build --config vite.overlay.config.ts
       - run: bun run electron:bundle

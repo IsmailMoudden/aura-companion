@@ -23,6 +23,27 @@ try {
   if (!signedIn.ok) throw new Error(`Smoke-test sign-in failed: HTTP ${signedIn.status}`);
   const session = await signedIn.json();
   if (process.env.GITHUB_ACTIONS) { console.log(`::add-mask::${session.access_token}`); console.log(`::add-mask::${session.refresh_token}`); }
+  const memory = async (body, expectedStatus = 200) => {
+    const response = await fetch(`${base}/functions/v1/memory`, {
+      method: body ? 'POST' : 'GET', headers: { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
+      ...(body ? { body: JSON.stringify(body) } : {}), signal: AbortSignal.timeout(15_000),
+    });
+    if (response.status !== expectedStatus) throw new Error(`Memory smoke test failed: expected ${expectedStatus}, got HTTP ${response.status}`);
+    return response.json();
+  };
+  const denied = await fetch(`${base}/functions/v1/memory`, { signal: AbortSignal.timeout(15_000) });
+  if (denied.status !== 401) throw new Error('Unauthenticated memory access was not rejected');
+  await memory();
+  const original = { fact: 'Deployment smoke-test fact' };
+  const corrected = { fact: 'Corrected deployment smoke-test fact' };
+  const added = await memory({ action: 'add', category: 'memory_notes', key: '', value: original, user_id: crypto.randomUUID() });
+  if (added.profile.memory_notes[0]?.fact !== original.fact) throw new Error('Memory add did not persist');
+  await memory({ action: 'edit', category: 'memory_notes', key: '0', expected: original, value: corrected });
+  await memory({ action: 'edit', category: 'memory_notes', key: '0', expected: original, value: corrected }, 409);
+  await memory({ action: 'delete', category: 'memory_notes', key: '0', expected: corrected });
+  const refreshed = await memory();
+  if (refreshed.profile.memory_notes.length !== 0) throw new Error('Memory delete did not persist');
+  console.log('PASS: production memory authentication, owner-scoped add/edit/delete, stale-edit rejection and persisted deletion.');
   const chat = await fetch(`${base}/functions/v1/chat`, { method: 'POST', headers: { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ model: 'auto', messages: [{ role: 'user', content: 'Reply with exactly AURA_OK.' }] }), signal: AbortSignal.timeout(60_000) });
   const result = await chat.json();
   if (!chat.ok || !result.reply?.trim()) throw new Error(`Authenticated chat smoke test failed: HTTP ${chat.status}, ${String(result.error ?? 'empty reply').slice(0, 150)}`);

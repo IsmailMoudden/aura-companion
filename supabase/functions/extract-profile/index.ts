@@ -1,3 +1,4 @@
+import { applyMemoryOverrides } from '../_shared/memory.ts';
 import { authorizedCron } from '../_shared/cron-auth.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
@@ -109,7 +110,7 @@ function mergeProfiles(existing: ExistingProfile, extracted: ProfileData, now: s
     );
     if (!isDupe) notes.push({ fact: n.fact, learned_at: now });
   }
-  notes.splice(50);
+  notes.splice(0, Math.max(0, notes.length - 50));
 
   return { identity, projects, topics, memory_notes: notes };
 }
@@ -191,15 +192,18 @@ Deno.serve(async (req: Request) => {
       try {
         extracted = JSON.parse(raw);
       } catch {
-        console.error(`Failed to parse extraction for convo ${convo.id}:`, raw);
+        console.error(JSON.stringify({ event: 'extraction_invalid_json' }));
         await supabase.from('conversations').update({ profile_extracted_at: now }).eq('id', convo.id);
         continue;
       }
 
+      // Create an empty row for accounts that predate the profile migration.
+      const { error: createError } = await supabase.from('user_profile').upsert({ id: convo.user_id }, { onConflict: 'id', ignoreDuplicates: true });
+      if (createError) continue;
       // Load existing profile
       const { data: profileRow } = await supabase
         .from('user_profile')
-        .select('identity, projects, topics, memory_notes')
+        .select('identity, projects, topics, memory_notes, memory_overrides, memory_revision')
         .eq('id', convo.user_id)
         .single();
 
@@ -210,14 +214,12 @@ Deno.serve(async (req: Request) => {
         memory_notes: [],
       };
 
-      const merged = mergeProfiles(existing, extracted, now);
-
-      // Upsert profile
-      await supabase.from('user_profile').upsert({
-        id: convo.user_id,
-        ...merged,
-        profile_updated_at: now,
+      const merged = await applyMemoryOverrides(mergeProfiles(existing, extracted, now), profileRow?.memory_overrides);
+      const { data: saved, error: saveError } = await supabase.rpc('save_extracted_memory', {
+        p_user_id: convo.user_id, p_revision: profileRow?.memory_revision ?? 0, p_profile: merged,
       });
+      // A manual edit or another extraction won the race. Retry on the next run.
+      if (saveError || !saved) continue;
 
       // Mark conversation as processed
       await supabase.from('conversations').update({ profile_extracted_at: now }).eq('id', convo.id);

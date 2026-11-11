@@ -7,6 +7,8 @@ on:
       - 'supabase/functions/**'
       - 'supabase/migrations/20261109000000_atomic_ai_quota.sql'
       - 'scripts/deploy-ai-quota.mjs'
+      - 'scripts/deploy-memory.mjs'
+      - 'supabase/migrations/20261111000000_memory_management.sql'
       - 'scripts/smoke-chat.mjs'
       - 'scripts/ensure-auth-redirects.mjs'
       - '.github/workflows/deploy-functions.yml'
@@ -32,6 +34,18 @@ jobs:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
           VITE_WEB_URL: https://aura.aura-companion.workers.dev
+
+      - name: Apply memory management schema
+        run: node scripts/deploy-memory.mjs
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+
+      - name: Deploy private memory management
+        run: supabase functions deploy memory --remote="$SUPABASE_PROJECT_REF" --no-verify-jwt --yes
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
 
       - name: Deploy authenticated profile extraction
         run: supabase functions deploy extract-profile --remote="$SUPABASE_PROJECT_REF" --no-verify-jwt --yes
