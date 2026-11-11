@@ -135,8 +135,8 @@ export function OverlayApp() {
   const dictSubmitRef = useRef<(() => void) | null>(null); // callable to force-submit current dictation
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const observationContext = useRef({ busy, voiceMode, inputFocused });
-  observationContext.current = { busy, voiceMode, inputFocused };
+  const observationContext = useRef({ busy, voiceMode, hasDraft: input.trim().length > 0 });
+  observationContext.current = { busy, voiceMode, hasDraft: input.trim().length > 0 };
 
   useEffect(() => {
     const init = async () => {
@@ -391,7 +391,7 @@ export function OverlayApp() {
       if (reactiveBudget.current >= 20) { setReactiveEnabled(false); setReactiveError('This session has reached 20 screen analyses. Turn Screen assist on again to start a new session.'); openPanelRef.current(); return; }
       if (reactiveInFlight.current) return;
       const context = observationContext.current;
-      if (context.busy || context.voiceMode !== 'off' || context.inputFocused) { setReactiveStatus('Waiting while you use Aura'); return; }
+      if (context.busy || context.voiceMode !== 'off' || context.hasDraft) { setReactiveStatus('Waiting while you use Aura'); return; }
       if (Date.now() - lastSuggestionAt.current < 120_000) { setReactiveStatus('Watching · next suggestion in up to 2 minutes'); return; }
       setReactiveStatus('Analyzing your screen…');
       reactiveInFlight.current = true;
