@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
+import { APP_VERSION, BUILD_COMMIT } from "@/lib/version";
 import { Orb } from "@/components/aura/orb";
 import { PillButton } from "@/components/aura/pill-button";
 import { Section } from "@/components/landing/section";
@@ -217,7 +218,10 @@ function Landing() {
             <span className="h-5 w-5 rounded-full" style={{ background: "var(--gradient-orb)" }} />
             <span className="text-display text-base text-foreground">Aura</span>
           </div>
-          <p>© 2026 Aura. Designed with care.</p>
+          <div className="space-y-1">
+            <p>© 2026 Aura. Designed with care.</p>
+            <p className="text-xs">Website v{APP_VERSION} · build {BUILD_COMMIT}</p>
+          </div>
           <div className="flex gap-6">
             <a className="hover:text-foreground transition-colors" href="/settings">Privacy</a>
             <a className="hover:text-foreground transition-colors" href="/settings">Terms</a>

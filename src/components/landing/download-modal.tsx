@@ -1,3 +1,4 @@
+import { APP_VERSION, BUILD_COMMIT } from "@/lib/version";
 import { useEffect, useRef, useState } from "react";
 import type React from "react";
 import { GlassPanel } from "@/components/aura/glass-panel";
@@ -129,6 +130,7 @@ export function DownloadModal({ open, onClose }: DownloadModalProps) {
 
         <p className="mb-1 text-xs uppercase tracking-[0.2em] text-muted-foreground">Download</p>
         <h2 id="download-title" className="text-display text-3xl mb-2">Choose your platform.</h2>
+        <p className="mb-3 text-sm text-muted-foreground" role="status">Desktop release: {release?.version ?? "latest stable release on GitHub"}</p>
         <p className="text-sm font-light text-muted-foreground mb-8">
           Free during early access. No account needed to start.
         </p>
@@ -197,7 +199,7 @@ export function DownloadModal({ open, onClose }: DownloadModalProps) {
         </div>
 
         <p className="mt-6 text-center text-xs text-muted-foreground/60">
-          macOS · Windows · Web · {release?.version ?? 'Latest GitHub release'}
+          Website v{APP_VERSION} · build {BUILD_COMMIT}
         </p>
       </GlassPanel>
 
