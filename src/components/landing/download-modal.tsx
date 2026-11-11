@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type React from "react";
 import { GlassPanel } from "@/components/aura/glass-panel";
 import { Download, X, Apple, Monitor, ChevronRight } from "lucide-react";
+import { InstallCommand, MAC_INSTALL_COMMAND, MacInstallReminder } from "./mac-install-reminder";
 
 const RELEASES_BASE = "https://github.com/IsmailMoudden/aura-companion/releases/latest/download";
 
@@ -17,7 +18,7 @@ const platforms: { id: string; icon: React.ReactNode; label: string; sub: string
     badge: "Recommended",
     guide: [
       { text: "Open the .dmg and drag Aura to Applications." },
-      { text: 'macOS will block it the first time. Open Terminal and run:', code: "xattr -cr /Applications/Aura.app" },
+      { text: 'After moving Aura into Applications, if macOS blocks the first launch, open Terminal, paste this command and press Return:', code: MAC_INSTALL_COMMAND },
       { text: "Double-click Aura to launch. The orb appears on your screen." },
       { text: "Press Alt+Space to summon or dismiss the overlay." },
       { text: "Aura automatically captures your screen on every message. Press Alt+Shift+S to capture manually." },
@@ -33,7 +34,7 @@ const platforms: { id: string; icon: React.ReactNode; label: string; sub: string
     badge: null,
     guide: [
       { text: "Open the .dmg and drag Aura to Applications." },
-      { text: 'macOS will block it the first time. Open Terminal and run:', code: "xattr -cr /Applications/Aura.app" },
+      { text: 'After moving Aura into Applications, if macOS blocks the first launch, open Terminal, paste this command and press Return:', code: MAC_INSTALL_COMMAND },
       { text: "Double-click Aura to launch. The orb appears on your screen." },
       { text: "Press Alt+Space to summon or dismiss the overlay." },
       { text: "Aura automatically captures your screen on every message. Press Alt+Shift+S to capture manually." },
@@ -64,6 +65,25 @@ interface DownloadModalProps {
 
 export function DownloadModal({ open, onClose }: DownloadModalProps) {
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [showMacReminder, setShowMacReminder] = useState(false);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (open && showMacReminder) dialogRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [open, showMacReminder]);
+  useEffect(() => {
+    if (!open) return;
+    try { setShowMacReminder(sessionStorage.getItem('aura-mac-install-reminder') === 'true'); } catch { /* The reminder also works without browser storage. */ }
+  }, [open]);
+  const onDownload = (platformId: string) => {
+    const mac = platformId.startsWith('mac-');
+    setShowMacReminder(mac);
+    setExpanded(mac ? null : platformId);
+    if (mac) requestAnimationFrame(() => dialogRef.current?.scrollTo({ top: 0, behavior: 'smooth' }));
+    try {
+      if (mac) sessionStorage.setItem('aura-mac-install-reminder', 'true');
+      else sessionStorage.removeItem('aura-mac-install-reminder');
+    } catch { /* Storage is optional. */ }
+  };
   const [release, setRelease] = useState<{ version: string; urls: Record<string, string> } | null>(null);
   useEffect(() => {
     if (!open) return;
@@ -90,23 +110,30 @@ export function DownloadModal({ open, onClose }: DownloadModalProps) {
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" style={{ animation: "fadeIn 0.2s ease" }} />
 
       <GlassPanel
+        ref={dialogRef}
         strong
-        className="relative z-10 w-full max-w-md p-8"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="download-title"
+        className="relative z-10 max-h-[calc(100dvh-48px)] w-full max-w-md overflow-y-auto p-6 sm:p-8"
         style={{ animation: "fadeUp 0.3s cubic-bezier(0.34,1.4,0.64,1)" }}
         onClick={(e) => e.stopPropagation()}
       >
         <button
           onClick={onClose}
+          aria-label="Close download instructions"
           className="absolute right-5 top-5 flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground hover:bg-white/[0.08]"
         >
           <X className="h-4 w-4" />
         </button>
 
         <p className="mb-1 text-xs uppercase tracking-[0.2em] text-muted-foreground">Download</p>
-        <h2 className="text-display text-3xl mb-2">Choose your platform.</h2>
+        <h2 id="download-title" className="text-display text-3xl mb-2">Choose your platform.</h2>
         <p className="text-sm font-light text-muted-foreground mb-8">
           Free during early access. No account needed to start.
         </p>
+
+        {showMacReminder && <MacInstallReminder />}
 
         <div className="flex flex-col gap-3">
           {platforms.map((p) => (
@@ -137,6 +164,8 @@ export function DownloadModal({ open, onClose }: DownloadModalProps) {
                 </button>
                 <a
                   href={release?.urls[p.url.split('/').pop()!] ?? p.url}
+                  onClick={() => onDownload(p.id)}
+                  aria-label={`Download Aura for ${p.id === 'mac-arm' ? 'macOS Apple Silicon' : p.id === 'mac-intel' ? 'macOS Intel' : 'Windows'}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex h-8 w-8 items-center justify-center rounded-full bg-white/[0.08] hover:bg-white/[0.16] transition-colors"
@@ -152,14 +181,12 @@ export function DownloadModal({ open, onClose }: DownloadModalProps) {
                     {p.guide.map((step, i) => (
                       <li key={i} className="flex gap-3 text-[13px] font-light text-muted-foreground leading-relaxed">
                         <span className="mt-0.5 flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full bg-white/[0.08] text-[10px] text-foreground/60">{i + 1}</span>
-                        <span>
+                        <div className="min-w-0 flex-1">
                           {step.text}
                           {step.code && (
-                            <code className="mt-1 block rounded-lg bg-black/30 px-3 py-1.5 font-mono text-[11px] text-foreground/80 select-all">
-                              {step.code}
-                            </code>
+                            <InstallCommand command={step.code} />
                           )}
-                        </span>
+                        </div>
                       </li>
                     ))}
                   </ol>
